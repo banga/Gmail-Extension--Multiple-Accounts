@@ -30,15 +30,17 @@
 			}
 
 			function getAccountUrl(accountNumber) {
-				return 'u/' + accountNumber + '/';
+				return getGmailUrl() + 'u/' + accountNumber + '/';
+			}
+
+			function getInboxUrl(accountNumber) {
+				return getAccountUrl(accountNumber) + '#inbox/';
 			}
 
 			function getFeedUrl(accountNumber) {
 				// "zx" is a Gmail query parameter that is expected to contain a random
 				// string and may be ignored/stripped.
-				var feedUrl = getGmailUrl() + getAccountUrl(accountNumber) + "feed/atom?zx=" + encodeURIComponent(instanceId);
-				console.debug(feedUrl);
-				return feedUrl;
+				return getAccountUrl(accountNumber) + "feed/atom?zx=" + encodeURIComponent(instanceId);
 			}
 
 			function isGmailUrl(url) {
@@ -47,7 +49,7 @@
 				// - doesn't contain any other path chars
 				var gmail = getGmailUrl();
 				if (url.indexOf(gmail) != 0)
-				return false;
+					return false;
 
 				return url.length == gmail.length || url[gmail.length] == '?' ||
 				url[gmail.length] == '#';
@@ -98,9 +100,10 @@
 
 			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
 				if (changeInfo.url && isGmailUrl(changeInfo.url)) {
-					getInboxCount(function(accountNumber, count) {
-						updateUnreadCount(accountNumber, count);
-					});
+					for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++)
+						getInboxCount(accountNumber, function(accountNumber, count) {
+							updateUnreadCount(accountNumber, count);
+						});
 				}
 			});
 
@@ -218,7 +221,6 @@
 			}
 
 			function updateUnreadCount(accountNumber, count) {
-				console.info("Account " + accountNumber + ", count: " + count);
 				if (unreadCount[accountNumber] != count) {
 					unreadCount[accountNumber] = count;
 					animateFlip();
@@ -285,18 +287,6 @@
 
 				chrome.browserAction.setIcon({imageData:canvasContext.getImageData(0, 0,
 					canvas.width,canvas.height)});
-			}
-
-			function goToInbox() {
-				chrome.tabs.getAllInWindow(undefined, function(tabs) {
-					for (var i = 0, tab; tab = tabs[i]; i++) {
-						if (tab.url && isGmailUrl(tab.url)) {
-							chrome.tabs.update(tab.id, {selected: true});
-							return;
-						}
-					}
-					chrome.tabs.create({url: getGmailUrl()});
-				});
 			}
 
 		</script>

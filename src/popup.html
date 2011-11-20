@@ -75,17 +75,29 @@
 			}
 
 			function getAccountUrl(accountNumber) {
-				return 'u/' + accountNumber + '/';
+				return getGmailUrl() + 'u/' + accountNumber + '/';
+			}
+
+			function getInboxUrl(accountNumber) {
+				return getAccountUrl(accountNumber) + '#inbox/';
 			}
 
 			function getFeedUrl(accountNumber) {
 				// "zx" is a Gmail query parameter that is expected to contain a random
 				// string and may be ignored/stripped.
-				return getGmailUrl() + getAccountUrl(accountNumber) + "feed/atom?zx=" + encodeURIComponent(instanceId);
+				return getAccountUrl(accountNumber) + "feed/atom?zx=" + encodeURIComponent(instanceId);
 			}
 
-			function getInboxUrl(accountNumber) {
-				return getGmailUrl() + getAccountUrl(accountNumber) + "#Inbox";
+			function isAccountUrl(url, accountNumber) {
+				// This is the Gmail we're looking for if:
+				// - starts with the correct gmail url
+				// - doesn't contain any other path chars
+				var gmail = getAccountUrl(accountNumber);
+				if (url.indexOf(gmail) != 0)
+					return false;
+
+				return url.length == gmail.length || url[gmail.length] == '?' ||
+				url[gmail.length] == '#';
 			}
 
 			function init() {
@@ -107,10 +119,11 @@
 							inboxIcon.setAttribute('src', 'icon_128.png');
 							inboxHeader.appendChild(inboxIcon);
 
-							var inboxUrl = document.createElement('a');
+							var inboxUrl = document.createElement('div');
 							inboxUrl.setAttribute('class', 'url');
 							inboxUrl.setAttribute('id', 'inbox-url-' + accountNumber);
-							inboxUrl.setAttribute('target', '_blank');
+							inboxUrl.accountNumber = accountNumber;
+							inboxUrl.onclick = function() { goToInbox(this.accountNumber); }
 							inboxHeader.appendChild(inboxUrl);
 						inboxRow.appendChild(inboxHeader);
 
@@ -131,7 +144,7 @@
 						updateUnreadCount(accountNumber, name, count, mails);
 					},
 					function(accountNumber) {
-						showLoggedOut();
+						showLoggedOut(accountNumber);
 					}
 				);
 			}
@@ -229,18 +242,18 @@
 				accountInfo[accountNumber].loggedIn = true;
 
 				var inboxUrl = document.getElementById('inbox-url-' + accountNumber);
-				inboxUrl.setAttribute('href', getInboxUrl(accountNumber));
 				inboxUrl.innerText = name + " (" + count + ") ";
 
 				var inboxPreview = document.getElementById('inbox-preview-' + accountNumber);
 				inboxPreview.innerHTML = "";
 
-				console.debug(mails);
 				for(var i in mails) {
+					var mail = mails[i];
 					var mailPreview = document.createElement('div');
 					mailPreview.setAttribute('class', 'preview-row');
-					mailPreview.innerHTML = "<div class='subject'>" + mails[i].subject + "</div><div class='author'>" + mails[i].author + "</div>";
-					mailPreview.onclick = function() { openTab(mails[i].link) };
+					mailPreview.innerHTML = "<div class='subject'>" + mail.subject + "</div><div class='author'>" + mail.author + "</div>";
+					mailPreview.mailLink = mail.link;
+					mailPreview.onclick = function() { openTab(this.mailLink); };
 					mailPreview.onmouseover = function() { this.style.backgroundColor = '#DEF' };
 					mailPreview.onmouseout = function() { this.style.backgroundColor = '#FFF' };
 					inboxPreview.appendChild(mailPreview);
@@ -250,10 +263,27 @@
 
 			function showLoggedOut(accountNumber) {
 				accountInfo[accountNumber].loggedIn = false;
+
+				var inboxUrl = document.getElementById('inbox-url-' + accountNumber);
+				inboxUrl.innerText = "Click here to login";
 			}
+
+			function goToInbox(accountNumber) {
+				chrome.tabs.getAllInWindow(undefined, function(tabs) {
+					for (var i = 0, tab; tab = tabs[i]; i++) {
+						if (tab.url && isAccountUrl(tab.url, accountNumber)) {
+							chrome.tabs.update(tab.id, {selected: true});
+							return;
+						}
+					}
+					chrome.tabs.create({url: getInboxUrl(accountNumber)});
+				});
+			}
+
 		</script>
 	</head>
 	<body onload="init()">
+		<a target="_blank" href="options.html" style="float:right; margin-bottom: -10px; font-size: 0.5em">Options</a>
 		<div id='inboxes'>
 		</div>
 	</body>
