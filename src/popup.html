@@ -2,7 +2,7 @@
 	<head>
 		<style>
 			body {
-				min-width: 600px;
+				min-width: 70ex;
 				font-family: sans-serif;
 				font-size: 1em;
 			}
@@ -50,11 +50,19 @@
 				cursor: pointer;
 			}
 			.preview .subject {
+				float: left;
 				font-weight: bold;
 			}
 			.preview .author {
-				text-align: right;
-				display: inline;
+				margin-left: 10px;
+				float: right;
+				font-weight: bold;
+				text-transform: capitalize;
+			}
+			.preview .summary {
+				clear: both;
+				color: #444;
+				font-size: 0.9em;
 			}
 		</style>
 		<script>
@@ -195,9 +203,10 @@
 
 									while(entryNode) {
 										var subject = entryNode.getElementsByTagName('title')[0].textContent;
+										var summary = entryNode.getElementsByTagName('summary')[0].textContent;
 										var author = entryNode.getElementsByTagName('author')[0].getElementsByTagName('name')[0].textContent;
 										var link = entryNode.getElementsByTagName('link')[0].getAttribute('href');
-										entries[entries.length] = {'subject': subject, 'author': author, 'link': link};
+										entries[entries.length] = {'subject': subject, 'summary': summary, 'author': author, 'link': link};
 										entryNode = entrySet.iterateNext();
 									}
 
@@ -252,7 +261,7 @@
 					var mail = mails[i];
 					var mailPreview = document.createElement('div');
 					mailPreview.setAttribute('class', 'preview-row');
-					mailPreview.innerHTML = "<div class='subject'>" + mail.subject + "</div><div class='author'>" + mail.author + "</div>";
+					mailPreview.innerHTML = "<div class='subject'>" + mail.subject + "</div><div class='author'>" + mail.author + "</div><div class='summary'>" + mail.summary + "</div>";
 					mailPreview.mailLink = mail.link;
 					mailPreview.onclick = function() { openTab(this.mailLink); };
 					mailPreview.onmouseover = function() { this.style.backgroundColor = '#DEF' };
