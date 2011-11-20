@@ -119,6 +119,8 @@
 
 				if(localStorage.numAccounts)
 					numAccounts = localStorage.numAccounts;
+				else
+					chrome.tabs.create({url: "options.html"});
 
 				for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
 					requestFailureCount[accountNumber] = 0;
