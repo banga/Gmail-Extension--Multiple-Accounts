@@ -1,0 +1,310 @@
+<html>
+	<head>
+		<script>
+			// Identifier used to debug the possibility of multiple instances of the
+			// extension making requests on behalf of a single user.
+			var instanceId = 'gmc' + parseInt(Date.now() * Math.random(), 10);
+			var animationFrames = 36;
+			var animationSpeed = 10; // ms
+			var canvas;
+			var canvasContext;
+			var loggedInImage;
+			var pollIntervalMin = 1000 * 60;  // 1 minute
+			var pollIntervalMax = 1000 * 60 * 60;  // 1 hour
+			var requestFailureCount = [];  // used for exponential backoff
+			var requestTimeout = 1000 * 2;  // 5 seconds
+			var rotation = 0;
+			var numAccounts = 1;
+			var unreadCount = [];
+			var loadingAnimation = new LoadingAnimation();
+			var requestTimerId = [];
+			var isLoggedOut = [];
+
+			function getGmailUrl() {
+				var url = "https://mail.google.com/";
+				if (localStorage.customDomain)
+					url += localStorage.customDomain + "/";
+				else
+					url += "mail/"
+				return url;
+			}
+
+			function getAccountUrl(accountNumber) {
+				return 'u/' + accountNumber + '/';
+			}
+
+			function getFeedUrl(accountNumber) {
+				// "zx" is a Gmail query parameter that is expected to contain a random
+				// string and may be ignored/stripped.
+				var feedUrl = getGmailUrl() + getAccountUrl(accountNumber) + "feed/atom?zx=" + encodeURIComponent(instanceId);
+				console.debug(feedUrl);
+				return feedUrl;
+			}
+
+			function isGmailUrl(url) {
+				// This is the Gmail we're looking for if:
+				// - starts with the correct gmail url
+				// - doesn't contain any other path chars
+				var gmail = getGmailUrl();
+				if (url.indexOf(gmail) != 0)
+				return false;
+
+				return url.length == gmail.length || url[gmail.length] == '?' ||
+				url[gmail.length] == '#';
+			}
+
+			// A "loading" animation displayed while we wait for the first response from
+			// Gmail. This animates the badge text with a dot that cycles from left to
+			// right.
+			function LoadingAnimation() {
+				this.timerId_ = 0;
+				this.maxCount_ = 8;  // Total number of states in animation
+				this.current_ = 0;  // Current state
+				this.maxDot_ = 4;  // Max number of dots in animation
+			}
+
+			LoadingAnimation.prototype.paintFrame = function() {
+				var text = "";
+				for (var i = 0; i < this.maxDot_; i++) {
+					text += (i == this.current_) ? "." : " ";
+				}
+				if (this.current_ >= this.maxDot_)
+				text += "";
+
+				chrome.browserAction.setBadgeText({text:text});
+				this.current_++;
+				if (this.current_ == this.maxCount_)
+				this.current_ = 0;
+			}
+
+			LoadingAnimation.prototype.start = function() {
+				if (this.timerId_)
+				return;
+
+				var self = this;
+				this.timerId_ = window.setInterval(function() {
+					self.paintFrame();
+				}, 100);
+			}
+
+			LoadingAnimation.prototype.stop = function() {
+				if (!this.timerId_)
+				return;
+
+				window.clearInterval(this.timerId_);
+				this.timerId_ = 0;
+			}
+
+
+			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
+				if (changeInfo.url && isGmailUrl(changeInfo.url)) {
+					getInboxCount(function(accountNumber, count) {
+						updateUnreadCount(accountNumber, count);
+					});
+				}
+			});
+
+
+			function init() {
+				canvas = document.getElementById('canvas');
+				loggedInImage = document.getElementById('logged_in');
+				canvasContext = canvas.getContext('2d');
+
+				chrome.browserAction.setBadgeBackgroundColor({color:[208, 0, 24, 255]});
+				chrome.browserAction.setIcon({path: "gmail_logged_in.png"});
+				loadingAnimation.start();
+
+				if(localStorage.numAccounts)
+					numAccounts = localStorage.numAccounts;
+
+				for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
+					requestFailureCount[accountNumber] = 0;
+					isLoggedOut[accountNumber] = true;
+					startRequest(accountNumber);
+				}
+			}
+
+			function scheduleRequest(accountNumber) {
+				if (requestTimerId[accountNumber]) {
+					window.clearTimeout(requestTimerId[accountNumber]);
+				}
+				var randomness = Math.random() * 2;
+				var exponent = Math.pow(2, requestFailureCount[accountNumber]);
+				var multiplier = Math.max(randomness * exponent, 1);
+				var delay = Math.min(multiplier * pollIntervalMin, pollIntervalMax);
+				delay = Math.round(delay);
+
+				requestTimerId[accountNumber] = window.setTimeout(startRequest, delay, accountNumber);
+			}
+
+			// ajax stuff
+			function startRequest(accountNumber) {
+				getInboxCount(
+					accountNumber,
+					function(accountNumber, count) {
+						loadingAnimation.stop();
+						isLoggedOut[accountNumber] = false;
+						updateUnreadCount(accountNumber, count);
+						scheduleRequest(accountNumber);
+					},
+					function(accountNumber) {
+						loadingAnimation.stop();
+						isLoggedOut[accountNumber] = true;
+						showLoggedOut(accountNumber);
+						scheduleRequest(accountNumber);
+					}
+				);
+			}
+
+			function getInboxCount(accountNumber, onSuccess, onError) {
+				var xhr = new XMLHttpRequest();
+				var abortTimerId = window.setTimeout(function() {
+					xhr.abort();  // synchronously calls onreadystatechange
+				}, requestTimeout);
+
+				function handleSuccess(count) {
+					requestFailureCount[accountNumber] = 0;
+					window.clearTimeout(abortTimerId);
+					if (onSuccess)
+						onSuccess(accountNumber, count);
+				}
+
+				var invokedErrorCallback = false;
+				function handleError() {
+					++requestFailureCount[accountNumber];
+					window.clearTimeout(abortTimerId);
+					if (onError && !invokedErrorCallback)
+					onError(accountNumber);
+					invokedErrorCallback = true;
+				}
+
+				try {
+					xhr.onreadystatechange = function(){
+						if (xhr.readyState != 4)
+						return;
+
+						if (xhr.responseXML) {
+							var xmlDoc = xhr.responseXML;
+							var fullCountSet = xmlDoc.evaluate("/gmail:feed/gmail:fullcount",
+								xmlDoc, gmailNSResolver, XPathResult.ANY_TYPE, null);
+							var fullCountNode = fullCountSet.iterateNext();
+							if (fullCountNode) {
+								handleSuccess(fullCountNode.textContent);
+								return;
+							} else {
+								console.error(chrome.i18n.getMessage("gmailcheck_node_error"));
+							}
+						}
+
+						handleError();
+					}
+
+					xhr.onerror = function(error) {
+						handleError();
+					}
+
+					xhr.open("GET", getFeedUrl(accountNumber), true);
+					xhr.send(null);
+					} catch(e) {
+					console.error(chrome.i18n.getMessage("gmailcheck_exception", e));
+					handleError();
+				}
+			}
+
+			function gmailNSResolver(prefix) {
+				if(prefix == 'gmail') {
+					return 'http://purl.org/atom/ns#';
+				}
+			}
+
+			function updateUnreadCount(accountNumber, count) {
+				console.info("Account " + accountNumber + ", count: " + count);
+				if (unreadCount[accountNumber] != count) {
+					unreadCount[accountNumber] = count;
+					animateFlip();
+				}
+			}
+
+
+			function ease(x) {
+				return (1-Math.sin(Math.PI/2 + x * Math.PI))/2;
+			}
+
+			function countUnread() {
+				var totalUnread = 0;
+				for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
+					var unread = parseInt(unreadCount[accountNumber]);
+					if(unread)
+						totalUnread += unread;
+				}
+				return totalUnread;	
+			}
+
+			function animateFlip() {
+				rotation += 1/animationFrames;
+				drawIconAtRotation();
+
+				if (rotation <= 1) {
+					setTimeout("animateFlip()", animationSpeed);
+				} else {
+					rotation = 0;
+					drawIconAtRotation();
+					var badgeText = "";
+					var totalUnread = countUnread();
+					chrome.browserAction.setBadgeText({
+						text: totalUnread != 0 ? (totalUnread + "") : ""
+					});
+					chrome.browserAction.setBadgeBackgroundColor({color:[208, 0, 24, 255]});
+				}
+			}
+
+			function showLoggedOut(accountNumber) {
+				unreadCount[accountNumber] = -1;
+				var allLoggedOut = true;
+				for(var i = 0; i < numAccounts; i++)
+					if(!isLoggedOut[i])
+						allLoggedOut = false;
+				if(allLoggedOut) {
+					chrome.browserAction.setIcon({path:"gmail_not_logged_in.png"});
+					chrome.browserAction.setBadgeBackgroundColor({color:[190, 190, 190, 230]});
+					chrome.browserAction.setBadgeText({text:"?"});
+				}
+			}
+
+			function drawIconAtRotation() {
+				canvasContext.save();
+				canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+				canvasContext.translate(
+				Math.ceil(canvas.width/2),
+				Math.ceil(canvas.height/2));
+				canvasContext.rotate(2*Math.PI*ease(rotation));
+				canvasContext.drawImage(loggedInImage,
+				-Math.ceil(canvas.width/2),
+				-Math.ceil(canvas.height/2));
+				canvasContext.restore();
+
+				chrome.browserAction.setIcon({imageData:canvasContext.getImageData(0, 0,
+					canvas.width,canvas.height)});
+			}
+
+			function goToInbox() {
+				chrome.tabs.getAllInWindow(undefined, function(tabs) {
+					for (var i = 0, tab; tab = tabs[i]; i++) {
+						if (tab.url && isGmailUrl(tab.url)) {
+							chrome.tabs.update(tab.id, {selected: true});
+							return;
+						}
+					}
+					chrome.tabs.create({url: getGmailUrl()});
+				});
+			}
+
+		</script>
+	</head>
+	<body onload="init()">
+		<img id="logged_in" src="gmail_logged_in.png">
+		<canvas id="canvas" width="19" height="19">
+	</body>
+</html>
+
+
