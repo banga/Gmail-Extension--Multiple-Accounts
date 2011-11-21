@@ -115,7 +115,7 @@
 				loggedInImage = document.getElementById('logged_in');
 				canvasContext = canvas.getContext('2d');
 
-				chrome.browserAction.setBadgeBackgroundColor({color:[208, 0, 24, 255]});
+				chrome.browserAction.setBadgeBackgroundColor({color:[20, 120, 255, 255]});
 				chrome.browserAction.setIcon({path: "gmail_logged_in.png"});
 				loadingAnimation.start();
 
@@ -268,7 +268,7 @@
 					var badgeText = "";
 					var totalUnread = countUnread();
 					chrome.browserAction.setBadgeText({ text: totalUnread ? (totalUnread + "") : "" });
-					chrome.browserAction.setBadgeBackgroundColor({color:[208, 0, 24, 255]});
+					chrome.browserAction.setBadgeBackgroundColor({color:[20, 120, 255, 255]});
 				}
 			}
 
