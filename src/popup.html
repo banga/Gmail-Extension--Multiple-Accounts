@@ -133,6 +133,7 @@
 							inboxUrl.setAttribute('id', 'inbox-url-' + accountNumber);
 							inboxUrl.accountNumber = accountNumber;
 							inboxUrl.onclick = function() { goToInbox(this.accountNumber); }
+							inboxUrl.innerText = "Loading...";
 							inboxHeader.appendChild(inboxUrl);
 						inboxRow.appendChild(inboxHeader);
 
