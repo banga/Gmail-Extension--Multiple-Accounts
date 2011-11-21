@@ -12,7 +12,7 @@
 			var pollIntervalMin = 1000 * 60;  // 1 minute
 			var pollIntervalMax = 1000 * 60 * 60;  // 1 hour
 			var requestFailureCount = [];  // used for exponential backoff
-			var requestTimeout = 1000 * 2;  // 5 seconds
+			var requestTimeout = 1000 * 2;  // 2 seconds
 			var rotation = 0;
 			var numAccounts = 1;
 			var unreadCount = [];
@@ -40,15 +40,20 @@
 			}
 
 			function isGmailUrl(url) {
+				var gmail = getGmailUrl();
+				return (url.indexOf(gmail) == 0);
+			}
+
+			function isAccountUrl(accountNumber, url) {
 				// This is the Gmail we're looking for if:
 				// - starts with the correct gmail url
 				// - doesn't contain any other path chars
-				var gmail = getGmailUrl();
+				var gmail = getAccountUrl(accountNumber);
 				if (url.indexOf(gmail) != 0)
 					return false;
 
 				return url.length == gmail.length || url[gmail.length] == '?' ||
-				url[gmail.length] == '#';
+					url[gmail.length] == '#';
 			}
 
 			// A "loading" animation displayed while we wait for the first response from
@@ -67,17 +72,17 @@
 					text += (i == this.current_) ? "." : " ";
 				}
 				if (this.current_ >= this.maxDot_)
-				text += "";
+					text += "";
 
 				chrome.browserAction.setBadgeText({text:text});
 				this.current_++;
 				if (this.current_ == this.maxCount_)
-				this.current_ = 0;
+					this.current_ = 0;
 			}
 
 			LoadingAnimation.prototype.start = function() {
 				if (this.timerId_)
-				return;
+					return;
 
 				var self = this;
 				this.timerId_ = window.setInterval(function() {
@@ -87,22 +92,23 @@
 
 			LoadingAnimation.prototype.stop = function() {
 				if (!this.timerId_)
-				return;
+					return;
 
 				window.clearInterval(this.timerId_);
 				this.timerId_ = 0;
 			}
 
-
 			chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
-				if (changeInfo.url && isGmailUrl(changeInfo.url)) {
+				if(changeInfo.url && isGmailUrl(changeInfo.url)) {
 					for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++)
-						getInboxCount(accountNumber, function(accountNumber, count) {
-							updateUnreadCount(accountNumber, count);
-						});
+						if (isAccountUrl(accountNumber, changeInfo.url)) {
+							getInboxCount(accountNumber, function(accountNumber, count) {
+								updateUnreadCount(accountNumber, count);
+							});
+							return;
+						}
 				}
 			});
-
 
 			function init() {
 				canvas = document.getElementById('canvas');
@@ -122,6 +128,7 @@
 					requestFailureCount[accountNumber] = 0;
 					isLoggedOut[accountNumber] = true;
 					startRequest(accountNumber);
+
 				}
 			}
 
@@ -175,14 +182,14 @@
 					++requestFailureCount[accountNumber];
 					window.clearTimeout(abortTimerId);
 					if (onError && !invokedErrorCallback)
-					onError(accountNumber);
+						onError(accountNumber);
 					invokedErrorCallback = true;
 				}
 
 				try {
 					xhr.onreadystatechange = function(){
 						if (xhr.readyState != 4)
-						return;
+							return;
 
 						if (xhr.responseXML) {
 							var xmlDoc = xhr.responseXML;
@@ -197,6 +204,10 @@
 							}
 						}
 
+						// Authorization required
+						if (xhr.status == 401)
+							console.error(chrome.i18n.getMessage("gmailcheck_auth_reqd") + " " + (accountNumber + 1));
+
 						handleError();
 					}
 
@@ -204,9 +215,14 @@
 						handleError();
 					}
 
-					xhr.open("GET", getFeedUrl(accountNumber), true);
+					var user = localStorage['user' + accountNumber];
+				   	var pass = localStorage['pass' + accountNumber];
+					if(user && pass)
+						xhr.open("GET", getFeedUrl(accountNumber), true, user, pass);
+					else
+						xhr.open("GET", getFeedUrl(accountNumber), true);
 					xhr.send(null);
-					} catch(e) {
+				} catch(e) {
 					console.error(chrome.i18n.getMessage("gmailcheck_exception", e));
 					handleError();
 				}
@@ -251,9 +267,7 @@
 					drawIconAtRotation();
 					var badgeText = "";
 					var totalUnread = countUnread();
-					chrome.browserAction.setBadgeText({
-						text: totalUnread != 0 ? (totalUnread + "") : ""
-					});
+					chrome.browserAction.setBadgeText({ text: totalUnread ? (totalUnread + "") : "" });
 					chrome.browserAction.setBadgeBackgroundColor({color:[208, 0, 24, 255]});
 				}
 			}

@@ -50,16 +50,20 @@
 	</head>
 	<body>
 
-		<div id="header"><h1>Google Mail Checker Options</h1></div>
+		<div id="header"><h1>Google Multi-Account Mail Checker Options</h1></div>
 
 		<div class="section-header first">Custom Domain</div>
-		<p>To use Google Mail checker with Google Apps for Your Domain, enter the domain here.</p>
+		<p>To use Google Multi-Account Mail checker with Google Apps for Your Domain, enter the domain here.</p>
 		https://mail.google.com/<input type="text" id="custom-domain" oninput="markDirty()">
 		<em>(eg a/mydomain.com)</em>
 
 		<div class="section-header">Multiple Accounts</div>
 		<p>If you have multiple accounts, enter the number of accounts here.<p>
-		<input type="text" id="num-accounts" oninput="markDirty()">
+		<input type="text" id="num-accounts" oninput="updateNumAccounts()">
+		<p><b>Note:</b> Credentials are only required when you are not signed in.</p>
+
+		<div id="credential-input">
+		</div>
 
 		<div id="footer">
 			<button id="save-button" style="font-weight:bold" onclick="save()"
@@ -70,8 +74,71 @@
 		<script>
 			var customDomainsTextbox;
 			var saveButton;
+			var numAccounts;
+			var maxAccounts = 10; // Google seems to support upto 10
 
 			init();
+
+			function updateNumAccounts() {
+				markDirty();
+
+				numAccounts = parseInt(numAccountsTextbox.value);
+				if(!numAccounts || numAccounts > maxAccounts) {
+					numAccountsTextbox.value = "";
+					return false;
+				}
+				updateCredentialInputs();
+				localStorage.numAccounts = numAccounts + "";
+			}
+
+			function saveCredentialInputs() {
+				var container = document.getElementById('credential-input');
+				for(accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
+					localStorage['user' + accountNumber] = document.getElementById('user' + accountNumber).value;
+					localStorage['pass' + accountNumber] = document.getElementById('pass' + accountNumber).value;
+				}
+			}
+
+			function updateCredentialInputs() {
+				var container = document.getElementById('credential-input');
+				container.innerHTML = "";
+				for(accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
+					var header = document.createElement('div');
+					header.setAttribute('class', 'section-header');
+					header.innerText = "Credentials for account " + (accountNumber + 1);
+					container.appendChild(header);
+
+					var userLabel = document.createElement('label');
+					userLabel.setAttribute('for', 'user' + accountNumber);
+					userLabel.innerText = "Username: ";
+					container.appendChild(userLabel);
+
+					var user = document.createElement('input');
+					user.setAttribute('type', 'text');
+					user.setAttribute('id', 'user' + accountNumber);
+					user.oninput = markDirty;
+					container.appendChild(user);
+
+					container.appendChild(document.createElement('br'));
+					
+					var passLabel = document.createElement('label');
+					passLabel.setAttribute('for', 'pass' + accountNumber);
+					passLabel.innerText = "Password: ";
+					container.appendChild(passLabel);
+
+					var pass = document.createElement('input');
+					pass.setAttribute('type', 'password');
+					pass.setAttribute('id', 'pass' + accountNumber);
+					pass.oninput = markDirty;
+					container.appendChild(pass);
+
+					if(localStorage['user' + accountNumber]) {
+						user.setAttribute('value', localStorage['user' + accountNumber]);
+						pass.setAttribute('value', localStorage['pass' + accountNumber]);
+					}
+				}
+			}
+
 
 			function init() {
 				customDomainsTextbox = document.getElementById("custom-domain");
@@ -80,18 +147,18 @@
 
 				customDomainsTextbox.value = localStorage.customDomain || "";
 				numAccountsTextbox.value = localStorage.numAccounts || "1";
+
+				numAccounts = localStorage.numAccounts || 1;
+				updateCredentialInputs();
+				
 				markClean();
 			}
 
 			function save() {
 				localStorage.customDomain = customDomainsTextbox.value;
-				var numAccounts = parseInt(numAccountsTextbox.value);
 
-				if(!numAccounts) {
-					alert(numAccountsTextbox.value + " is not a valid value");
-					return false;
-				}
-				localStorage.numAccounts = numAccounts + "";
+				saveCredentialInputs();
+				updateCredentialInputs();
 
 				markClean();
 

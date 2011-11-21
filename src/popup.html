@@ -225,7 +225,12 @@
 						handleError();
 					}
 
-					xhr.open("GET", getFeedUrl(accountNumber), true);
+					var user = localStorage['user' + accountNumber];
+				   	var pass = localStorage['pass' + accountNumber];
+					if(user && pass)
+						xhr.open("GET", getFeedUrl(accountNumber), true, user, pass);
+					else
+						xhr.open("GET", getFeedUrl(accountNumber), true);
 					xhr.send(null);
 				} catch(e) {
 					console.error(chrome.i18n.getMessage("gmailcheck_exception", e));
@@ -275,7 +280,7 @@
 				accountInfo[accountNumber].loggedIn = false;
 
 				var inboxUrl = document.getElementById('inbox-url-' + accountNumber);
-				inboxUrl.innerText = "Click here to login";
+				inboxUrl.innerText = "Login or enter credentials in extension options";
 			}
 
 			function goToInbox(accountNumber) {
