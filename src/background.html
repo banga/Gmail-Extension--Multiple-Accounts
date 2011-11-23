@@ -265,7 +265,6 @@
 				} else {
 					rotation = 0;
 					drawIconAtRotation();
-					var badgeText = "";
 					var totalUnread = countUnread();
 					chrome.browserAction.setBadgeText({ text: totalUnread ? (totalUnread + "") : "" });
 					chrome.browserAction.setBadgeBackgroundColor({color:[20, 120, 255, 255]});
