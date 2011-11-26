@@ -1,0 +1,4 @@
+!https://github.com/milkbikis/Gmail-Extension--Multiple-Accounts/raw/master/title_image.png!
+Do you keep Gmail tabs open all the time? *You can use this extension to free up hundreds of MBs of RAM with this extension*. It keeps track of the unread e-mails in all your Gmail inboxes. And if you click on the icon, you can see a preview of each unread e-mail!
+If you keep multiple accounts, all you have to do is enter the number of accounts in the Options page. If you don't want to remain signed-in to all these accounts, you can even save your username/passwords. Keep in mind that these are stored in your browser in plaintext at the moment.
+"Download it":https://chrome.google.com/webstore/detail/mcpnehokodklgijkcakcfmccgpanipfp from Chrome webstore now.
