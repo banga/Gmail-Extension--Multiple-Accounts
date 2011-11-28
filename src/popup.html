@@ -71,7 +71,6 @@
 			var numAccounts = 1;
 			var accountInfo = [];
 			var requestTimerId = [];
-			var totalUnread = 0;
 
 			function getGmailUrl() {
 				var url = "https://mail.google.com/";
@@ -112,7 +111,6 @@
 				if(localStorage.numAccounts)
 					numAccounts = localStorage.numAccounts;
 
-				totalUnread = 0;
 				var inboxes = document.getElementById('inboxes');
 				for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
 					accountInfo[accountNumber] = {name: "", count: -1, loggedIn: false};
@@ -253,10 +251,6 @@
 				var nameHdr = "Gmail - Inbox for ";
 				name = name.substr(nameHdr.length);
 
-				// Update count on the badge
-				totalUnread += parseInt(count);
-				chrome.browserAction.setBadgeText({ text: totalUnread ? (totalUnread + "") : "" });
-
 				accountInfo[accountNumber].name = name;
 				accountInfo[accountNumber].count = count;
 				accountInfo[accountNumber].loggedIn = true;
@@ -278,6 +272,8 @@
 					mailPreview.onmouseout = function() { this.style.backgroundColor = '#FFF' };
 					inboxPreview.appendChild(mailPreview);
 				}
+
+				chrome.extension.sendRequest({'accountNumber': accountNumber, 'count': count});
 			}
 
 

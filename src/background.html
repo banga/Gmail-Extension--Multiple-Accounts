@@ -241,6 +241,10 @@
 				}
 			}
 
+			chrome.extension.onRequest.addListener(function(request) {
+				updateUnreadCount(request.accountNumber, request.count);
+			});
+
 
 			function ease(x) {
 				return (1-Math.sin(Math.PI/2 + x * Math.PI))/2;
