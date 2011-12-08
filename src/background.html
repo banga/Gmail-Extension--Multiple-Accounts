@@ -254,7 +254,7 @@
 				var totalUnread = 0;
 				for(var accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
 					var unread = parseInt(unreadCount[accountNumber]);
-					if(unread)
+					if(unread && unread >= 0)
 						totalUnread += unread;
 				}
 				return totalUnread;	
