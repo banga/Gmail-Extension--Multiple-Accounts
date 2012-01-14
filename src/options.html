@@ -1,177 +1,291 @@
 <html>
-	<head>
-		<title>Google Mail Checker - Options</title>
-		<style>
-			body {
-				font-family:helvetica, arial, sans-serif;
-				font-size:80%;
-				margin:10px;
-			}
+  <head>
+    <title>Google Mail Checker - Options</title>
+    <script src="gmail.js"></script>
+    <style>
+      body {
+        font-family:helvetica, arial, sans-serif;
+        font-size:80%;
+        margin:10px;
+      }
 
-			#header {
-				padding-bottom:1.5em;
-				padding-top:1.5em;
-			}
+      #header {
+        padding-bottom:1.5em;
+        padding-top:1.5em;
+      }
 
-			#header h1 {
-				font-size: 156%;
-				display:inline;
-				padding-bottom:43px;
-				padding-left:75px;
-				padding-top:40px;
-				background:url(icon_128.png) no-repeat;
-				background-size:67px;
-				background-position:1px 18px;
-			}
+      #header h1 {
+        font-size: 156%;
+        display:inline;
+        padding-bottom:43px;
+        padding-left:75px;
+        padding-top:40px;
+        background:url(icon_128.png) no-repeat;
+        background-size:67px;
+        background-position:1px 18px;
+      }
 
-			.section-header {
-				background:#ebeff9;
-				border-top:1px solid #b5c7de;
-				font-size:99%;
-				padding:3px 0 2px 5px;
-				font-weight:bold;
-				margin-bottom:1em;
-				margin-top:4em;
-			}
+      .section-header {
+        background:#ebeff9;
+        border-top:1px solid #b5c7de;
+        font-size:99%;
+        padding:3px 0 2px 5px;
+        font-weight:bold;
+        margin-bottom:1em;
+        margin-top:4em;
+        clear: both;
+      }
 
-			.section-header.first {
-				margin-top:1em;
-			}
+      .section-header.first {
+        margin-top:1em;
+      }
 
-			#custom-domain {
-				width:300px;
-				margin-left:2px;
-			}
+      .credential-box {
+        padding: 5px;
+        margin: 5px;
+        margin-bottom: 15px;
+        background:#ebeff9;
+        float: left;
+      }
 
-			#footer {
-				margin-top:4em;
-			}
-		</style>
-	</head>
-	<body>
+      #footer {
+        clear: both;
+        margin-top:4em;
+      }
+    </style>
+  </head>
+  <body>
 
-		<div id="header"><h1>Google Multi-Account Mail Checker Options</h1></div>
+    <div id="header"><h1>Google Multi-Account Mail Checker Options</h1></div>
 
-		<div class="section-header first">Custom Domain</div>
-		<p>To use Google Multi-Account Mail checker with Google Apps for Your Domain, enter the domain here.</p>
-		https://mail.google.com/<input type="text" id="custom-domain" oninput="markDirty()">
-		<em>(eg a/mydomain.com)</em>
+    <div class="section-header first">Multiple Domains</div>
+    <p>If you use Gmail on multiple domains, add them here. <em>(eg a/mydomain.com)</em></p>
+    <div id="domain-list"></div>
+    https://mail.google.com/<input type="text" id="domain-name">
+    <button onclick="addDomain(null)">Add</button>
 
-		<div class="section-header">Multiple Accounts</div>
-		<p>If you have multiple accounts, enter the number of accounts here.<p>
-		<input type="text" id="num-accounts" oninput="updateNumAccounts()">
-		<p><b>Note:</b> Credentials are only required when you are not signed in.</p>
+    <div id='credential-inputs'></div>
 
-		<div id="credential-input">
-		</div>
+    <div id="footer">
+      <button id="save-button" style="font-weight:bold" onclick="save()">Save</button>
+      <button onclick="init()">Cancel</button>
+    </div>
 
-		<div id="footer">
-			<button id="save-button" style="font-weight:bold" onclick="save()"
-				>Save</button>
-			<button onclick="init()">Cancel</button>
-		</div>
+    <script>
+      var domainNameTextbox;
+      var domainList;
+      var saveButton;
+      var maxAccounts = 10; // Google seems to support upto 10
+      var accountInfo = {mail: [{number: 0, domain: 'mail'}]};
+      var credentialList; 
 
-		<script>
-			var customDomainsTextbox;
-			var saveButton;
-			var numAccounts;
-			var maxAccounts = 10; // Google seems to support upto 10
+      init();
 
-			init();
+      function addDomain(domain) {
+        if(!domain) {
+          domain = domainNameTextbox.value;
+          domainNameTextbox.value = "";
+        }
 
-			function updateNumAccounts() {
-				markDirty();
+        // Check for collisions
+        if(document.getElementById('domain-list-item-' + domain))
+          return;
 
-				numAccounts = parseInt(numAccountsTextbox.value);
-				if(!numAccounts || numAccounts > maxAccounts) {
-					numAccountsTextbox.value = "";
-					return false;
-				}
-				updateCredentialInputs();
-				localStorage.numAccounts = numAccounts + "";
-			}
+        if(!accountInfo[domain])
+          accountInfo[domain] = [{number: 0, domain: domain}];
 
-			function saveCredentialInputs() {
-				var container = document.getElementById('credential-input');
-				for(accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
-					localStorage['user' + accountNumber] = document.getElementById('user' + accountNumber).value;
-					localStorage['pass' + accountNumber] = document.getElementById('pass' + accountNumber).value;
-				}
-			}
+        var domainItem = document.createElement('div');
+        domainItem.setAttribute('class', 'domain-list-item');
+        domainItem.setAttribute('id', 'domain-list-item-' + domain);
+        domainItem.innerHTML = "https://mail.google.com/<b>" + domain + "</b>"
+          + "<button onclick='removeDomain(\"" + domain + "\")'>Remove</button>";
+        domainList.appendChild(domainItem);
 
-			function updateCredentialInputs() {
-				var container = document.getElementById('credential-input');
-				container.innerHTML = "";
-				for(accountNumber = 0; accountNumber < numAccounts; accountNumber++) {
-					var header = document.createElement('div');
-					header.setAttribute('class', 'section-header');
-					header.innerText = "Credentials for account " + (accountNumber + 1);
-					container.appendChild(header);
+        updateDomainCredentialInputs(domain);
 
-					var userLabel = document.createElement('label');
-					userLabel.setAttribute('for', 'user' + accountNumber);
-					userLabel.innerText = "Username: ";
-					container.appendChild(userLabel);
+        markDirty();
+      }
 
-					var user = document.createElement('input');
-					user.setAttribute('type', 'text');
-					user.setAttribute('id', 'user' + accountNumber);
-					user.oninput = markDirty;
-					container.appendChild(user);
+      function removeDomain(domain) {
+        delete accountInfo[domain];
+        domainList.removeChild(document.getElementById('domain-list-item-' + domain));
+        credentialList.removeChild(document.getElementById('credential-input-' + domain));
+        markDirty();
+      }
 
-					container.appendChild(document.createElement('br'));
-					
-					var passLabel = document.createElement('label');
-					passLabel.setAttribute('for', 'pass' + accountNumber);
-					passLabel.innerText = "Password: ";
-					container.appendChild(passLabel);
+      function updateNumAccounts(domain) {
+        markDirty();
 
-					var pass = document.createElement('input');
-					pass.setAttribute('type', 'password');
-					pass.setAttribute('id', 'pass' + accountNumber);
-					pass.oninput = markDirty;
-					container.appendChild(pass);
+        var numAccountsTextbox = document.getElementById('num-accounts-' + domain);
+        numAccounts = parseInt(numAccountsTextbox.value);
+        if(!numAccounts || numAccounts > maxAccounts) {
+          numAccountsTextbox.value = "";
+          return false;
+        }
 
-					if(localStorage['user' + accountNumber]) {
-						user.setAttribute('value', localStorage['user' + accountNumber]);
-						pass.setAttribute('value', localStorage['pass' + accountNumber]);
-					}
-				}
-			}
+        var accounts = accountInfo[domain];
+        for(var i = accounts.length; i < numAccounts; i++) {
+          accounts[i] = {number: i, domain: domain};
+        }
+        accounts.length = numAccounts;
 
+        updateDomainCredentialInputs(domain);
+      }
 
-			function init() {
-				customDomainsTextbox = document.getElementById("custom-domain");
-				numAccountsTextbox = document.getElementById("num-accounts");
-				saveButton = document.getElementById("save-button");
+      function saveAll() {
+        for(var domain in accountInfo)
+          saveDomainCredentialInputs(domain);
+        saveToLocalStorage(accountInfo);
+      }
 
-				customDomainsTextbox.value = localStorage.customDomain || "";
-				numAccountsTextbox.value = localStorage.numAccounts || "1";
+      function saveDomainCredentialInputs(domain) {
+        var container = document.getElementById('credential-input-' + domain);
+        var numAccounts = document.getElementById('num-accounts-' + domain).value;
+        var accounts = accountInfo[domain];
+        for(i = 0; i < numAccounts; i++) {
+          accounts[i] = {
+            user: document.getElementById('user-' + domain + i).value,
+            pass: document.getElementById('pass-' + domain + i).value,
+            number: i,
+            domain: domain
+          }
+        }
+        accounts.length = numAccounts;
+      }
 
-				numAccounts = localStorage.numAccounts || 1;
-				updateCredentialInputs();
-				
-				markClean();
-			}
+      function updateAll() {
+        domainList.innerHTML = "";
+        credentialList.innerHTML = "";
 
-			function save() {
-				localStorage.customDomain = customDomainsTextbox.value;
+        for(var domain in accountInfo) {
+          addDomain(domain);
+        }
+      }
 
-				saveCredentialInputs();
-				updateCredentialInputs();
+      function updateDomainCredentialInputs(domain) {
+        var accounts = accountInfo[domain];
 
-				markClean();
+        var container = document.getElementById('credential-input-' + domain);
+        if(!container) {
+          container = document.createElement('div');
+          container.setAttribute('id', 'credential-input-' + domain);
+          credentialList.appendChild(container);
+        }
+        container.innerHTML = "";
 
-				chrome.extension.getBackgroundPage().init();
-			}
+        var header = document.createElement('div');
+        header.setAttribute('class', 'section-header');
+        header.innerHTML = "Credentials for domain '" + domain + "'";
+        container.appendChild(header);
 
-			function markDirty() {
-				saveButton.disabled = false;
-			}
+        var accountsDiv = document.createElement('div');
+        accountsDiv.innerHTML = "Number of accounts: "
+          + "<input type='text' id='num-accounts-" + domain +"'"
+          + "value='" + accounts.length + "'"
+          + "onInput='updateNumAccounts(\"" + domain + "\")'>";
+        container.appendChild(accountsDiv);
 
-			function markClean() {
-				saveButton.disabled = true;
-			}
-		</script>
-	</body>
+        for(i = 0; i < accounts.length; i++) {
+          var account = accounts[i];
+          account.domain = domain;
+
+          var div = document.createElement('div');
+          div.setAttribute('class', 'credential-box');
+
+          var header = document.createElement('div');
+          header.innerHTML = "Account " + (i + 1);
+          header.setAttribute('class', 'account-title');
+          header.setAttribute('id', 'account-title-' + domain + i);
+          div.appendChild(header);
+
+          getAccountTitle(account);
+
+          var userLabel = document.createElement('label');
+          userLabel.setAttribute('for', 'user-' + domain + i);
+          userLabel.innerText = "Username: ";
+          div.appendChild(userLabel);
+
+          var user = document.createElement('input');
+          user.setAttribute('type', 'text');
+          user.setAttribute('id', 'user-' + domain + i);
+          user.oninput = markDirty;
+          div.appendChild(user);
+
+          div.appendChild(document.createElement('br'));
+          
+          var passLabel = document.createElement('label');
+          passLabel.setAttribute('for', 'pass-' + domain + i);
+          passLabel.innerText = "Password: ";
+          div.appendChild(passLabel);
+
+          var pass = document.createElement('input');
+          pass.setAttribute('type', 'password');
+          pass.setAttribute('id', 'pass-' + domain + i);
+          pass.oninput = markDirty;
+          div.appendChild(pass);
+
+          if(account.user) {
+            user.setAttribute('value', account.user);
+            pass.setAttribute('value', account.pass);
+          }
+
+          container.appendChild(div);
+        }
+      }
+
+      function updateTitle(account, title) {
+        console.dir(account);
+        console.dir(title);
+        var div = document.getElementById('account-title-' + account.domain + account.number);
+        if(div)
+          div.innerText = title;
+      }
+
+      function getAccountTitle(account) {
+        function parseTitle(xmlDoc) {
+          var titleSet = xmlDoc.evaluate("/gmail:feed/gmail:title",
+              xmlDoc, gmailNSResolver, XPathResult.ANY_TYPE, null);
+          var titleNode = titleSet.iterateNext();
+          if(titleNode)
+            return titleNode.textContent;
+          else
+            return null;
+        }
+
+        parseAccountFeed(account, parseTitle, updateTitle); 
+      }
+
+      function init() {
+        if(localStorage.accountInfo) {
+          accountInfo = JSON.parse(localStorage.accountInfo);
+        }
+
+        saveButton = document.getElementById("save-button");
+        domainList = document.getElementById("domain-list");
+        credentialList = document.getElementById('credential-inputs');
+        domainNameTextbox = document.getElementById('domain-name');
+
+        updateAll();
+        
+        markClean();
+      }
+
+      function save() {
+        saveAll();
+        updateAll();
+
+        markClean();
+
+        chrome.extension.getBackgroundPage().init();
+      }
+
+      function markDirty() {
+        saveButton.disabled = false;
+      }
+
+      function markClean() {
+        saveButton.disabled = true;
+      }
+    </script>
+  </body>
 </html>
