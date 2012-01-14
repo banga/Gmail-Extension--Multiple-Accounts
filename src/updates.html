@@ -1,0 +1,44 @@
+<html>
+  <head>
+    <title>Google Mail Checker - Options</title>
+    <style>
+			body {
+				font-family:helvetica, arial, sans-serif;
+        font-size: 16px;
+        line-height: 25px;
+				margin:10px;
+			}
+
+			#header {
+				padding-bottom:1.5em;
+				padding-top:1.5em;
+			}
+
+			#header h1 {
+				font-size: 156%;
+				display:inline;
+				padding-bottom:43px;
+				padding-left:75px;
+				padding-top:40px;
+				background:url(icon_128.png) no-repeat;
+				background-size:67px;
+				background-position:1px 18px;
+			}
+    </style>
+  </head>
+  <body>
+    <div id="header"><h1>Google Multi-Account Mail Checker has been updated!</h1></div>
+    <ul>
+      <li>Support for <b>multiple Google Apps Domains</b> has been added. Go to <a href="options.html">Options</a> to configure.</li>
+      <li>Some of the issues or lack of features are due to a limitation of the Gmail RSS feeds that this extension uses. These issues occur because:
+        <ul>
+          <li>Gmail assigns numbers starting from 0 to your accounts and this order is fixed. If you give credentials for account 2 in the input for account 1, Gmail can show the inbox for either of the two and this extension has no way of knowing. You can find this number in your Gmail URL as https://mail.google.com/mail/u/<b>&lt;number&gt;</b>/#inbox</li>
+          <li>The Gmail API is limited, so features like delete, archive or mark-as-read cannot be supported as much as I want them to.</li>
+          <li>The API does allow viewing unread mails in only specific labels. This feature will be added in an upcoming version.</li>
+        </ul>
+      </li>
+    </ul>
+  </body>
+</html>
+
+
