@@ -111,6 +111,17 @@
         }
       }
 
+      // Try to get a proper link to the message
+      function processMessageLink(account, link) {
+        var msg_id = link.match(/message_id=([\w]*)/);
+
+        if(!msg_id || msg_id.length < 2)
+          return link;
+
+        msg_id = msg_id[1];
+        return getInboxUrl(account) + "/" + msg_id;
+      }
+
       function getInboxData(account, onSuccess, onError) {
         function parseInboxData(xmlDoc) {
           var fullCountSet = xmlDoc.evaluate("/gmail:feed/gmail:fullcount",
@@ -132,7 +143,7 @@
                 var subject = entryNode.getElementsByTagName('title')[0].textContent;
                 var summary = entryNode.getElementsByTagName('summary')[0].textContent;
                 var author = entryNode.getElementsByTagName('author')[0].getElementsByTagName('name')[0].textContent;
-                var link = entryNode.getElementsByTagName('link')[0].getAttribute('href');
+                var link = processMessageLink(account, entryNode.getElementsByTagName('link')[0].getAttribute('href'));
                 entries[entries.length] = {'subject': subject, 'summary': summary, 'author': author, 'link': link};
                 entryNode = entrySet.iterateNext();
               }
