@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html>
   <head>
     <script src="gmail.js"></script>
@@ -6,7 +7,20 @@
         min-width: 70ex;
         font-family: sans-serif;
         font-size: 1em;
-        margin: 2px 5px;
+        margin: 0px;
+        padding: 2px 5px;
+        background: #F5F5F5;
+      }
+      a.option {
+        color: #024;
+        font-size: 0.5em;
+        margin-bottom: -10px;
+        float: right;
+        text-decoration: none;
+      }
+      a.option:hover {
+        color: #048;
+        text-decoration: underline;
       }
       .inbox-row {
         clear: both;
@@ -45,15 +59,33 @@
         display: block;
       }
       .preview-row {
-        padding: 5px;
-        border-top: 1px solid #CCC;
+        color: #666;
+        padding: 4px 5px;
+        border: 1px solid #EEE;
+        border-top: 1px solid transparent;
+        border-radius: 2px;
+        box-shadow: 0 1px 1px #FFF;
         cursor: pointer;
+        -webkit-transition: all 0.2s ease-in-out;
       }
-      .preview .subject {
+      .preview-row:hover {
+        color: #222;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        border-radius: 0px;
+        background: -webkit-linear-gradient(top, #FFF 0, #E0E0E0 100%);
+        border: 1px solid #CCC;
+      }
+      .preview-row:active {
+        color: #666;
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3);
+        background: #DDD;
+        border: 1px solid #FFF;
+      }
+      .preview-row .subject {
         float: left;
         font-weight: bold;
       }
-      .preview .author {
+      .preview-row .author {
         margin-left: 10px;
         float: right;
         font-weight: bold;
@@ -61,8 +93,8 @@
       }
       .preview .summary {
         clear: both;
-        color: #444;
         font-size: 0.9em;
+        opacity: 0.9;
       }
     </style>
     <script>
@@ -190,8 +222,6 @@
             "<div class='summary'>" + mail.summary + "</div>";
           mailPreview.mailLink = mail.link;
           mailPreview.onclick = function() { openTab(this.mailLink); };
-          mailPreview.onmouseover = function() { this.style.backgroundColor = '#DEF' };
-          mailPreview.onmouseout = function() { this.style.backgroundColor = '#FFF' };
           inboxPreview.appendChild(mailPreview);
         }
 
@@ -223,7 +253,9 @@
     </script>
   </head>
   <body onload="init()">
-    <a target="_blank" href="options.html" style="float:right; margin-bottom: -10px; font-size: 0.5em">Options</a>
+    <a target="_blank" href="options.html" class="option">
+      Options
+    </a>
     <div id='inboxes'>
     </div>
   </body>
