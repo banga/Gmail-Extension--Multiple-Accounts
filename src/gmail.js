@@ -31,6 +31,10 @@ function getFeedUrl(account) {
   return getAccountUrl(account) + "feed/atom?zx=" + encodeURIComponent(instanceId);
 }
 
+function getHTMLModeUrl(account) {
+  return getAccountUrl(account) + 'h/' + Math.ceil(Math.random() * 1000000000).toString(16) + '/';
+}
+
 function isGmailUrl(url) {
   var gmail = getGmailUrl();
   return (url.indexOf(gmail) == 0);
@@ -109,7 +113,7 @@ function parseAccountFeed(account, xmlHandler, onSuccess, onError) {
 }
 
 function getAccountAt(account, onSuccess) {
-  var url = getAccountUrl(account) + "h/" + Math.ceil(1000000 * Math.random()) + "/?ui=html&zy=c";
+  var url = getHTMLModeUrl(account);// + "?ui=html&zy=c";
   var xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function () {
     if (this.readyState == 4 && this.status == 200) {
@@ -121,7 +125,7 @@ function getAccountAt(account, onSuccess) {
     }
   }
   xhr.onerror = function (error) {
-    console.debug("getAccountAt error: " + error);
+    console.error("getAccountAt error: " + error);
   }
   xhr.open("GET", url, true);
   xhr.send(null);
@@ -159,6 +163,8 @@ function doAjaxRequest(url, onSuccess, onError, params, headers) {
     if(onError)
       onError();
   }
+
+  return xhr;
 }
 
 function doGmailAction(account, msgID, action, onSuccess, onError) {
@@ -169,11 +175,10 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
     return;
   }
 
-  var url = getAccountUrl(account) + "h/" +
-    Math.ceil(1000000 * Math.random()) + "/";
+  var url = getHTMLModeUrl(account);
   var params = "t=" + msgID + "&at=" + account.at + "&act=" + action;
 
-  doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
+  return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
 }
 
 function getMessageBody(account, msgID, onSuccess, onError) {
@@ -181,7 +186,7 @@ function getMessageBody(account, msgID, onSuccess, onError) {
   var url = mailURL + "h/" + Math.ceil(1000000 * Math.random())
             + "/?v=pt&th=" + msgID;
 
-  doAjaxRequest(url, function (responseText) {
+  return doAjaxRequest(url, function (responseText) {
       var m = responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>(?=[\s\S]?<hr>)/gi);
       if (m && m.length > 0) {
         var body = m[m.length - 1];
@@ -197,7 +202,6 @@ function getMessageBody(account, msgID, onSuccess, onError) {
     }
   }, onError);
 }
-
 
 function saveToLocalStorage(domains) {
   var info = {};
