@@ -108,6 +108,97 @@ function parseAccountFeed(account, xmlHandler, onSuccess, onError) {
   }
 }
 
+function getAccountAt(account, onSuccess) {
+  var url = getAccountUrl(account) + "h/" + Math.ceil(1000000 * Math.random()) + "/?ui=html&zy=c";
+  var xhr = new XMLHttpRequest();
+  xhr.onreadystatechange = function () {
+    if (this.readyState == 4 && this.status == 200) {
+      var m = this.responseText.match(/\at=([^"]+)/);
+      if (m && m.length > 0) {
+        account.at = m[1];
+        onSuccess();
+      }
+    }
+  }
+  xhr.onerror = function (error) {
+    console.debug("getAccountAt error: " + error);
+  }
+  xhr.open("GET", url, true);
+  xhr.send(null);
+}
+
+function doAjaxRequest(url, onSuccess, onError, params, headers) {
+  try {
+    var xhr = new XMLHttpRequest();
+
+    xhr.onreadystatechange = function () {
+      if (this.readyState == 4) {
+        if(this.status == 200) {
+          if(onSuccess)
+            onSuccess(this.responseText);
+        } else if(this.status == 401) {
+          console.error(chrome.i18n.getMessage("gmailcheck_auth_reqd"));
+        } else {
+          console.error("doAjaxRequest: response " + this.status);
+          if(onError)
+            onError();
+        }
+      }
+    }
+    xhr.onerror = function(e) {
+      console.error("doAjaxRequest: " + e);
+      if(onError)
+        onError();
+    }
+    xhr.open("POST", url, true);
+    for(key in headers)
+      xhr.setRequestHeader(key, headers[key]);
+    xhr.send(params);
+  } catch(e) {
+    console.error("doAjaxRequest exception: " + e);
+    if(onError)
+      onError();
+  }
+}
+
+function doGmailAction(account, msgID, action, onSuccess, onError) {
+  if(!account.at) {
+    getAccountAt(account, function() {
+      doGmailAction(account, msgID, action, onSuccess, onError);
+    });
+    return;
+  }
+
+  var url = getAccountUrl(account) + "h/" +
+    Math.ceil(1000000 * Math.random()) + "/";
+  var params = "t=" + msgID + "&at=" + account.at + "&act=" + action;
+
+  doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
+}
+
+function getMessageBody(account, msgID, onSuccess, onError) {
+  var mailURL = getAccountUrl(account);
+  var url = mailURL + "h/" + Math.ceil(1000000 * Math.random())
+            + "/?v=pt&th=" + msgID;
+
+  doAjaxRequest(url, function (responseText) {
+      var m = responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>(?=[\s\S]?<hr>)/gi);
+      if (m && m.length > 0) {
+        var body = m[m.length - 1];
+        body = body.replace(/<tr>[\s\S]*?<tr>/, "");
+        body = body.replace(/<td colspan="?2"?>[\s\S]*?<td colspan="?2"?>/, "");
+        body = body.replace(/cellpadding="?12"?/g, "");
+        body = body.replace(/font size="?-1"?/g, 'font');
+        body = body.replace(/<hr>/g, "");
+        body = body.replace(/(href="?)\/mail\//g, "$1" + mailURL);
+        body = body.replace(/(src="?)\/mail\//g, "$1" + mailURL);
+        if(onSuccess)
+          onSuccess(body);
+    }
+  }, onError);
+}
+
+
 function saveToLocalStorage(domains) {
   var info = {};
   for(var domain in domains) {

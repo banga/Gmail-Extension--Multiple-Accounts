@@ -99,23 +99,87 @@
         background: #DDD;
         border: 1px solid #FFF;
       }
-      .preview-row .subject {
+      .subject {
         float: left;
         font-weight: bold;
       }
-      .preview-row .author {
+      .author {
         margin-left: 10px;
         float: right;
         font-weight: bold;
         text-transform: capitalize;
       }
-      .preview .summary {
+      .summary {
         clear: both;
         font-size: 0.9em;
         opacity: 0.9;
       }
+      .preview-row-down {
+        color: #666;
+        padding: 4px 5px;
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3);
+        background: #DDD;
+        border: 1px solid #FFF;
+      }
+      .preview-row-down > .summary {
+        display: none;
+      }
+      .preview-row-busy {
+        color: #666;
+        padding: 4px 5px;
+        background: #F5F5F5;
+        border: 1px solid #FFF;
+        cursor: progress;
+        opacity: 0.3;
+      }
+      .preview-row-button {
+        color: #666;
+        font-size: 0.6em;
+        text-shadow: 0 1px 0 #CCC;
+        background: #DFDFDF;
+        padding: 5px;
+        margin-right: 5px;
+        border: 1px solid #CCC;
+        box-shadow: 0 1px 1px #EEE;
+        -webkit-transition: all 0.2s ease-in-out;
+        display: inline;
+        cursor: pointer;
+      }
+      .preview-row-button:hover {
+        box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        text-shadow: none;
+        background: -webkit-linear-gradient(top, #FAFAFA 0, #E0E0E0 100%);
+        border: 1px solid #CCC;
+      }
+      .preview-row-button:active {
+        color: #666;
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.3);
+        background: #CCC;
+        border: 1px solid #BBB;
+      }
+      #mail-tools {
+        padding-top: 5px;
+        padding-bottom: 8px;
+        cursor: pointer;
+      }
+      .tool-icon {
+        display: inline-block;
+        width: 21px;
+        height: 21px;
+        background-image: url('mail_icons.png');
+        background-repeat: no-repeat no-repeat;
+        margin: -3px 2px 0 0;
+        vertical-align: middle;
+        opacity: 0.5;
+      }
+      #mail-body {
+        padding-top: 5px;
+        clear: both;
+      }
     </style>
     <script>
+      var selectedMail = null; // Set to an e-mail if user has pressed it
+
       function init() {
         accountInfo = JSON.parse(localStorage.accountInfo);
 
@@ -162,15 +226,11 @@
         }
       }
 
-      // Try to get a proper link to the message
-      function processMessageLink(account, link) {
-        var msg_id = link.match(/message_id=([\w]*)/);
-
-        if(!msg_id || msg_id.length < 2)
-          return link;
-
-        msg_id = msg_id[1];
-        return getInboxUrl(account) + "/" + msg_id;
+      function getMessageID(link) {
+        var msgID = link.match(/message_id=([\w]*)/);
+        if(msgID && msgID.length >= 2)
+          return msgID[1];
+        return null;
       }
 
       function getInboxData(account, onSuccess, onError) {
@@ -194,7 +254,7 @@
                 var subject = entryNode.getElementsByTagName('title')[0].textContent;
                 var summary = entryNode.getElementsByTagName('summary')[0].textContent;
                 var author = entryNode.getElementsByTagName('author')[0].getElementsByTagName('name')[0].textContent;
-                var link = processMessageLink(account, entryNode.getElementsByTagName('link')[0].getAttribute('href'));
+                var link = entryNode.getElementsByTagName('link')[0].getAttribute('href');
                 entries[entries.length] = {'subject': subject, 'summary': summary, 'author': author, 'link': link};
                 entryNode = entrySet.iterateNext();
               }
@@ -210,6 +270,146 @@
 
       function openTab(url) {
         chrome.tabs.create({url: url});
+      }
+
+      function openMailInTab(account, link) {
+        var url = link;
+        var msgID = getMessageID(link); 
+
+        if(msgID)
+          url = getInboxUrl(account) + "/" + msgID;
+
+        openTab(url);
+      }
+
+      function showProgressAnimation(mailPreview) {
+        unselectMail(mailPreview);
+        mailPreview.setAttribute('class', 'preview-row-busy');
+      }
+
+      function hideProgressAnimation(mailPreview) {
+        mailPreview.setAttribute('class', 'preview-row');
+      }
+
+      function showMailError(msg) {
+        window.alert(msg);
+      }
+
+      function markMailBusy(mailPreview) {
+        mailPreview.busy = true;
+      }
+
+      function markMailAvailable(mailPreview) {
+        mailPreview.busy = false;
+      }
+
+      function doMailAction(mailPreview, action) {
+        var msgID = getMessageID(mailPreview.mailLink);
+
+        if(msgID) {
+          showProgressAnimation(mailPreview);
+          markMailBusy(mailPreview);
+          doGmailAction(mailPreview.account, msgID, action,
+            function() {
+               removeMail(mailPreview)
+               hideProgressAnimation(mailPreview);
+            },
+            function() {
+              showMailError("Could not connect to the Gmail server");
+              hideProgressAnimation(mailPreview);
+              markMailAvailable(mailPreview);
+            });
+        }
+      }
+
+      function showMailBody(mailPreview) {
+        var msgID = getMessageID(mailPreview.mailLink);
+        if(!msgID)
+          return;
+
+        getMessageBody(mailPreview.account, msgID, 
+          function(r) {
+            var div = document.createElement("div");
+            div.setAttribute("id", "mail-body");
+            div.innerHTML = r;
+            div.onclick = function(e) { e.cancelBubble = true };
+            mailPreview.appendChild(div);
+          });
+      }
+
+      function createButton(text, onclick, iconX, iconY) {
+        var b = document.createElement("div");
+        b.setAttribute("class", "preview-row-button");
+        if(iconX !== undefined)
+          b.innerHTML = "<span class='tool-icon' style='background-position: " 
+            + iconX  + "px " + iconY + "px;'></span>";
+        else
+          b.innerHTML = "";
+        b.innerHTML += text;
+        b.onclick = onclick;
+        return b;
+      }
+
+      function selectMail(mailPreview) {
+        if(mailPreview.busy)
+          return;
+
+        showMailBody(mailPreview);
+
+        var d = document.createElement("div");
+        d.setAttribute("id", "mail-tools");
+        d.appendChild(createButton("Open in Gmail...", function(e) { 
+            e.cancelBubble = true;
+            openMailInTab(mailPreview.account, mailPreview.mailLink)
+          }, -63, -63));
+        d.appendChild(createButton("Mark as read", function(e) {
+            e.cancelBubble = true;
+            doMailAction(mailPreview, 'rd');
+          }));
+        d.appendChild(createButton("Archive", function(e) {
+            e.cancelBubble = true;
+            doMailAction(mailPreview, 'rd');
+            doMailAction(mailPreview, 'arch');
+          }, -84, -21));
+        d.appendChild(createButton("Spam", function(e) {
+            e.cancelBubble = true;
+            doMailAction(mailPreview, 'sp');
+          }, -42, -42));
+        d.appendChild(createButton("Delete", function(e) {
+            e.cancelBubble = true;
+            doMailAction(mailPreview, 'tr');
+          }, -63, -42));
+        mailPreview.setAttribute("class", "preview-row-down");
+        mailPreview.insertBefore(d, mailPreview.firstElementChild);
+        selectedMail = mailPreview;
+      }
+
+      function unselectMail(mailPreview) {
+        var d = document.getElementById("mail-tools");
+        if(d)
+          mailPreview.removeChild(d);
+
+        var d = document.getElementById("mail-body");
+        if(d)
+          mailPreview.removeChild(d);
+
+        mailPreview.setAttribute("class", "preview-row");
+        selectedMail = null;
+      }
+
+      function removeMail(mailPreview) {
+        mailPreview.parentElement.removeChild(mailPreview);
+        selectedMail = null;
+      }
+
+      function onPreviewClick(mailPreview) {
+        if(selectedMail == mailPreview) {
+          unselectMail(mailPreview);
+        } else {
+          if(selectedMail)
+            unselectMail(selectedMail);
+          selectMail(mailPreview);
+        }
       }
 
       function updateUnreadCount(account, data) {
@@ -239,7 +439,8 @@
             "<div class='author'>"  + mail.author  + "</div>" + 
             "<div class='summary'>" + mail.summary + "</div>";
           mailPreview.mailLink = mail.link;
-          mailPreview.onclick = function() { openTab(this.mailLink); };
+          mailPreview.account = account;
+          mailPreview.onclick = function() { onPreviewClick(this); };
           inboxPreview.appendChild(mailPreview);
         }
 
