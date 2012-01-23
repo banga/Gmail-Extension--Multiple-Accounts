@@ -195,6 +195,7 @@
 
       function updateUnreadCount(account, count) {
         if (account.unreadCount != count) {
+          //console.debug(account.domain + "/" + account.number + ": " + account.unreadCount + "->" + count);
           account.unreadCount = count;
           animateFlip();
         }
