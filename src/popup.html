@@ -8,6 +8,9 @@
       var xhrMsgBody = null;
 
       function init() {
+        document.getElementById('options-link').onclick = function() {
+          openTab("options.html")};
+
         accountInfo = JSON.parse(localStorage.accountInfo);
 
         var inboxes = document.getElementById("inboxes");
@@ -310,9 +313,7 @@
     </script>
   </head>
   <body onload="init()">
-    <a target="_blank" href="options.html" class="option">
-      Options
-    </a>
+    <div id="options-link"><span class="tool-icon" style="background-position: 0px -21px;"></span>Options</div>
     <div id="inboxes">
     </div>
   </body>

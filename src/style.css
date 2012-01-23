@@ -24,15 +24,15 @@ body {
 ::-webkit-scrollbar-thumb:active {
   background: #7BE;
 }
-a.option {
+#options-link {
   color: #024;
   font-size: 0.5em;
-  margin-bottom: -10px;
+  margin-bottom: -25px;
+  padding-top: 6px;
   float: right;
-  text-decoration: none;
+  cursor: pointer;
 }
-a.option:hover {
-  color: #048;
+#options-link:hover {
   text-decoration: underline;
 }
 .inbox-row {
