@@ -8,9 +8,6 @@
       var xhrMsgBody = null;
 
       function init() {
-        document.getElementById('options-link').onclick = function() {
-          openTab("options.html")};
-
         accountInfo = JSON.parse(localStorage.accountInfo);
 
         var inboxes = document.getElementById("inboxes");
@@ -54,6 +51,12 @@
             getInboxData(account, updateUnreadCount, showLoggedOut);
           }
         }
+
+        animateThrobber();
+
+        document.getElementById('options-link').onclick = function() {
+          openTab("options.html")
+        };
       }
 
       function getMessageID(link) {
@@ -169,6 +172,45 @@
         return b;
       }
 
+      function animateThrobber() {
+        var canvas = document.getElementById('throbber');
+        if(canvas && canvas.getContext) {
+          var ctx = canvas.getContext('2d');
+          ctx.strokeStyle = "#8CF";
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.translate(8, 8);
+          var theta = 0;
+
+          window.setInterval(function() {
+            ctx.save();
+            ctx.clearRect(-8, -8, 16, 16);
+            ctx.rotate(theta);
+            ctx.beginPath();
+            ctx.arc(0, 0, 6, 0, Math.PI / 1.5, false);
+            ctx.stroke();
+            ctx.restore();
+            theta += Math.PI / 50;
+          }, 10);
+        }
+      }
+
+      function showThrobber(paren) {
+        var canvas = document.getElementById('throbber');
+        if(canvas) {
+          paren.appendChild(canvas);
+          canvas.style.display = "block";
+        }
+      }
+
+      function hideThrobber(paren) {
+        var canvas = document.getElementById('throbber');
+        if(canvas) {
+          document.body.appendChild(canvas);
+          canvas.style.display = "none";
+        }
+      }
+
       function selectMail(mailPreview) {
         if(mailPreview.busy)
           return;
@@ -177,8 +219,12 @@
         if(!msgID)
           return;
 
+        showThrobber(mailPreview);
+
         xhrMsgBody = getMessageBody(mailPreview.account, msgID, 
           function(msgBody) {
+            hideThrobber();
+
             var summary = mailPreview.getElementsByClassName("summary")[0];
             summary.style.display = "none";
 
@@ -218,6 +264,8 @@
       }
 
       function unselectMail(mailPreview) {
+        hideThrobber();
+
         var d = document.getElementById("mail-tools");
         if(d)
           mailPreview.removeChild(d);
@@ -316,6 +364,8 @@
     <div id="options-link"><span class="tool-icon" style="background-position: 0px -21px;"></span>Options</div>
     <div id="inboxes">
     </div>
+    <canvas id="throbber" width="16" height="16" style="float: right; position: relative; top: -16px; display: none">
+    </canvas>
   </body>
 </html>
 
