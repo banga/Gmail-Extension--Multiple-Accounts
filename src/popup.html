@@ -6,6 +6,7 @@
     <script>
       var selectedMail = null; // Set to an e-mail if user has pressed it
       var xhrMsgBody = null;
+      var throbberTimer = 0;
 
       function init() {
         accountInfo = JSON.parse(localStorage.accountInfo);
@@ -51,8 +52,6 @@
             getInboxData(account, updateUnreadCount, showLoggedOut);
           }
         }
-
-        animateThrobber();
 
         document.getElementById('options-link').onclick = function() {
           openTab("options.html")
@@ -118,10 +117,12 @@
       function showProgressAnimation(mailPreview) {
         unselectMail(mailPreview);
         mailPreview.setAttribute("class", "preview-row-busy");
+        showThrobber(mailPreview);
       }
 
       function hideProgressAnimation(mailPreview) {
         mailPreview.setAttribute("class", "preview-row");
+        hideThrobber();
       }
 
       function showMailError(msg) {
@@ -172,8 +173,20 @@
         return b;
       }
 
-      function animateThrobber() {
-        var canvas = document.getElementById('throbber');
+      function makeElement(type, attribs, css) {
+        var elem = document.createElement(type);
+        for(attrib in attribs)
+          elem.setAttribute(attrib, attribs[attrib]);
+        for(prop in css)
+          elem.style[prop] = css[prop];
+        return elem;
+      }
+
+      function showThrobber(paren) {
+        hideThrobber();
+
+        var canvas = makeElement('canvas', {id: 'throbber', width: 16, height: 16});
+
         if(canvas && canvas.getContext) {
           var ctx = canvas.getContext('2d');
           ctx.strokeStyle = "#8CF";
@@ -182,7 +195,7 @@
           ctx.translate(8, 8);
           var theta = 0;
 
-          window.setInterval(function() {
+          throbberTimer = window.setInterval(function() {
             ctx.save();
             ctx.clearRect(-8, -8, 16, 16);
             ctx.rotate(theta);
@@ -192,22 +205,18 @@
             ctx.restore();
             theta += Math.PI / 50;
           }, 10);
-        }
-      }
 
-      function showThrobber(paren) {
-        var canvas = document.getElementById('throbber');
-        if(canvas) {
           paren.appendChild(canvas);
-          canvas.style.display = "block";
         }
       }
 
       function hideThrobber(paren) {
         var canvas = document.getElementById('throbber');
-        if(canvas) {
-          document.body.appendChild(canvas);
-          canvas.style.display = "none";
+        if(canvas)
+          canvas.parentElement.removeChild(canvas);
+        if(throbberTimer) {
+          window.clearInterval(throbberTimer);
+          throbberTimer = 0;
         }
       }
 
@@ -364,8 +373,6 @@
     <div id="options-link"><span class="tool-icon" style="background-position: 0px -21px;"></span>Options</div>
     <div id="inboxes">
     </div>
-    <canvas id="throbber" width="16" height="16" style="float: right; position: relative; top: -16px; display: none">
-    </canvas>
   </body>
 </html>
 
