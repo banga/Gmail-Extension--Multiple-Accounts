@@ -126,23 +126,22 @@ body {
   border-radius: 5px;
 }
 .preview-row-button {
-  color: #666;
-  font-size: 0.6em;
-  text-shadow: 0 1px 0 #CCC;
-  background: #E5E5E5;
+  color: #555;
+  font-size: 0.8em;
+  font-family: 'Arial', sans-serif;
+  background: #D8D8D8;
   padding: 5px;
   margin-right: 5px;
-  border: 1px solid #CCC;
-  box-shadow: 1px 1px 0px rgba(0,0,0,0.15);
+  border: 1px solid #BBB;
   -webkit-transition: all 0.2s ease-in-out;
   display: inline;
   cursor: pointer;
+  border-radius: 3px;
 }
 .preview-row-button:hover {
-  box-shadow: 0 0 3px rgba(0,0,0,0.15);
-  text-shadow: none;
-  background: #F8F8F8;
-  border: 1px solid #CCC;
+  box-shadow: 0px 0px 3px rgba(0,0,0,0.25);
+  background: #EEE;
+  border: 1px solid #DDD;
 }
 .preview-row-button:active,:focus {
   color: #666;
