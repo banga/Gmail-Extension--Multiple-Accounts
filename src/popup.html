@@ -231,45 +231,45 @@
         showThrobber(mailPreview);
 
         xhrMsgBody = getMessageBody(mailPreview.account, msgID, 
-          function(msgBody) {
-            hideThrobber();
+        function(msgBody) {
+          hideThrobber();
 
-            var summary = mailPreview.getElementsByClassName("summary")[0];
-            summary.style.display = "none";
+          var summary = mailPreview.getElementsByClassName("summary")[0];
+          summary.style.display = "none";
 
-            var div = document.createElement("div");
-            div.setAttribute("id", "mail-body");
-            div.innerHTML = msgBody;
-            div.onclick = function(e) { e.cancelBubble = true };
-            mailPreview.appendChild(div);
+          var div = document.createElement("div");
+          div.setAttribute("id", "mail-body");
+          div.innerHTML = msgBody;
+          div.onclick = function(e) { e.cancelBubble = true };
+          mailPreview.appendChild(div);
 
-            var account = mailPreview.account;
-            var d = document.createElement("div");
-            d.setAttribute("id", "mail-tools");
-            d.appendChild(createButton("Open in Gmail...", function() { 
-                openMailInTab(mailPreview.account, mailPreview.mailLink)
-              }, -63, -63));
-            d.appendChild(createButton("Mark as read", function() {
-                doMailAction(mailPreview, "rd");
-              }));
-            d.appendChild(createButton("Archive", function() {
-                doMailAction(mailPreview, "rd");
-                doMailAction(mailPreview, "arch");
-              }, -84, -21));
-            d.appendChild(createButton("Spam", function() {
-                doMailAction(mailPreview, "sp");
-              }, -42, -42));
-            d.appendChild(createButton("Delete", function() {
-                doMailAction(mailPreview, "tr");
-              }, -63, -42));
-            mailPreview.appendChild(d);
-
-            mailPreview.setAttribute("class", "preview-row-down");
-            selectedMail = mailPreview;
-          });
+          var account = mailPreview.account;
+          var d = document.createElement("div");
+          d.setAttribute("id", "mail-tools");
+          d.appendChild(createButton("Open in Gmail...", function() { 
+            openMailInTab(mailPreview.account, mailPreview.mailLink)
+          }, -63, -63));
+          d.appendChild(createButton("Mark as read", function() {
+            doMailAction(mailPreview, "rd");
+          }));
+          d.appendChild(createButton("Archive", function() {
+            doMailAction(mailPreview, "rd");
+            doMailAction(mailPreview, "arch");
+          }, -84, -21));
+          d.appendChild(createButton("Spam", function() {
+            doMailAction(mailPreview, "sp");
+          }, -42, -42));
+          d.appendChild(createButton("Delete", function() {
+            doMailAction(mailPreview, "tr");
+          }, -63, -42));
+          mailPreview.appendChild(d);
 
           mailPreview.setAttribute("class", "preview-row-down");
           selectedMail = mailPreview;
+        });
+
+         mailPreview.setAttribute("class", "preview-row-down");
+         selectedMail = mailPreview;
       }
 
       function unselectMail(mailPreview) {
@@ -284,7 +284,7 @@
           mailPreview.removeChild(d);
 
         var summary = mailPreview.getElementsByClassName("summary")[0];
-        summary.style.display = "block";
+        delete summary.style.display;
 
         mailPreview.setAttribute("class", "preview-row");
         selectedMail = null;
