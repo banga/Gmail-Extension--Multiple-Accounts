@@ -284,7 +284,7 @@
           mailPreview.removeChild(d);
 
         var summary = mailPreview.getElementsByClassName("summary")[0];
-        delete summary.style.display;
+        summary.style.display = "";
 
         mailPreview.setAttribute("class", "preview-row");
         selectedMail = null;
