@@ -107,6 +107,7 @@ body {
   clear: both;
   font-size: 0.9em;
   opacity: 0.9;
+  display: inline-block;
 }
 .preview-row-down {
   color: #444;
@@ -179,7 +180,5 @@ pre {
 }
 #throbber {
   float: right;
-  position: relative;
-  top: -16px;
 }
 
