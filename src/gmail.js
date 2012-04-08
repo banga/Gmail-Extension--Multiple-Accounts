@@ -138,8 +138,9 @@ function doAjaxRequest(url, onSuccess, onError, params, headers) {
     xhr.onreadystatechange = function () {
       if (this.readyState == 4) {
         if(this.status == 200) {
-          if(onSuccess)
+          if(onSuccess) {
             onSuccess(this.responseText);
+          }
         } else if(this.status == 401) {
           console.error(chrome.i18n.getMessage("gmailcheck_auth_reqd"));
         } else {
@@ -187,7 +188,8 @@ function getMessageBody(account, msgID, onSuccess, onError) {
             + "/?v=pt&th=" + msgID;
 
   return doAjaxRequest(url, function (responseText) {
-      var m = responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>(?=[\s\S]?<hr>)/gi);
+      var m = responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>/gi);
+
       if (m && m.length > 0) {
         var body = m[m.length - 1];
         body = body.replace(/<tr>[\s\S]*?<tr>/, "");
@@ -199,7 +201,9 @@ function getMessageBody(account, msgID, onSuccess, onError) {
         body = body.replace(/(src="?)\/mail\//g, "$1" + mailURL);
         if(onSuccess)
           onSuccess(body);
-    }
+      } else {
+        onSuccess("<p><i>The extension could not parse contents of this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
+      }
   }, onError);
 }
 
