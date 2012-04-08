@@ -202,6 +202,7 @@ pre {
   border: 1px solid #CCC;
   box-shadow: 1px 1px #DDD;
   display: none;
+  z-index: 100;
 }
 .multibar-button {
   color: #555;
