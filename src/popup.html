@@ -9,6 +9,8 @@
       var throbberTimer = 0;
 
       function init() {
+        makeMultiBar();
+
         accountInfo = JSON.parse(localStorage.accountInfo);
 
         var inboxes = document.getElementById("inboxes");
@@ -157,9 +159,9 @@
         }
       }
 
-      function createButton(text, onclick, iconX, iconY) {
+      function createButton(text, className, onclick, iconX, iconY) {
         var b = document.createElement("div");
-        b.setAttribute("class", "preview-row-button");
+        b.setAttribute("class", className);
         if(iconX !== undefined) {
           b.innerHTML = "<span class='tool-icon' style='background-position: " + iconX  + "px " + iconY + "px;'></span>";
         } else {
@@ -246,20 +248,20 @@
           var account = mailPreview.account;
           var d = document.createElement("div");
           d.setAttribute("id", "mail-tools");
-          d.appendChild(createButton("Open in Gmail...", function() { 
+          d.appendChild(createButton("Open in Gmail...", "preview-row-button", function() { 
             openMailInTab(mailPreview.account, mailPreview.mailLink)
           }, -63, -63));
-          d.appendChild(createButton("Mark as read", function() {
+          d.appendChild(createButton("Mark as read", "preview-row-button", function() {
             doMailAction(mailPreview, "rd");
           }));
-          d.appendChild(createButton("Archive", function() {
+          d.appendChild(createButton("Archive", "preview-row-button", function() {
             doMailAction(mailPreview, "rd");
             doMailAction(mailPreview, "arch");
           }, -84, -21));
-          d.appendChild(createButton("Spam", function() {
+          d.appendChild(createButton("Spam", "preview-row-button", function() {
             doMailAction(mailPreview, "sp");
           }, -42, -42));
-          d.appendChild(createButton("Delete", function() {
+          d.appendChild(createButton("Delete", "preview-row-button", function() {
             doMailAction(mailPreview, "tr");
           }, -63, -42));
           mailPreview.appendChild(d);
@@ -300,6 +302,80 @@
         selectedMail = null;
       }
 
+      /* Multi-select functions */
+      function onSelecterClick(mailSelecter) {
+        if(mailSelecter.checked) {
+          mailSelecter.mailPreview.setAttribute("class", "preview-row-down");
+        } else {
+          mailSelecter.mailPreview.setAttribute("class", "preview-row");
+        }
+        showMultiBar();
+      }
+
+      function getMultiSelectedMails() {
+        var selecters = document.getElementsByClassName("mailSelecter");
+        var selected = [];
+        for(var i = 0; i < selecters.length; i++) {
+          var s = selecters[i];
+          if(s.checked)
+            selected.push(s.nextSibling);
+        }
+
+        return selected;
+      }
+
+      function doMultiMailAction(actions) {
+        var selected = getMultiSelectedMails();
+
+        console.dir(selected);
+
+        for(var i = 0; i < selected.length; i++)
+          for(var j = 0; j < actions.length; j++)
+            doMailAction(selected[i], actions[j]);
+      }
+
+      // Show multibar if any mail is selected 
+      function showMultiBar() {
+        var selecters = document.getElementsByClassName("mailSelecter");
+        for(var i = 0; i < selecters.length; i++) {
+          if(selecters[i].checked) {
+            document.getElementById("multibar").style.display = "block";
+            return;
+          }
+        }
+      }
+
+      function hideMultiBar() {
+        document.getElementById("multibar").style.display = "none";
+
+        var selecters = document.getElementsByClassName("mailSelecter");
+        for(var i = 0; i < selecters.length; i++) {
+          var s = selecters[i];
+          if(s.checked) {
+            s.checked = false;
+            if(selectedMail != s.nextSibling)
+              s.nextSibling.setAttribute("class", "preview-row");
+          }
+        }
+      }
+
+      function makeMultiBar() {
+        var d = document.getElementById("multibar");
+        d.appendChild(createButton("Mark as read", "multibar-button", function() {
+          doMultiMailAction(["rd"]);
+        }));
+        d.appendChild(createButton("", "multibar-button", function() {
+          doMultiMailAction(["rd", "arch"]);
+        }, -84, -21));
+        d.appendChild(createButton("", "multibar-button", function() {
+          doMultiMailAction(["sp"]);
+        }, -42, -42));
+        d.appendChild(createButton("", "multibar-button", function() {
+          doMultiMailAction(["tr"]);
+        }, -63, -42));
+      }
+      /* End multi-select functions */
+
       function onPreviewClick(mailPreview) {
         if(selectedMail == mailPreview) {
           unselectMail(mailPreview);
@@ -330,6 +406,15 @@
 
         for(var i in mails) {
           var mail = mails[i];
+
+          // Checkbox for multi-select
+          var mailSelecter = makeElement("input",
+            { 'type': 'checkbox',
+              'class': 'mailSelecter' });
+          mailSelecter.onclick = function() { onSelecterClick(this) };
+          inboxPreview.appendChild(mailSelecter);
+
+          // Preview of a single mail
           var mailPreview = document.createElement("div");
           mailPreview.setAttribute("class", "preview-row");
           mailPreview.innerHTML =
@@ -340,6 +425,8 @@
           mailPreview.account = account;
           mailPreview.onclick = function() { onPreviewClick(this); };
           inboxPreview.appendChild(mailPreview);
+
+          mailSelecter.mailPreview = mailPreview;
         }
 
         chrome.extension.sendRequest({
@@ -370,6 +457,9 @@
     </script>
   </head>
   <body onload="init()">
+    <div id="multibar">
+      <a id="multibar-close" href="#" onclick="hideMultiBar()">x</a>
+    </div>
     <div id="options-link"><span class="tool-icon" style="background-position: 0px -21px;"></span>Options</div>
     <div id="inboxes">
     </div>
