@@ -150,11 +150,13 @@ function doAjaxRequest(url, onSuccess, onError, params, headers) {
         }
       }
     }
+
     xhr.onerror = function(e) {
       console.error("doAjaxRequest: " + e);
       if(onError)
         onError();
     }
+    
     xhr.open("POST", url, true);
     for(key in headers)
       xhr.setRequestHeader(key, headers[key]);
@@ -188,10 +190,21 @@ function getMessageBody(account, msgID, onSuccess, onError) {
             + "/?v=pt&th=" + msgID;
 
   return doAjaxRequest(url, function (responseText) {
-      var m = responseText.match(/<hr>[\s\S]?<table[^>]*>([\s\S]*?)<\/table>/gi);
+    var div = document.createElement('div');
+    div.innerHTML = responseText;
 
-      if (m && m.length > 0) {
-        var body = m[m.length - 1];
+    var main = div.getElementsByClassName('maincontent');
+    if(main && main.length > 0) {
+      main = main[0];
+
+      var body = null;
+      for(var i = 0; i < main.childNodes.length; i++) {
+        if(main.childNodes[i].nodeName == "TABLE") {
+          body = "<table>" + main.childNodes[i].innerHTML + "</table>";
+        }
+      }
+
+      if(body) {
         body = body.replace(/<tr>[\s\S]*?<tr>/, "");
         body = body.replace(/<td colspan="?2"?>[\s\S]*?<td colspan="?2"?>/, "");
         body = body.replace(/cellpadding="?12"?/g, "");
@@ -199,11 +212,11 @@ function getMessageBody(account, msgID, onSuccess, onError) {
         body = body.replace(/<hr>/g, "");
         body = body.replace(/(href="?)\/mail\//g, "$1" + mailURL);
         body = body.replace(/(src="?)\/mail\//g, "$1" + mailURL);
-        if(onSuccess)
-          onSuccess(body);
+        onSuccess(body);
       } else {
         onSuccess("<p><i>The extension could not parse contents of this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
       }
+    }
   }, onError);
 }
 
