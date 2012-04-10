@@ -117,7 +117,7 @@ body {
   clear: both;
   font-size: 0.9em;
   opacity: 0.9;
-  display: inline-block;
+  display: block;
 }
 .preview-row-down {
   color: #444;

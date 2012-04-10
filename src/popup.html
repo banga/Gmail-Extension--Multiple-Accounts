@@ -159,6 +159,17 @@
         }
       }
 
+      function doMultiMailAction(actions) {
+        var selected = getMultiSelectedMails();
+
+        for(var i = 0; i < selected.length; i++)
+          for(var j = 0; j < actions.length; j++) {
+            var mailPreview = selected[i];
+            var action = actions[j];
+            doMailAction(mailPreview, action);
+          }
+      }
+
       function createButton(text, className, onclick, iconX, iconY) {
         var b = document.createElement("div");
         b.setAttribute("class", className);
@@ -298,7 +309,10 @@
       }
 
       function removeMail(mailPreview) {
-        mailPreview.parentElement.removeChild(mailPreview);
+        var parent = mailPreview.parentElement;
+        var mailSelect = mailPreview.previousSibling;
+        parent.removeChild(mailSelect);
+        parent.removeChild(mailPreview);
         selectedMail = null;
       }
 
@@ -322,16 +336,6 @@
         }
 
         return selected;
-      }
-
-      function doMultiMailAction(actions) {
-        var selected = getMultiSelectedMails();
-
-        console.dir(selected);
-
-        for(var i = 0; i < selected.length; i++)
-          for(var j = 0; j < actions.length; j++)
-            doMailAction(selected[i], actions[j]);
       }
 
       // Show multibar if any mail is selected 
