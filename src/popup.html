@@ -320,10 +320,15 @@
       function onSelecterClick(mailSelecter) {
         if(mailSelecter.checked) {
           mailSelecter.mailPreview.setAttribute("class", "preview-row-down");
+          showMultiBar();
         } else {
           mailSelecter.mailPreview.setAttribute("class", "preview-row");
+          var selecters = document.getElementsByClassName("mailSelecter");
+          for(var i = 0; i < selecters.length; i++)
+            if(selecters[i].checked)
+              return;
+          hideMultiBar();
         }
-        showMultiBar();
       }
 
       function getMultiSelectedMails() {
