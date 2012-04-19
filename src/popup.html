@@ -7,9 +7,11 @@
       var selectedMail = null; // Set to an e-mail if user has pressed it
       var xhrMsgBody = null;
       var throbberTimer = 0;
+      var throbberElem, multibarElem;
 
       function init() {
         makeMultiBar();
+        makeThrobber();
 
         accountInfo = JSON.parse(localStorage.accountInfo);
 
@@ -119,16 +121,12 @@
       function showProgressAnimation(mailPreview) {
         unselectMail(mailPreview);
         mailPreview.setAttribute("class", "preview-row-busy");
-        showThrobber(mailPreview);
-      }
-
-      function hideProgressAnimation(mailPreview) {
-        mailPreview.setAttribute("class", "preview-row");
-        hideThrobber();
+        showThrobber();
       }
 
       function showMailError(msg) {
-        window.alert(msg);
+        //window.alert(msg);
+        console.err(msg);
       }
 
       function markMailBusy(mailPreview) {
@@ -147,26 +145,78 @@
           markMailBusy(mailPreview);
           doGmailAction(mailPreview.account, msgID, action,
             function() {
-               removeMail(mailPreview)
-               hideProgressAnimation(mailPreview);
+               removeMail(mailPreview);
+               hideThrobber();
                getInboxData(mailPreview.account, updateUnreadCount, showLoggedOut);
             },
             function() {
               showMailError("Could not connect to the Gmail server");
-              hideProgressAnimation(mailPreview);
+              hideThrobber();
               markMailAvailable(mailPreview);
             });
         }
       }
 
+      /* Perform multiple actions on multiple mails
+         Waits for all the requests to complete or fail before updating inboxes
+      */
       function doMultiMailAction(actions) {
         var selected = getMultiSelectedMails();
+        var nTotal = selected.length;
+        var nFinished = 0;
+        var failed = [];
+
+        var onActionComplete = function() {
+          nFinished++;
+
+          if(nTotal == nFinished) {
+            hideThrobber();
+
+            // Refresh any accounts where requests failed
+            for(var i = 0; i < failed.length; i++) {
+              failed[i].isDirty = true;
+            }
+
+            for(var domain in accountInfo) {
+              var accounts = accountInfo[domain];
+              for(var i = 0; i < accounts.length; i++) {
+                if(accounts[i].isDirty) {
+                  getInboxData(accounts[i], updateUnreadCount, showLoggedOut);
+                  delete accounts[i].isDirty;
+                }
+              }
+            }
+          }
+        }
+
+        var doSingleMailAction = function(mailPreview, action) {
+          var msgID = getMessageID(mailPreview.mailLink);
+
+          if(msgID) {
+            markMailBusy(mailPreview);
+            doGmailAction(mailPreview.account, msgID, action,
+              function() {
+                removeMail(mailPreview);
+                onActionComplete();
+              },
+              function() {
+                showMailError("Could not connect to the Gmail server");
+                markMailAvailable(mailPreview);
+                failed.push(mailPreview.account);
+                onActionComplete();
+              }
+            );
+          }
+        };
+
+        showThrobber();
 
         for(var i = 0; i < selected.length; i++)
           for(var j = 0; j < actions.length; j++) {
             var mailPreview = selected[i];
             var action = actions[j];
-            doMailAction(mailPreview, action);
+
+            doSingleMailAction(mailPreview, action);
           }
       }
 
@@ -193,44 +243,6 @@
         for(prop in css)
           elem.style[prop] = css[prop];
         return elem;
-      }
-
-      function showThrobber(paren) {
-        hideThrobber();
-
-        var canvas = makeElement('canvas', {id: 'throbber', width: 16, height: 16});
-
-        if(canvas && canvas.getContext) {
-          var ctx = canvas.getContext('2d');
-          ctx.strokeStyle = "#8CF";
-          ctx.lineWidth = 3;
-          ctx.lineCap = 'round';
-          ctx.translate(8, 8);
-          var theta = 0;
-
-          throbberTimer = window.setInterval(function() {
-            ctx.save();
-            ctx.clearRect(-8, -8, 16, 16);
-            ctx.rotate(theta);
-            ctx.beginPath();
-            ctx.arc(0, 0, 6, 0, Math.PI / 1.5, false);
-            ctx.stroke();
-            ctx.restore();
-            theta += Math.PI / 50;
-          }, 10);
-
-          paren.appendChild(canvas);
-        }
-      }
-
-      function hideThrobber(paren) {
-        var canvas = document.getElementById('throbber');
-        if(canvas)
-          canvas.parentElement.removeChild(canvas);
-        if(throbberTimer) {
-          window.clearInterval(throbberTimer);
-          throbberTimer = 0;
-        }
       }
 
       function selectMail(mailPreview) {
@@ -345,45 +357,90 @@
 
       // Show multibar if any mail is selected 
       function showMultiBar() {
+        // Don't show if we're busy
+        if(throbberElem.style.display != "none")
+          return;
+
         var selecters = document.getElementsByClassName("mailSelecter");
         for(var i = 0; i < selecters.length; i++) {
           if(selecters[i].checked) {
-            document.getElementById("multibar").style.display = "block";
+            multibarElem.style.display = "block";
             return;
           }
         }
       }
 
-      function hideMultiBar() {
-        document.getElementById("multibar").style.display = "none";
+      function hideMultiBar(deselectAll) {
+        multibarElem.style.display = "none";
 
-        var selecters = document.getElementsByClassName("mailSelecter");
-        for(var i = 0; i < selecters.length; i++) {
-          var s = selecters[i];
-          if(s.checked) {
-            s.checked = false;
-            if(selectedMail != s.nextSibling)
-              s.nextSibling.setAttribute("class", "preview-row");
+        if(deselectAll) {
+          var selecters = document.getElementsByClassName("mailSelecter");
+          for(var i = 0; i < selecters.length; i++) {
+            var s = selecters[i];
+            if(s.checked) {
+              s.checked = false;
+              if(selectedMail != s.nextSibling)
+                s.nextSibling.setAttribute("class", "preview-row");
+            }
           }
         }
       }
 
       function makeMultiBar() {
-        var d = document.getElementById("multibar");
-        d.appendChild(createButton("Mark as read", "multibar-button", function() {
+        multibarElem = document.getElementById("multibar");
+        multibarElem .appendChild(createButton("Mark as read", "multibar-button", function() {
           doMultiMailAction(["rd"]);
         }));
-        d.appendChild(createButton("", "multibar-button", function() {
+        multibarElem.appendChild(createButton("", "multibar-button", function() {
           doMultiMailAction(["rd", "arch"]);
         }, -84, -21));
-        d.appendChild(createButton("", "multibar-button", function() {
+        multibarElem.appendChild(createButton("", "multibar-button", function() {
           doMultiMailAction(["sp"]);
         }, -42, -42));
-        d.appendChild(createButton("", "multibar-button", function() {
+        multibarElem.appendChild(createButton("", "multibar-button", function() {
           doMultiMailAction(["tr"]);
         }, -63, -42));
       }
       /* End multi-select functions */
+
+      function makeThrobber() {
+        throbberElem = document.getElementById('throbber');
+        var canvas = document.getElementById('throbber-canvas');
+
+        if(canvas && canvas.getContext) {
+          canvas.width = 16;
+          canvas.height = 16;
+          var ctx = canvas.getContext('2d');
+          ctx.strokeStyle = "#ACE";
+          ctx.lineWidth = 3;
+          ctx.lineCap = 'round';
+          ctx.translate(8, 8);
+          var theta = 0;
+
+          throbberTimer = window.setInterval(function() {
+            ctx.save();
+            ctx.clearRect(-8, -8, 16, 16);
+            ctx.rotate(theta);
+            ctx.beginPath();
+            ctx.arc(0, 0, 6, 0, Math.PI / 1.5, false);
+            ctx.stroke();
+            ctx.restore();
+            theta += Math.PI / 50;
+          }, 10);
+
+          hideThrobber();
+        }
+      }
+
+      function showThrobber() {
+        throbberElem.style.display = "block";
+        hideMultiBar(false);
+      }
+
+      function hideThrobber() {
+        throbberElem.style.display = "none";
+        showMultiBar();
+      }
 
       function onPreviewClick(mailPreview) {
         if(selectedMail == mailPreview) {
@@ -466,8 +523,12 @@
     </script>
   </head>
   <body onload="init()">
-    <div id="multibar">
-      <a id="multibar-close" href="#" onclick="hideMultiBar()">x</a>
+    <div id="multibar" class="topbar">
+      <a id="multibar-close" href="#" onclick="hideMultiBar(true)">x</a>
+    </div>
+    <div id="throbber" class="topbar">
+      <canvas id="throbber-canvas"></canvas>
+      Working...
     </div>
     <div id="options-link"><span class="tool-icon" style="background-position: 0px -21px;"></span>Options</div>
     <div id="inboxes">

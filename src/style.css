@@ -118,6 +118,7 @@ body {
   font-size: 0.9em;
   opacity: 0.9;
   display: block;
+  min-height: 20px;
 }
 .preview-row-down {
   color: #444;
@@ -190,19 +191,28 @@ body {
 pre {
   white-space: pre-wrap;
 }
-#throbber {
-  float: right;
-}
-#multibar {
+.topbar {
   position: fixed;
   top: 5px;
-  left: 200px;
-  background: #E8F0F8;
   padding: 10px;
   border: 1px solid #CCC;
   box-shadow: 1px 1px #DDD;
+  background: #E8F0F8;
   display: none;
+}
+#multibar {
+  left: 40%;
   z-index: 100;
+}
+#throbber {
+  left: 45%;
+  z-index: 101;
+  font: 12px arial;
+  color: #444;
+}
+#throbber-canvas {
+  padding-right: 4px;
+  vertical-align: top;
 }
 .multibar-button {
   color: #555;
