@@ -251,3 +251,44 @@ pre {
 #multibar-close:hover {
   background: #DEF;
 }
+.message, .message-hidden {
+  width: 100%;
+  background: #F7F7F7;
+  border: 1px solid #AAA;
+  border-radius: 8px;
+  box-shadow: 0px 0px 5px rgba(0,0,0,0.2);
+}
+.message {
+  margin-bottom: 3px;
+}
+.message-hidden {
+  border-bottom: none;
+  border-radius: 8px 8px 0px 0px;
+  margin-bottom: -3px;
+  padding-bottom: 5px;
+}
+#mail-body > .message-hidden:last-of-type {
+  margin-bottom: 3px;
+  border-radius: 8px;
+  border: 1px solid #AAA;
+}
+.message-body {
+  transition: height 0.5s;
+  -webkit-transition: height 0.5s;
+  overflow: hidden;
+}
+.message-hidden > .message-body {
+  height: 0px;
+}
+.message-header {
+  cursor: pointer;
+  padding: 3px 5px 0px 10px;
+}
+.message-from {
+  font-weight: bold;
+}
+.message-date {
+  font-size: 10px;
+  color: #666;
+  float: right;
+}

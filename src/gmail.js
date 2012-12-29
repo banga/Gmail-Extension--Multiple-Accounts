@@ -184,6 +184,50 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
   return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
 }
 
+function makeMessage(messageTable, mailURL) {
+  var nodes = messageTable.childNodes;
+  for (var i = 0; i < nodes.length; ++i) {
+    if (nodes[i].tagName == "TBODY") {
+      rows = nodes[i].childNodes;
+      break;
+    }
+  }
+
+  var message = {};
+
+  nodes = rows[0].childNodes;
+  cells = [];
+  for (var i = 0; i < nodes.length; ++i) {
+    if (nodes[i].tagName == "TD")
+      cells.push(nodes[i]);
+  }
+
+  nodes = rows[2].childNodes;
+  for (var i = 0; i < nodes.length; ++i) {
+    if (nodes[i].tagName == "TD") {
+      cells.push(nodes[i]);
+      break;
+    }
+  }
+
+  message.from = cells[0].innerText;
+  message.date = cells[1].innerText;
+  message.body = cleanBody(cells[2]);
+
+  return message;
+}
+
+function cleanBody(body, mailURL) {
+
+  return body.innerHTML
+  //  .replace(/<tr>[\s\S]*?<tr>/, "")
+  //  .replace(/<td colspan="?2"?>[\s\S]*?<td colspan="?2"?>/, "")
+  //  .replace(/cellpadding="?12"?/g, "")
+    .replace(/font size="?-1"?/g, 'font')
+    .replace(/(href="?)\/mail\//g, "$1" + mailURL)
+    .replace(/(src="?)\/mail\//g, "$1" + mailURL);
+}
+
 function getMessageBody(account, msgID, onSuccess, onError) {
   var mailURL = getAccountUrl(account);
   var url = mailURL + "h/" + Math.ceil(1000000 * Math.random())
@@ -193,29 +237,16 @@ function getMessageBody(account, msgID, onSuccess, onError) {
     var div = document.createElement('div');
     div.innerHTML = responseText;
 
-    var main = div.getElementsByClassName('maincontent');
-    if(main && main.length > 0) {
-      main = main[0];
+    var messageTables = div.querySelectorAll('.message');
 
-      var body = null;
-      for(var i = 0; i < main.childNodes.length; i++) {
-        if(main.childNodes[i].nodeName == "TABLE") {
-          body = "<table>" + main.childNodes[i].innerHTML + "</table>";
-        }
+    if (messageTables) {
+      var messages = [];
+      for (var i = 0; i < messageTables.length; ++i) {
+        messages.push(makeMessage(messageTables[i], mailURL));
       }
-
-      if(body) {
-        body = body.replace(/<tr>[\s\S]*?<tr>/, "");
-        body = body.replace(/<td colspan="?2"?>[\s\S]*?<td colspan="?2"?>/, "");
-        body = body.replace(/cellpadding="?12"?/g, "");
-        body = body.replace(/font size="?-1"?/g, 'font');
-        body = body.replace(/<hr>/g, "");
-        body = body.replace(/(href="?)\/mail\//g, "$1" + mailURL);
-        body = body.replace(/(src="?)\/mail\//g, "$1" + mailURL);
-        onSuccess(body);
-      } else {
-        onSuccess("<p><i>The extension could not parse contents of this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
-      }
+      onSuccess(messages);
+    } else {
+        onSuccess("<p><i>Could not parse this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
     }
   }, onError);
 }
