@@ -8,8 +8,10 @@
     "default_icon": "icon_128.png",
     "default_popup": "popup.html"
   },
-  "default_locale": "en",
-  "description": "__MSG_gmailcheck_description__",
+  "name": {
+    "message":"Google Mail Multi-Account Checker"
+  },
+  "description": "Displays the number of unread messages in your Google Mail inboxes. Click on the button to preview your inboxes. Go to options to configure multiple accounts.",
   "icons": {
     "128": "icon_128.png"
   },
