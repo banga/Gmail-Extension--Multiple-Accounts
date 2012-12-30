@@ -1,7 +1,6 @@
 var domainNameTextbox;
 var domainList;
 var saveButton;
-var maxAccounts = 10; // Google seems to support upto 10
 var accountInfo = {mail: [{number: 0, domain: 'mail'}]};
 var credentialList; 
 
@@ -48,10 +47,6 @@ function updateNumAccounts(domain) {
 
   var numAccountsTextbox = document.getElementById('num-accounts-' + domain);
   numAccounts = parseInt(numAccountsTextbox.value);
-  if(!numAccounts || numAccounts > maxAccounts) {
-    numAccountsTextbox.value = "";
-    return false;
-  }
 
   var accounts = accountInfo[domain];
   for(var i = accounts.length; i < numAccounts; i++) {
@@ -110,8 +105,8 @@ function updateDomainCredentialInputs(domain) {
 
   var accountsDiv = document.createElement('div');
   accountsDiv.innerHTML = "Number of accounts: "
-    + "<input type='text' id='num-accounts-" + domain +"'"
-    + "value='" + accounts.length + "' >";
+    + "<input type='number' min=1 max=10 id='num-accounts-" + domain +"'"
+    + "value='" + accounts.length + "' placeholder='Number of accounts' >";
   container.appendChild(accountsDiv);
   document.getElementById('num-accounts-' + domain).addEventListener('input',
     function() {
@@ -133,27 +128,19 @@ function updateDomainCredentialInputs(domain) {
 
     getAccountTitle(account);
 
-    var userLabel = document.createElement('label');
-    userLabel.setAttribute('for', 'user-' + domain + i);
-    userLabel.innerText = "Username: ";
-    div.appendChild(userLabel);
-
     var user = document.createElement('input');
     user.setAttribute('type', 'text');
     user.setAttribute('id', 'user-' + domain + i);
+    user.setAttribute('placeholder', 'Username');
     user.oninput = markDirty;
     div.appendChild(user);
 
     div.appendChild(document.createElement('br'));
     
-    var passLabel = document.createElement('label');
-    passLabel.setAttribute('for', 'pass-' + domain + i);
-    passLabel.innerText = "Password: ";
-    div.appendChild(passLabel);
-
     var pass = document.createElement('input');
     pass.setAttribute('type', 'password');
     pass.setAttribute('id', 'pass-' + domain + i);
+    pass.setAttribute('placeholder', 'Password');
     pass.oninput = markDirty;
     div.appendChild(pass);
 
@@ -179,10 +166,16 @@ function getAccountTitle(account) {
     var titleSet = xmlDoc.evaluate("/gmail:feed/gmail:title",
         xmlDoc, gmailNSResolver, XPathResult.ANY_TYPE, null);
     var titleNode = titleSet.iterateNext();
-    if(titleNode)
-      return titleNode.textContent;
-    else
+    if(titleNode) {
+      var title = titleNode.textContent;
+      var prefix = 'Inbox for ';
+      if (title.indexOf(prefix) >= 0) {
+        title = title.substr(title.indexOf(prefix) + prefix.length);
+      }
+      return title;
+    } else {
       return null;
+    }
   }
 
   parseAccountFeed(account, parseTitle, updateTitle); 
