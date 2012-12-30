@@ -142,17 +142,11 @@ function init() {
 }
 
 function getInboxCount(account, onSuccess, onError) {
-  function parseCount(xmlDoc) {
-    var fullCountSet = xmlDoc.evaluate("/gmail:feed/gmail:fullcount",
-        xmlDoc, gmailNSResolver, XPathResult.ANY_TYPE, null);
-    var fullCountNode = fullCountSet.iterateNext();
-    if(fullCountNode)
-      return fullCountNode.textContent;
-    else
-      return null;
-  }
-
-  parseAccountFeed(account, parseCount, onSuccess, onError); 
+  Cache.loadEmails(account, 
+    function(account, accountData) {
+      onSuccess(account, accountData.unreadCount);
+    },
+    onError);
 }
 
 function scheduleRequest(account) {
@@ -189,7 +183,6 @@ function startRequest(account) {
 
 function updateUnreadCount(account, count) {
   if (account.unreadCount != count) {
-    //console.debug(account.domain + "/" + account.number + ": " + account.unreadCount + "->" + count);
     account.unreadCount = count;
     animateFlip();
   }

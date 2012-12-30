@@ -86,13 +86,13 @@ function parseAccountFeed(account, xmlHandler, onSuccess, onError) {
           handleSuccess(data);
           return;
         } else {
-          console.error(chrome.i18n.getMessage("gmailcheck_node_error"));
+          console.error("Empty XHR response");
         }
       }
 
       // Authorization required
       if (xhr.status == 401)
-        console.error(chrome.i18n.getMessage("gmailcheck_auth_reqd"));
+        console.error("Authorization required");
 
       handleError();
     }
@@ -107,7 +107,7 @@ function parseAccountFeed(account, xmlHandler, onSuccess, onError) {
       xhr.open("GET", getFeedUrl(account), true);
     xhr.send(null);
   } catch(e) {
-    console.error(chrome.i18n.getMessage("gmailcheck_exception", e));
+    console.error(e);
     handleError();
   }
 }
@@ -184,6 +184,12 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
   return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
 }
 
+function makeMessageSummary(message) {
+  var div = document.createElement('DIV');
+  div.innerHTML = message.body;
+  return div.innerText.trim().substr(0, 100);
+}
+
 function makeMessage(messageTable, mailURL) {
   var nodes = messageTable.childNodes;
   for (var i = 0; i < nodes.length; ++i) {
@@ -213,6 +219,7 @@ function makeMessage(messageTable, mailURL) {
   message.from = cells[0].innerText;
   message.date = cells[1].innerText;
   message.body = cleanBody(cells[2]);
+  message.summary = makeMessageSummary(message);
 
   return message;
 }
@@ -228,7 +235,7 @@ function cleanBody(body, mailURL) {
     .replace(/(src="?)\/mail\//g, "$1" + mailURL);
 }
 
-function getMessageBody(account, msgID, onSuccess, onError) {
+function fetchEmailMessages(account, msgID, onSuccess, onError) {
   var mailURL = getAccountUrl(account);
   var url = mailURL + "h/" + Math.ceil(1000000 * Math.random())
             + "/?v=pt&th=" + msgID;
@@ -246,7 +253,7 @@ function getMessageBody(account, msgID, onSuccess, onError) {
       }
       onSuccess(messages);
     } else {
-        onSuccess("<p><i>Could not parse this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
+      onSuccess("<p><i>Could not parse this e-mail. Please use the <b>Open in Gmail</b> button below.</i></p>");
     }
   }, onError);
 }

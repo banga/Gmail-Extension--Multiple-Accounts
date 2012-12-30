@@ -1,5 +1,5 @@
 body {
-  min-width: 70ex;
+  width: 80ex;
   font-family: sans-serif;
   font-size: 1em;
   margin: 0 10px 0 0;
@@ -9,7 +9,6 @@ body {
   overflow-y: scroll;
   -webkit-user-select: none;
 }
-/*
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -27,7 +26,6 @@ body {
 ::-webkit-scrollbar-thumb:active {
   background: #7BE;
 }
-*/
 #options-link {
   color: #024;
   font-size: 0.5em;
@@ -278,7 +276,9 @@ pre {
 .message-body {
   transition: height 0.2s;
   -webkit-transition: height 0.2s ease-out;
-  overflow: hidden;
+  overflow-y: hidden;
+  overflow-x: auto;
+  clear: both;
 }
 .message-hidden > .message-body {
   height: 0px;
@@ -286,9 +286,23 @@ pre {
 .message-header {
   cursor: pointer;
   padding: 3px 5px 0px 10px;
+  height: 1.5em;
 }
 .message-from {
   font-weight: bold;
+  float: left;
+  margin-right: 10px;
+}
+.message-summary {
+  white-space: nowrap;
+  overflow: hidden;
+  color: #888;
+}
+.message .message-summary {
+  display: none;
+}
+.message-hidden .message-date {
+  display: none;
 }
 .message-date {
   font-size: 10px;
