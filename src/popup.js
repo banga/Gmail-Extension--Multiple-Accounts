@@ -284,13 +284,19 @@ function selectMail(mailPreview) {
       messageHeaders[i].onclick = function() {
         var message = this.parentElement;
         var messageBody = this.nextElementSibling;
+
         if (message.className == "message") {
           messageBody.style.height = "0px";
           message.className = "message-hidden";
         } else {
           messageBody.style.height =
             messageBody.firstElementChild.clientHeight + "px";
-          message.className = "message";
+
+          var transitionListener = function() {
+            messageBody.removeEventListener('webkitTransitionEnd', transitionListener);
+            message.className = "message";
+          };
+          messageBody.addEventListener('webkitTransitionEnd', transitionListener);
         }
       }
     }

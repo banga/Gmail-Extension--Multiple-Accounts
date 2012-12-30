@@ -6,8 +6,10 @@ body {
   padding: 2px 0px 2px 3px;
   background: #F5F5F5;
   overflow-x: hidden;
+  overflow-y: scroll;
   -webkit-user-select: none;
 }
+/*
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -25,6 +27,7 @@ body {
 ::-webkit-scrollbar-thumb:active {
   background: #7BE;
 }
+*/
 #options-link {
   color: #024;
   font-size: 0.5em;
@@ -273,8 +276,8 @@ pre {
   border: 1px solid #AAA;
 }
 .message-body {
-  transition: height 0.5s;
-  -webkit-transition: height 0.5s;
+  transition: height 0.2s;
+  -webkit-transition: height 0.2s ease-out;
   overflow: hidden;
 }
 .message-hidden > .message-body {
