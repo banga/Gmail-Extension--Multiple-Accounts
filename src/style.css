@@ -309,3 +309,44 @@ pre {
   color: #666;
   float: right;
 }
+#mail-reply {
+  position: relative;
+}
+#mail-reply-body {
+  outline: none;
+  border-radius: 4px;
+  box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 2px inset; 
+  width: 97%;
+}
+textarea {
+  border: #CCC 1px solid;
+  background-color: #FAFAFA;
+  font-size: 1em;
+  padding: 8px;
+}
+textarea:active, :focus {
+  border: #AAA 1px solid;
+  background-color: #FFF;
+}
+#mail-reply-button {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  padding: 5px 8px;
+}
+input[type="button"] {
+  cursor: pointer;
+  border: 1px solid #999;
+  border-radius: 3px;
+  background-color: #F7F7F7;
+  box-shadow: inset -1px -1px 2px #CCC;
+}
+input[type="button"]:active {
+  background-color: #EAEAEA;
+  box-shadow: inset 1px 1px 5px #BBB;
+  color: #555;
+}
+input[type="button"][disabled] {
+  cursor: default;
+  opacity: 0.7;
+}

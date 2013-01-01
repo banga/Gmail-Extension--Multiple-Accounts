@@ -4,6 +4,17 @@ var xhrMsgBody = null;
 var throbberTimer = 0;
 var throbberElem, multibarElem;
 
+function makeElem(type, attrs, css) {
+  var elem = document.createElement(type);
+  for (k in attrs) {
+    elem.setAttribute(k, attrs[k]);
+  }
+  for (prop in css) {
+    elem.style[prop] = css[prop];
+  }
+  return elem;
+}
+
 function init() {
   makeMultiBar();
   makeThrobber();
@@ -104,21 +115,45 @@ function markMailAvailable(mailPreview) {
 function doMailAction(mailPreview, action) {
   var msgID = getMessageID(mailPreview.mailLink);
 
+  var onSuccess = function() {
+    removeMail(mailPreview);
+    hideThrobber();
+    Cache.loadEmails(mailPreview.account, updateUnreadCount,
+        showLoggedOut);
+  }
+
+  var onError = function() {
+    showMailError("Could not connect to the Gmail server");
+    hideThrobber();
+    markMailAvailable(mailPreview);
+  }
+
   if(msgID) {
     showProgressAnimation(mailPreview);
     markMailBusy(mailPreview);
-    doGmailAction(mailPreview.account, msgID, action,
-      function() {
-         removeMail(mailPreview);
-         hideThrobber();
-         Cache.loadEmails(mailPreview.account, updateUnreadCount,
-           showLoggedOut);
-      },
-      function() {
-        showMailError("Could not connect to the Gmail server");
-        hideThrobber();
-        markMailAvailable(mailPreview);
-      });
+    doGmailAction(mailPreview.account, msgID, action, onSuccess, onError);
+  }
+}
+
+function doMailReply(mailPreview, body) {
+  var msgID = getMessageID(mailPreview.mailLink);
+
+  var onSuccess = function() {
+    hideThrobber();
+    Cache.loadEmails(mailPreview.account, updateUnreadCount,
+        showLoggedOut);
+  }
+
+  var onError = function() {
+    showMailError("Could not connect to the Gmail server");
+    hideThrobber();
+    markMailAvailable(mailPreview);
+  }
+
+  if(msgID) {
+    showProgressAnimation(mailPreview);
+    markMailBusy(mailPreview);
+    doGmailReply(mailPreview.account, msgID, body, onSuccess, onError);
   }
 }
 
@@ -274,6 +309,41 @@ function selectMail(mailPreview) {
 
       mailPreview.appendChild(div);
 
+      div = makeElem('DIV', {'id': 'mail-reply'});
+      var replyBody = makeElem('TEXTAREA',
+          {
+            'id': 'mail-reply-body',
+            'rows': '1',
+            'cols': '80',
+            'placeholder': 'Reply here',
+            'wrap': 'virtual'
+          });
+      div.appendChild(replyBody);
+
+      var replyButton = makeElem('input',
+          {
+            'type': 'button',
+            'disabled': 'disabled',
+            'id': 'mail-reply-button',
+            'value': 'Send'
+          });
+      div.appendChild(replyButton);
+
+      replyBody.oninput = function() {
+        this.setAttribute('rows', this.value.split('\n').length);
+        if (this.value.trim().length) {
+          replyButton.removeAttribute('disabled');
+        } else {
+          replyButton.setAttribute('disabled', true);
+        }
+      }
+      replyButton.onclick = function() {
+        doMailReply(mailPreview, replyBody.value);
+      }
+      div.onclick = function(e) { e.cancelBubble = true };
+      mailPreview.appendChild(div);
+
+
       var account = mailPreview.account;
       var d = document.createElement("div");
       d.setAttribute("id", "mail-tools");
@@ -307,13 +377,12 @@ function selectMail(mailPreview) {
 function unselectMail(mailPreview) {
   hideThrobber();
 
-  var d = document.getElementById("mail-tools");
-  if(d)
-    mailPreview.removeChild(d);
+  var to_remove = ["mail-tools", "mail-body", "mail-reply"];
 
-  var d = document.getElementById("mail-body");
-  if(d)
-    mailPreview.removeChild(d);
+  for (var i = 0; i < to_remove.length; ++i) {
+    var d = document.getElementById(to_remove[i]);
+    if(d) mailPreview.removeChild(d);
+  }
 
   var summary = mailPreview.getElementsByClassName("summary")[0];
   summary.style.display = "";

@@ -184,6 +184,28 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
   return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
 }
 
+function doGmailReply(account, msgID, body, onSuccess, onError) {
+  /*
+  https://mail.google.com/mail/u/0/h/4kanhx7cv3es/?&v=b&qrt=n&fv=cv&rm=13bf71c4f82c2c39&at=AF6bupM-wmLVbDy8fSwaTVkmeLBMqZYufA&pv=cv&th=13bf71c4f82c2c39&cs=qfnq
+  POST params: qrr=o&body=Hello&nvp_bu_send=Send&haot=qt 
+*/
+
+  if(!account.at) {
+    getAccountAt(account, function() {
+      doGmailReply(account, msgID, body, onSuccess, onError);
+    });
+    return;
+  }
+
+  var url = getHTMLModeUrl(account) + '?v=b&qrt=n&fv=cv&rm=' + msgID
+      + '&at=' + account.at + '&cs=qfnq';
+  var encodedBody = encodeURIComponent(body).replace(/%20/g, '+');
+  var params = "qrr=o&body=" + encodedBody + "&nvp_bu_send=Send&haot=qt";
+
+  return doAjaxRequest(url, onSuccess, onError, params,
+      {"Content-type": "application/x-www-form-urlencoded"});
+}
+
 function makeMessageSummary(message) {
   var div = document.createElement('DIV');
   div.innerHTML = message.body;
