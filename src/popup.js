@@ -30,19 +30,16 @@ function init() {
       account.unreadCount = -1;
       account.loggedIn = false;
 
-      var inboxRow = document.createElement("div");
-        inboxRow.setAttribute("class", i == 0 ? "inbox-row inbox-row-first" : "inbox-row");
+      var inboxRow = makeElem('div',
+          {'class': (i == 0 ? "inbox-row inbox-row-first" : "inbox-row")});
 
-        var inboxHeader = document.createElement("div");
-          inboxHeader.setAttribute("class", "inbox-header");
+        var inboxHeader = makeElem("div", {"class": "inbox-header"});
 
-          var inboxIcon = document.createElement("img");
-          inboxIcon.setAttribute("class", "inbox-icon");
-          inboxIcon.setAttribute("src", "icon_128.png");
+          var inboxIcon = makeElem("img",
+              {"class": "inbox-icon", "src": "icon_128.png"});
           inboxHeader.appendChild(inboxIcon);
 
-          var inboxUrl = document.createElement("div");
-          inboxUrl.setAttribute("class", "url");
+          var inboxUrl = makeElem("div", {"class": "url"});
           inboxUrl.account = account;
           inboxUrl.onclick = function() { goToInbox(this.account); }
           inboxUrl.innerText = "Loading...";
@@ -51,9 +48,8 @@ function init() {
         inboxHeader.appendChild(inboxUrl);
       inboxRow.appendChild(inboxHeader);
 
-        var inboxPreview = document.createElement("div");
-        inboxPreview.setAttribute("class", "preview");
-        inboxPreview.setAttribute("id", "inbox-preview-" + i);
+        var inboxPreview = makeElem("div",
+            {"class": "preview", "id": ("inbox-preview-" + i)});
         account.inboxPreview = inboxPreview;
       inboxRow.appendChild(inboxPreview);
 
@@ -221,8 +217,7 @@ function doMultiMailAction(actions) {
 }
 
 function createButton(text, className, onclick, iconX, iconY) {
-  var b = document.createElement("div");
-  b.setAttribute("class", className);
+  var b = makeElem("div", {"class": className});
   if(iconX !== undefined) {
     b.innerHTML = "<span class='tool-icon' style='background-position: " + iconX  + "px " + iconY + "px;'></span>";
   } else {
@@ -234,15 +229,6 @@ function createButton(text, className, onclick, iconX, iconY) {
     onclick();
   };
   return b;
-}
-
-function makeElement(type, attribs, css) {
-  var elem = document.createElement(type);
-  for(attrib in attribs)
-    elem.setAttribute(attrib, attribs[attrib]);
-  for(prop in css)
-    elem.style[prop] = css[prop];
-  return elem;
 }
 
 function selectMail(mailPreview) {
@@ -280,8 +266,7 @@ function selectMail(mailPreview) {
       var summary = mailPreview.getElementsByClassName("summary")[0];
       summary.style.display = "none";
 
-      var div = document.createElement("div");
-      div.setAttribute("id", "mail-body");
+      var div = makeElem("div", {"id": "mail-body"});
       div.innerHTML = msgBody;
       div.onclick = function(e) { e.cancelBubble = true };
 
@@ -345,7 +330,7 @@ function selectMail(mailPreview) {
 
 
       var account = mailPreview.account;
-      var d = document.createElement("div");
+      var d = makeElem("div", {"id": "mail-tools"});
       d.setAttribute("id", "mail-tools");
       d.appendChild(createButton("Open in Gmail...", "preview-row-button", function() { 
         openMailInTab(mailPreview.account, mailPreview.mailLink)
@@ -557,15 +542,14 @@ function updateUnreadCount(account, data) {
   for (var i = 0; i < sortedEmails.length; ++i) {
     var email = sortedEmails[i];
     // Checkbox for multi-select
-    var mailSelecter = makeElement("input",
+    var mailSelecter = makeElem("input",
       { 'type': 'checkbox',
         'class': 'mailSelecter' });
     mailSelecter.onclick = function() { onSelecterClick(this) };
     inboxPreview.appendChild(mailSelecter);
 
     // Preview of a single email
-    var mailPreview = document.createElement("div");
-    mailPreview.setAttribute("class", "preview-row");
+    var mailPreview = makeElem("div", {"class": "preview-row"});
     mailPreview.innerHTML =
       "<div class='subject'>" + email.subject + "</div>" +
       "<div class='author'>"  + email.author  + "</div>" + 
