@@ -102,8 +102,7 @@ function doMailAction(mailPreview, action) {
   var onSuccess = function() {
     removeMail(mailPreview);
     hideThrobber();
-    Cache.loadEmails(mailPreview.account, updateUnreadCount,
-        showLoggedOut);
+    Cache.loadEmails(mailPreview.account, updateUnreadCount, showLoggedOut);
   }
 
   var onError = function() {
@@ -330,7 +329,6 @@ function selectMail(mailPreview) {
       div.onclick = function(e) { e.cancelBubble = true };
       mailPreview.appendChild(div);
 
-
       var account = mailPreview.account;
       var d = U.make("div", {"id": "mail-tools"});
       d.setAttribute("id", "mail-tools");
@@ -384,11 +382,16 @@ function unselectMail(mailPreview) {
 }
 
 function removeMail(mailPreview) {
-  var parent = mailPreview.parentElement;
+  var neighbor = mailPreview.previousElementSibling ||
+    mailPreview.nextElementSibling || mailPreview.parentElement;
+
+  var mailRow = mailPreview.parentElement;
   var mailSelect = mailPreview.previousSibling;
-  parent.removeChild(mailSelect);
-  parent.removeChild(mailPreview);
+  mailRow.removeChild(mailSelect);
+  mailRow.removeChild(mailPreview);
   selectedMail = null;
+
+  neighbor.scrollIntoViewIfNeeded();
 }
 
 /* Multi-select functions */
@@ -428,13 +431,17 @@ function showMultiBar() {
   for(var i = 0; i < selecters.length; i++) {
     if(selecters[i].checked) {
       multibarElem.style.display = "block";
+      multibarElem.style.opacity = 1;
       return;
     }
   }
 }
 
 function hideMultiBar(deselectAll) {
-  multibarElem.style.display = "none";
+  multibarElem.style.opacity = 0;
+  multibarElem.addEventListener('webkitTransitionEnd', function() {
+    this.style.display = 'none';
+  });
 
   if(deselectAll) {
     var selecters = document.getElementsByClassName("mailSelecter");
@@ -451,18 +458,22 @@ function hideMultiBar(deselectAll) {
 
 function makeMultiBar() {
   multibarElem = document.getElementById("multibar");
-  multibarElem .appendChild(createButton("Mark as read", "multibar-button", function() {
-    doMultiMailAction(["rd"]);
-  }));
-  multibarElem.appendChild(createButton("", "multibar-button", function() {
-    doMultiMailAction(["rd", "arch"]);
-  }, -84, -21));
-  multibarElem.appendChild(createButton("", "multibar-button", function() {
-    doMultiMailAction(["sp"]);
-  }, -42, -42));
-  multibarElem.appendChild(createButton("", "multibar-button", function() {
-    doMultiMailAction(["tr"]);
-  }, -63, -42));
+  multibarElem .appendChild(createButton("Mark as read", "multibar-button",
+      function() {
+        doMultiMailAction(["rd"]);
+      }));
+  multibarElem.appendChild(createButton("Archive", "multibar-button",
+      function() {
+        doMultiMailAction(["rd", "arch"]);
+      }, -84, -21));
+  multibarElem.appendChild(createButton("Spam", "multibar-button",
+      function() {
+        doMultiMailAction(["sp"]);
+      }, -42, -42));
+  multibarElem.appendChild(createButton("Delete", "multibar-button",
+      function() {
+        doMultiMailAction(["tr"]);
+      }, -63, -42));
 }
 /* End multi-select functions */
 
@@ -501,7 +512,7 @@ function showThrobber() {
 }
 
 function hideThrobber() {
-  throbberElem.style.display = "none";
+  throbberElem.style.display = 'none';
   showMultiBar();
 }
 
@@ -513,6 +524,7 @@ function onPreviewClick(mailPreview) {
       unselectMail(selectedMail);
     selectMail(mailPreview);
   }
+  //mailPreview.scrollIntoView();
 }
 
 function updateUnreadCount(account, data) {

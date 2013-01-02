@@ -9,25 +9,6 @@ body {
   overflow-y: scroll;
   -webkit-user-select: none;
 }
-/*
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #EEE;
-}
-::-webkit-scrollbar-thumb {
-  background: #DDD;
-  -webkit-box-shadow: inset 0px 1px 2px rgba(0,0,0,0.2);
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #8CF;
-}
-::-webkit-scrollbar-thumb:active {
-  background: #7BE;
-}
-*/
 #options-link {
   color: #024;
   font-size: 0.5em;
@@ -199,13 +180,16 @@ pre {
   top: 5px;
   padding: 10px;
   border: 1px solid #CCC;
+  border-radius: 20px;
   box-shadow: 1px 1px #DDD;
   background: #E8F0F8;
   display: none;
 }
 #multibar {
-  left: 40%;
+  left: 12em; 
   z-index: 100;
+  opacity: 0;
+  -webkit-transition: all 0.2s;
 }
 #throbber {
   left: 45%;
@@ -218,17 +202,18 @@ pre {
   vertical-align: top;
 }
 .multibar-button {
+  display: inline;
+  cursor: pointer;
   color: #555;
   font-size: 0.7em;
   font-family: 'Arial', sans-serif;
   background: #F5F5F5;
-  padding: 5px;
+  padding: 6px;
   margin-right: 5px;
   border: 1px solid #CCC;
+  border-radius: 7px;
+  box-shadow: inset -1px -1px 2px rgba(0,0,0,0.2);
   -webkit-transition: all 0.2s ease-in-out;
-  display: inline;
-  cursor: pointer;
-  border-radius: 3px;
 }
 .multibar-button:hover {
   box-shadow: 0px 0px 3px rgba(0,180,250,0.25);
@@ -243,13 +228,10 @@ pre {
 }
 #multibar-close {
   text-decoration: none;
-  font: 6px verdana;
-  color: #9AE;
-  border: 1px solid #9AE;
-  border-radius: 12px;
-  padding: 0px 3px 2px 3px;
-  background: #F8F8F8;
-  vertical-align: baseline;
+  font: 16px arial;
+  color: white;
+  text-shadow: 0 0 2px black;
+  vertical-align: bottom;
 }
 #multibar-close:hover {
   background: #DEF;
@@ -336,6 +318,8 @@ pre {
   border-radius: 12px;
   background: #FFF;
   color: #888;
+  font-weight: normal;
+  white-space: nowrap;
   box-shadow: 0px 0px 1px rgba(0,0,0,0.2);
   z-index: 1
 }

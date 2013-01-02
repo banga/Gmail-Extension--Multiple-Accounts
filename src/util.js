@@ -23,19 +23,23 @@ var U = (function() {
   }
 
   function extractContacts(str) {
-    // str is like "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
+    // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
+    var contacts = {};
     var items = str.split(':');
-    var prefix = items[0];
+    if (items.length > 1) {
+      contacts['prefix'] = items[0];
+      items = items[1].split(',');
+    } else {
+      items = items[0].split(',');
+    }
 
-    items = items[1].split(',');
-    contacts = [];
+    contacts.items = [];
     for (var i = 0; i < items.length; ++i) {
       var pos = items[i].search(/<.*>/);
-      contacts.push([items[i].substr(0, pos).trim(),
-          items[i].substr(pos).trim()]);
+      contacts.items.push(
+          [items[i].substr(0, pos).trim(), items[i].substr(pos).trim()]);
     }
-    console.log(str);
-    return [prefix, contacts];
+    return contacts;
   }
   
   return {

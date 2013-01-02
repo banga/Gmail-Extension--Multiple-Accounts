@@ -233,43 +233,41 @@ function makeMessage(messageTable, mailURL) {
     }
   }
 
-  message.from = cells[0].innerText.replace(/\n/g,'');
+  var from = U.extractContacts(cells[0].innerText);
+  message.from =
+    "<a class='contact-name' email='" + from.items[0][1] + "'>" +
+      from.items[0][0] + "</a>";
   message.date = cells[1].innerText.replace(/\n/g, '');
 
   message.to = "";
   var div = cells[2].firstElementChild.firstElementChild;
   while (div) {
     var contacts = U.extractContacts(div.innerText.replace(/\n/g, ''));
-    console.dir(contacts);
-    var prefix = contacts[0];
-    contacts = contacts[1];
-    message.to += "<span class='contact-list' prefix='" + prefix + "'>";
-    for (var i = 0; i < contacts.length; ++i) {
+    message.to += "<span class='contact-list' prefix='" +
+      contacts.prefix + "'>";
+    var items = contacts.items;
+    for (var i = 0; i < items.length; ++i) {
       message.to +=
-        "<a class='contact-name' email ='" + contacts[i][1] + "'>" +
-          U.HTMLEncode(contacts[i][0]) +
-          ((i < contacts.length-1) ? ', ' : '') + 
+        "<a class='contact-name' email ='" + items[i][1] + "'>" +
+          U.HTMLEncode(items[i][0]) + ((i < contacts.length-1) ? ', ' : '') + 
         "</a>";
     }
     message.to += "</span>";
     div = div.nextElementSibling;
   }
 
-  message.body = cleanBody(cells[3]);
+  message.body = cleanBody(cells[3], mailURL);
   message.summary = makeMessageSummary(message);
 
   return message;
 }
 
 function cleanBody(body, mailURL) {
-
   return body.innerHTML
-  //  .replace(/<tr>[\s\S]*?<tr>/, "")
-  //  .replace(/<td colspan="?2"?>[\s\S]*?<td colspan="?2"?>/, "")
-  //  .replace(/cellpadding="?12"?/g, "")
-    .replace(/font size="?-1"?/g, 'font')
-    .replace(/(href="?)\/mail\//g, "$1" + mailURL)
-    .replace(/(src="?)\/mail\//g, "$1" + mailURL);
+    .replace(/font size="?-1"?/g, 'span')
+    .replace(/(href="?)\/mail\/u\/[0-9]+\//g, "$1" + mailURL)
+    .replace(/(src="?)\/mail\/u\/[0-9]+\//g, "$1" + mailURL)
+    .replace(/(href="?)\?/g, "$1" + mailURL + "h/?");
 }
 
 function fetchEmailMessages(account, msgID, onSuccess, onError) {
