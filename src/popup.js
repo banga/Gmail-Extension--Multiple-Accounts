@@ -4,17 +4,6 @@ var xhrMsgBody = null;
 var throbberTimer = 0;
 var throbberElem, multibarElem;
 
-function makeElem(type, attrs, css) {
-  var elem = document.createElement(type);
-  for (k in attrs) {
-    elem.setAttribute(k, attrs[k]);
-  }
-  for (prop in css) {
-    elem.style[prop] = css[prop];
-  }
-  return elem;
-}
-
 function init() {
   makeMultiBar();
   makeThrobber();
@@ -30,16 +19,16 @@ function init() {
       account.unreadCount = -1;
       account.loggedIn = false;
 
-      var inboxRow = makeElem('div',
+      var inboxRow = U.make('div',
           {'class': (i == 0 ? "inbox-row inbox-row-first" : "inbox-row")});
 
-        var inboxHeader = makeElem("div", {"class": "inbox-header"});
+        var inboxHeader = U.make("div", {"class": "inbox-header"});
 
-          var inboxIcon = makeElem("img",
+          var inboxIcon = U.make("img",
               {"class": "inbox-icon", "src": "icon_128.png"});
           inboxHeader.appendChild(inboxIcon);
 
-          var inboxUrl = makeElem("div", {"class": "url"});
+          var inboxUrl = U.make("div", {"class": "url"});
           inboxUrl.account = account;
           inboxUrl.onclick = function() { goToInbox(this.account); }
           inboxUrl.innerText = "Loading...";
@@ -48,7 +37,7 @@ function init() {
         inboxHeader.appendChild(inboxUrl);
       inboxRow.appendChild(inboxHeader);
 
-        var inboxPreview = makeElem("div",
+        var inboxPreview = U.make("div",
             {"class": "preview", "id": ("inbox-preview-" + i)});
         account.inboxPreview = inboxPreview;
       inboxRow.appendChild(inboxPreview);
@@ -96,8 +85,7 @@ function showProgressAnimation(mailPreview) {
 }
 
 function showMailError(msg) {
-  //window.alert(msg);
-  console.err(msg);
+  console.error(msg);
 }
 
 function markMailBusy(mailPreview) {
@@ -131,7 +119,7 @@ function doMailAction(mailPreview, action) {
   }
 }
 
-function doMailReply(mailPreview, body) {
+function doMailReply(mailPreview, body, replyAll) {
   var msgID = getMessageID(mailPreview.mailLink);
 
   var onSuccess = function() {
@@ -149,7 +137,8 @@ function doMailReply(mailPreview, body) {
   if(msgID) {
     showProgressAnimation(mailPreview);
     markMailBusy(mailPreview);
-    doGmailReply(mailPreview.account, msgID, body, onSuccess, onError);
+    doGmailReply(mailPreview.account, msgID, body, replyAll, onSuccess,
+        onError);
   }
 }
 
@@ -217,7 +206,7 @@ function doMultiMailAction(actions) {
 }
 
 function createButton(text, className, onclick, iconX, iconY) {
-  var b = makeElem("div", {"class": className});
+  var b = U.make("div", {"class": className});
   if(iconX !== undefined) {
     b.innerHTML = "<span class='tool-icon' style='background-position: " + iconX  + "px " + iconY + "px;'></span>";
   } else {
@@ -243,9 +232,6 @@ function selectMail(mailPreview) {
 
   xhrMsgBody = Cache.getEmailMessages(mailPreview.account, msgID, 
     function(messages) {
-      console.log("Messages received");
-      console.log(messages);
-
       var msgBody = "";
       for (var i = 0; i < messages.length; ++i) {
         var cls = i == (messages.length-1) ? 'message' : 'message-hidden';
@@ -257,7 +243,12 @@ function selectMail(mailPreview) {
               "<div class='message-summary'>" + message.summary + "</div>" +
               "<div class='message-date'>" + message.date + "</div>" +
             "</div>" +
-            "<div class='message-body'>" + message.body + "</div>" +
+            "<div class='message-contents'>" +
+              "<div>" +
+                "<div class='message-to'>" + message.to + "</div>" +
+                "<div class='message-body'>" + message.body + "</div>" +
+              "</div>" +
+            "</div>" +
           "</div>";
       }
 
@@ -266,7 +257,7 @@ function selectMail(mailPreview) {
       var summary = mailPreview.getElementsByClassName("summary")[0];
       summary.style.display = "none";
 
-      var div = makeElem("div", {"id": "mail-body"});
+      var div = U.make("div", {"id": "mail-body"});
       div.innerHTML = msgBody;
       div.onclick = function(e) { e.cancelBubble = true };
 
@@ -274,28 +265,32 @@ function selectMail(mailPreview) {
       for (var i = 0; i < messageHeaders.length; ++i) {
         messageHeaders[i].onclick = function() {
           var message = this.parentElement;
-          var messageBody = this.nextElementSibling;
+          var messageContents =
+            message.getElementsByClassName('message-contents')[0];
+
+          console.dir(messageContents);
 
           if (message.className == "message") {
-            messageBody.style.height = "0px";
+            messageContents.style.height = "0px";
             message.className = "message-hidden";
           } else {
-            messageBody.style.height =
-              messageBody.firstElementChild.clientHeight + "px";
+            messageContents.style.height =
+              messageContents.firstElementChild.clientHeight + "px";
 
             var transitionListener = function() {
-              messageBody.removeEventListener('webkitTransitionEnd', transitionListener);
+              messageContents.removeEventListener('webkitTransitionEnd',
+                  transitionListener);
               message.className = "message";
             };
-            messageBody.addEventListener('webkitTransitionEnd', transitionListener);
+            messageContents.addEventListener('webkitTransitionEnd', transitionListener);
           }
         }
       }
 
       mailPreview.appendChild(div);
 
-      div = makeElem('DIV', {'id': 'mail-reply'});
-      var replyBody = makeElem('TEXTAREA',
+      div = U.make('DIV', {'id': 'mail-reply'});
+      var replyBody = U.make('TEXTAREA',
           {
             'id': 'mail-reply-body',
             'rows': '1',
@@ -305,32 +300,39 @@ function selectMail(mailPreview) {
           });
       div.appendChild(replyBody);
 
-      var replyButton = makeElem('input',
+      var replyControls = U.make('div',
+          {'id': 'reply-controls', 'class': 'dim'});
+      replyControls.innerHTML =
+        "<label><input type='checkbox' id='reply-all'/>Reply All</label>";
+      var replyButton = U.make('input',
           {
             'type': 'button',
             'disabled': 'disabled',
-            'id': 'mail-reply-button',
             'value': 'Send'
           });
-      div.appendChild(replyButton);
+      replyControls.appendChild(replyButton);
+      div.appendChild(replyControls);
 
       replyBody.oninput = function() {
         this.setAttribute('rows', this.value.split('\n').length);
         if (this.value.trim().length) {
           replyButton.removeAttribute('disabled');
+          replyControls.classList.remove('dim');
         } else {
           replyButton.setAttribute('disabled', true);
+          replyControls.classList.add('dim');
         }
       }
       replyButton.onclick = function() {
-        doMailReply(mailPreview, replyBody.value);
+        doMailReply(mailPreview, replyBody.value,
+            document.getElementById('reply-all').checked);
       }
       div.onclick = function(e) { e.cancelBubble = true };
       mailPreview.appendChild(div);
 
 
       var account = mailPreview.account;
-      var d = makeElem("div", {"id": "mail-tools"});
+      var d = U.make("div", {"id": "mail-tools"});
       d.setAttribute("id", "mail-tools");
       d.appendChild(createButton("Open in Gmail...", "preview-row-button", function() { 
         openMailInTab(mailPreview.account, mailPreview.mailLink)
@@ -518,9 +520,6 @@ function updateUnreadCount(account, data) {
   var count = data.unreadCount;
   var emails = data.emails;
 
-  console.log('updateUnreadCount: ' + name);
-  console.dir(emails);
-
   account.name = name;
   account.unreadCount = count;
   account.loggedIn = true;
@@ -542,14 +541,14 @@ function updateUnreadCount(account, data) {
   for (var i = 0; i < sortedEmails.length; ++i) {
     var email = sortedEmails[i];
     // Checkbox for multi-select
-    var mailSelecter = makeElem("input",
+    var mailSelecter = U.make("input",
       { 'type': 'checkbox',
         'class': 'mailSelecter' });
     mailSelecter.onclick = function() { onSelecterClick(this) };
     inboxPreview.appendChild(mailSelecter);
 
     // Preview of a single email
-    var mailPreview = makeElem("div", {"class": "preview-row"});
+    var mailPreview = U.make("div", {"class": "preview-row"});
     mailPreview.innerHTML =
       "<div class='subject'>" + email.subject + "</div>" +
       "<div class='author'>"  + email.author  + "</div>" + 

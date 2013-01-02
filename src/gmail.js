@@ -184,7 +184,7 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
   return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
 }
 
-function doGmailReply(account, msgID, body, onSuccess, onError) {
+function doGmailReply(account, msgID, body, replyAll, onSuccess, onError) {
   /*
   https://mail.google.com/mail/u/0/h/4kanhx7cv3es/?&v=b&qrt=n&fv=cv&rm=13bf71c4f82c2c39&at=AF6bupM-wmLVbDy8fSwaTVkmeLBMqZYufA&pv=cv&th=13bf71c4f82c2c39&cs=qfnq
   POST params: qrr=o&body=Hello&nvp_bu_send=Send&haot=qt 
@@ -192,7 +192,7 @@ function doGmailReply(account, msgID, body, onSuccess, onError) {
 
   if(!account.at) {
     getAccountAt(account, function() {
-      doGmailReply(account, msgID, body, onSuccess, onError);
+      doGmailReply(account, msgID, body, replyAll, onSuccess, onError);
     });
     return;
   }
@@ -200,7 +200,8 @@ function doGmailReply(account, msgID, body, onSuccess, onError) {
   var url = getHTMLModeUrl(account) + '?v=b&qrt=n&fv=cv&rm=' + msgID
       + '&at=' + account.at + '&cs=qfnq';
   var encodedBody = encodeURIComponent(body).replace(/%20/g, '+');
-  var params = "qrr=o&body=" + encodedBody + "&nvp_bu_send=Send&haot=qt";
+  var params = "body=" + encodedBody + "&nvp_bu_send=Send&haot=qt" +
+    ("&qrr=" + (replyAll ? "a" : "o"));
 
   return doAjaxRequest(url, onSuccess, onError, params,
       {"Content-type": "application/x-www-form-urlencoded"});
@@ -223,24 +224,38 @@ function makeMessage(messageTable, mailURL) {
 
   var message = {};
 
-  nodes = rows[0].childNodes;
   cells = [];
-  for (var i = 0; i < nodes.length; ++i) {
-    if (nodes[i].tagName == "TD")
-      cells.push(nodes[i]);
-  }
-
-  nodes = rows[2].childNodes;
-  for (var i = 0; i < nodes.length; ++i) {
-    if (nodes[i].tagName == "TD") {
-      cells.push(nodes[i]);
-      break;
+  for (var j = 0; j < 3; ++j) {
+    nodes = rows[j].childNodes;
+    for (var i = 0; i < nodes.length; ++i) {
+      if (nodes[i].tagName == "TD")
+        cells.push(nodes[i]);
     }
   }
 
-  message.from = cells[0].innerText;
-  message.date = cells[1].innerText;
-  message.body = cleanBody(cells[2]);
+  message.from = cells[0].innerText.replace(/\n/g,'');
+  message.date = cells[1].innerText.replace(/\n/g, '');
+
+  message.to = "";
+  var div = cells[2].firstElementChild.firstElementChild;
+  while (div) {
+    var contacts = U.extractContacts(div.innerText.replace(/\n/g, ''));
+    console.dir(contacts);
+    var prefix = contacts[0];
+    contacts = contacts[1];
+    message.to += "<span class='contact-list' prefix='" + prefix + "'>";
+    for (var i = 0; i < contacts.length; ++i) {
+      message.to +=
+        "<a class='contact-name' email ='" + contacts[i][1] + "'>" +
+          U.HTMLEncode(contacts[i][0]) +
+          ((i < contacts.length-1) ? ', ' : '') + 
+        "</a>";
+    }
+    message.to += "</span>";
+    div = div.nextElementSibling;
+  }
+
+  message.body = cleanBody(cells[3]);
   message.summary = makeMessageSummary(message);
 
   return message;
