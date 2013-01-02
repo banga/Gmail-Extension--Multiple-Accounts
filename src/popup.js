@@ -441,9 +441,11 @@ function showMultiBar() {
 
 function hideMultiBar(deselectAll) {
   multibarElem.style.opacity = 0;
-  multibarElem.addEventListener('webkitTransitionEnd', function() {
+  var transitionListener = function() {
+    this.removeEventListener('webkitTransitionEnd', transitionListener);
     this.style.display = 'none';
-  });
+  };
+  multibarElem.addEventListener('webkitTransitionEnd', transitionListener);
 
   if(deselectAll) {
     var selecters = document.getElementsByClassName("mailSelecter");
