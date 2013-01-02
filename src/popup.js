@@ -269,8 +269,6 @@ function selectMail(mailPreview) {
           var messageContents =
             message.getElementsByClassName('message-contents')[0];
 
-          console.dir(messageContents);
-
           if (message.className == "message") {
             messageContents.style.height = "0px";
             message.className = "message-hidden";

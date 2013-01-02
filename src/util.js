@@ -45,9 +45,6 @@ var U = (function() {
       }
     }
 
-
-    console.log(str);
-    console.dir(contacts);
     return contacts;
   }
 
@@ -67,16 +64,16 @@ var U = (function() {
     }
       
     var units = ['second', 'minute', 'hour', 'day', 'week'];
-    var sizes = [1000, 60, 60, 24, 7];
+    var sizes = [1000, 60, 60, 24, 7, 4];
 
     for (var i = 0; i < units.length; ++i) {
       delta = Math.floor(delta / sizes[i]);
-      if (delta < sizes[i]) {
+      if (delta < sizes[i+1]) {
         return delta + ' ' + units[i] + (delta > 1 ? 's' : '') + tense;
       }
     }
 
-    return date;
+    return date.toLocaleDateString();
   }
   
   return {
