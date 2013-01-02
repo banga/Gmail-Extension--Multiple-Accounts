@@ -228,13 +228,9 @@ pre {
 }
 #multibar-close {
   text-decoration: none;
-  font: 16px arial;
-  color: white;
-  text-shadow: 0 0 2px black;
-  vertical-align: bottom;
-}
-#multibar-close:hover {
-  background: #DEF;
+  font: 11px arial;
+  padding: 2px 4px;
+  margin-right: 0px;
 }
 .message, .message-hidden {
   width: 100%;
