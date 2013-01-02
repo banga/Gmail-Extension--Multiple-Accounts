@@ -35,17 +35,55 @@ var U = (function() {
 
     contacts.items = [];
     for (var i = 0; i < items.length; ++i) {
-      var pos = items[i].search(/<.*>/);
-      contacts.items.push(
-          [items[i].substr(0, pos).trim(), items[i].substr(pos).trim()]);
+      var item = items[i];
+      var pos = item.search(/<.*>/);
+      if (pos == -1) {
+        contacts.items.push([item.trim(), item.trim()]);
+      } else {
+        contacts.items.push([item.substr(0, pos).trim(),
+            item.substr(pos).trim()]);
+      }
     }
+
+
+    console.log(str);
+    console.dir(contacts);
     return contacts;
+  }
+
+  function getHumanDate(date) {
+    if (!(date instanceof Date)) {
+      date = date.replace(/(,|at)/g, '');
+      date = new Date(date);
+      if (isNaN(date))
+        return date;
+    }
+
+    var delta = new Date() - date;
+    var tense = ' ago';
+    if (delta < 0) {
+      delta = -delta;
+      tense = ' later';
+    }
+      
+    var units = ['second', 'minute', 'hour', 'day', 'week'];
+    var sizes = [1000, 60, 60, 24, 7];
+
+    for (var i = 0; i < units.length; ++i) {
+      delta = Math.floor(delta / sizes[i]);
+      if (delta < sizes[i]) {
+        return delta + ' ' + units[i] + (delta > 1 ? 's' : '') + tense;
+      }
+    }
+
+    return date;
   }
   
   return {
     make: make,
     HTMLEncode: HTMLEncode,
     HTMLDecode: HTMLDecode,
-    extractContacts: extractContacts
+    extractContacts: extractContacts,
+    getHumanDate: getHumanDate
   };
 }());

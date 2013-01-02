@@ -240,7 +240,9 @@ function selectMail(mailPreview) {
             "<div class='message-header'>" + 
               "<div class='message-from'>" + message.from + "</div>" +
               "<div class='message-summary'>" + message.summary + "</div>" +
-              "<div class='message-date'>" + message.date + "</div>" +
+              "<div class='message-date' title='" + message.date + "'>" +
+                U.getHumanDate(message.date) +
+              "</div>" +
             "</div>" +
             "<div class='message-contents'>" +
               "<div>" +
