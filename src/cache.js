@@ -30,9 +30,6 @@ var Cache = (function() {
   }
 
   function loadEmails(account, onSuccess, onError) {
-    console.log("Load Emails");
-    console.dir(account);
-
     function parseInboxData(xmlDoc) {
       var fullCountSet = xmlDoc.evaluate("/gmail:feed/gmail:fullcount",
         xmlDoc, gmailNSResolver, XPathResult.ANY_TYPE, null);
@@ -81,7 +78,7 @@ var Cache = (function() {
 
             var email =
               {
-                "modified": new Date(modified),
+                "modified": modified,
                 "subject": subject,
                 "summary": summary,
                 "author": author,
@@ -98,7 +95,7 @@ var Cache = (function() {
           for (id in cachedEmails) {
             if (id in newEmails) {
               if (cachedEmails[id].modified != newEmails[id].modified) {
-                console.log('Email "' + subject + '" changed');
+                console.log('Email "' + newEmails[id].subject + '" changed');
                 cachedEmails[id] = newEmails[id];
                 _updateEmailMessages(account, id);
               }
@@ -138,8 +135,11 @@ var Cache = (function() {
   return {
     loadEmails: loadEmails,
     getEmailMessages: getEmailMessages,
-    _cache: cache
+    _cache: function() {
+      return cache;
+    },
+    _clear: function() {
+      cache = {};
+    }
   }
 }) ();
-
-console.dir(Cache);
