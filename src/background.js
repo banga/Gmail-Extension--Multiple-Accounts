@@ -36,7 +36,7 @@ LoadingAnimation.prototype.paintFrame = function() {
   this.current_++;
   if (this.current_ == this.maxCount_)
     this.current_ = 0;
-}
+};
 
 LoadingAnimation.prototype.start = function() {
   if (this.timerId_)
@@ -46,7 +46,7 @@ LoadingAnimation.prototype.start = function() {
   this.timerId_ = window.setInterval(function() {
     self.paintFrame();
   }, 100);
-}
+};
 
 LoadingAnimation.prototype.stop = function() {
   if (!this.timerId_)
@@ -54,23 +54,18 @@ LoadingAnimation.prototype.stop = function() {
 
   window.clearInterval(this.timerId_);
   this.timerId_ = 0;
-}
+};
 
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
   if(changeInfo.url && isGmailUrl(changeInfo.url)) {
-    for(var domain in accountInfo) {
-      var accounts = accountInfo[domain];
-      for(var i = 0; i < accounts.length; i++) {
-        var account = accounts[i];
+    accountInfo.each(function(accounts) {
+      accounts.each(function(account) {
         if (isAccountUrl(account, changeInfo.url)) {
-          getInboxCount(account,
-            function(account, count) {
-              updateUnreadCount(account, count);
-            });
+          getInboxCount(account, updateUnreadCount);
           return;
         }
-      }
-    }
+      });
+    });
   }
 });
 
@@ -80,22 +75,19 @@ function loadAccountInfo() {
   else
     saveToLocalStorage(accountInfo);
 
-  for(var domain in accountInfo) {
-    var accounts = accountInfo[domain];
-
-    for(var i = 0; i < accounts.length; i++) {
-      var account = accounts[i];
+  accountInfo.each(function(accounts) {
+    accounts.each(function(account) {
       account.requestFailureCount = 0;
       account.isLoggedOut = true;
       startRequest(account);
-    }
-  }
+    });
+  });
 }
 
 function checkIfUpdated() {
   var localVersion = localStorage.version || 0;
 
-  if(version > parseInt(localVersion)) {
+  if(version > parseInt(localVersion, 10)) {
     // Still using the old format - convert to new
     if(localStorage.numAccounts) {
       var domain = localStorage.customDomain ? localStorage.customDomain : "mail";
@@ -200,14 +192,13 @@ function ease(x) {
 
 function countUnread() {
   var totalUnread = 0;
-  for(var domain in accountInfo) {
-    var accounts = accountInfo[domain];
-    for(var i = 0; i < accounts.length; i++) {
-      var unread = parseInt(accounts[i].unreadCount);
+  accountInfo.each(function(accounts) {
+    accounts.each(function(account) {
+      var unread = parseInt(account.unreadCount, 10);
       if(unread && unread >= 0)
         totalUnread += unread;
-    }
-  }
+    });
+  });
   return totalUnread;  
 }
 
@@ -228,18 +219,19 @@ function animateFlip() {
 
 function showLoggedOut(account) {
   account.unreadCount = -1;
+
   var allLoggedOut = true;
-  for(var domain in accountInfo) {
-    var accounts = accountInfo[domain];
-    for(var i = 0; i < accounts.length; i++) {
-      if(!accounts[i].isLoggedOut) {
+  accountInfo.each(function(accounts) {
+    accounts.each(function(account) {
+      if(!account.isLoggedOut) {
         allLoggedOut = false;
-        break;
+        return false;
       }
-    }
-    if(!allLoggedOut)
-      break;
-  }
+    });
+    if (!allLoggedOut)
+      return false;
+  });
+
   if(allLoggedOut) {
     chrome.browserAction.setIcon({path:"gmail_not_logged_in.png"});
     chrome.browserAction.setBadgeBackgroundColor({color:[190, 190, 190, 230]});

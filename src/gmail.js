@@ -132,8 +132,10 @@ function getAccountAt(account, onSuccess) {
 }
 
 function doAjaxRequest(url, onSuccess, onError, params, headers) {
+  var xhr;
+
   try {
-    var xhr = new XMLHttpRequest();
+    xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = function () {
       if (this.readyState == 4) {
@@ -149,17 +151,22 @@ function doAjaxRequest(url, onSuccess, onError, params, headers) {
             onError();
         }
       }
-    }
+    };
 
     xhr.onerror = function(e) {
       console.error("doAjaxRequest: " + e);
       if(onError)
         onError();
-    }
+    };
     
     xhr.open("POST", url, true);
-    for(key in headers)
-      xhr.setRequestHeader(key, headers[key]);
+
+    if (headers) {
+      headers.each(function(header, key) {
+        xhr.setRequestHeader(key, header);
+      });
+    }
+
     xhr.send(params);
   } catch(e) {
     console.error("doAjaxRequest exception: " + e);
@@ -179,9 +186,10 @@ function doGmailAction(account, msgID, action, onSuccess, onError) {
   }
 
   var url = getHTMLModeUrl(account);
-  var params = "t=" + msgID + "&at=" + account.at + "&act=" + action;
+  var params = 't=' + msgID + '&at=' + account.at + '&act=' + action;
 
-  return doAjaxRequest(url, onSuccess, onError, params, {"Content-type": "application/x-www-form-urlencoded"});
+  return doAjaxRequest(url, onSuccess, onError, params,
+      {'Content-type': 'application/x-www-form-urlencoded'});
 }
 
 function doGmailReply(account, msgID, body, replyAll, onSuccess, onError) {
@@ -197,8 +205,8 @@ function doGmailReply(account, msgID, body, replyAll, onSuccess, onError) {
     return;
   }
 
-  var url = getHTMLModeUrl(account) + '?v=b&qrt=n&fv=cv&rm=' + msgID
-      + '&at=' + account.at + '&cs=qfnq';
+  var url = getHTMLModeUrl(account) + '?v=b&qrt=n&fv=cv&rm=' +
+    msgID + '&at=' + account.at + '&cs=qfnq';
   var encodedBody = encodeURIComponent(body).replace(/%20/g, '+');
   var params = "body=" + encodedBody + "&nvp_bu_send=Send&haot=qt" +
     ("&qrr=" + (replyAll ? "a" : "o"));
@@ -208,35 +216,19 @@ function doGmailReply(account, msgID, body, replyAll, onSuccess, onError) {
 }
 
 function makeMessageSummary(message) {
-  var div = document.createElement('DIV');
-  div.innerHTML = message.body;
+  var div = U.make('div').html(message.body);
   return div.innerText.trim().substr(0, 100);
 }
 
 function makeMessage(messageTable, mailURL) {
-  var nodes = messageTable.childNodes;
-  for (var i = 0; i < nodes.length; ++i) {
-    if (nodes[i].tagName == "TBODY") {
-      rows = nodes[i].childNodes;
-      break;
-    }
-  }
+  var tb = messageTable.querySelector('tbody');
+  var cells = tb.querySelectorAll('td');
+  var i, j;
 
   var message = {};
-
-  cells = [];
-  for (var j = 0; j < 3; ++j) {
-    nodes = rows[j].childNodes;
-    for (var i = 0; i < nodes.length; ++i) {
-      if (nodes[i].tagName == "TD")
-        cells.push(nodes[i]);
-    }
-  }
-
-  var from = U.extractContacts(cells[0].innerText);
-  message.from =
-    "<a class='contact-name' email='" + from.items[0][1] + "'>" +
-      from.items[0][0] + "</a>";
+  var from = U.extractContacts(cells[0].text());
+  message.from = '<a class="contact-name" email="' + from.items[0][1] + '">' +
+    from.items[0][0] + '</a>';
   message.date = cells[1].innerText.replace(/\n/g, '');
 
   message.to = "";
@@ -246,7 +238,7 @@ function makeMessage(messageTable, mailURL) {
     message.to += "<span class='contact-list' prefix='" +
       contacts.prefix + "'>";
     var items = contacts.items;
-    for (var i = 0; i < items.length; ++i) {
+    for (i = 0; i < items.length; ++i) {
       message.to +=
         "<a class='contact-name' email ='" + items[i][1] + "'>" +
           U.HTMLEncode(items[i][0]) + ((i < contacts.length-1) ? ', ' : '') + 
@@ -263,7 +255,7 @@ function makeMessage(messageTable, mailURL) {
 }
 
 function cleanBody(body, mailURL) {
-  return body.innerHTML
+  return body.html()
     .replace(/font size="?-1"?/g, 'span')
     .replace(/(href="?)\/mail\/u\/[0-9]+\//g, "$1" + mailURL)
     .replace(/(src="?)\/mail\/u\/[0-9]+\//g, "$1" + mailURL)
@@ -272,12 +264,11 @@ function cleanBody(body, mailURL) {
 
 function fetchEmailMessages(account, msgID, onSuccess, onError) {
   var mailURL = getAccountUrl(account);
-  var url = mailURL + "h/" + Math.ceil(1000000 * Math.random())
-            + "/?v=pt&th=" + msgID;
+  var url = mailURL + "h/" + Math.ceil(1000000 * Math.random()) +
+    "/?v=pt&th=" + msgID;
 
   return doAjaxRequest(url, function (responseText) {
-    var div = document.createElement('div');
-    div.innerHTML = responseText;
+    var div = U.make('div').html(responseText);
 
     var messageTables = div.querySelectorAll('.message');
 
@@ -293,21 +284,20 @@ function fetchEmailMessages(account, msgID, onSuccess, onError) {
   }, onError);
 }
 
-function saveToLocalStorage(domains) {
+function saveToLocalStorage(accountInfo) {
   var info = {};
-  for(var domain in domains) {
+
+  accountInfo.each(function(accounts, domain) {
     info[domain] = [];
-    var accounts = accountInfo[domain];
-    for(var i = 0; i < accounts.length; i++) {
-      var account = accounts[i];
+    accounts.each(function(account, i) {
       info[domain][i] = {
         user: account.user,
         pass: account.pass,
         domain: domain,
         number: i
-      }
-    }
-  }
+      };
+    });
+  });
 
   localStorage.accountInfo = JSON.stringify(info);
 }

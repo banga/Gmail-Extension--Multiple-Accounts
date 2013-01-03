@@ -1,33 +1,136 @@
-var U = (function() {
-  function make(type, attrs, css) {
-    var elem = document.createElement(type);
-    for (k in attrs) {
-      elem.setAttribute(k, attrs[k]);
+/*
+ * Object extensions
+ */
+Object.prototype.each = function(func) {
+  "use strict";
+  if (this.length) {
+    for (var i = 0; i < this.length; ++i) {
+      if (func(this[i], i, this[i]) === false)
+        break;
     }
-    for (prop in css) {
-      elem.style[prop] = css[prop];
+  } else {
+    for (var attr in this) {
+      if (this.hasOwnProperty(attr)) {
+        if (func(this[attr], attr, this[attr]) === false)
+          break;
+      }
+    }
+  }
+  return this;
+};
+
+
+/*
+ * DOM element extensions
+ */
+Element.prototype.append = function(value) {
+  if (value instanceof Element) {
+    this.appendChild(value);
+  } else {
+    this.innerHTML += value;
+  }
+
+  return this;
+};
+
+Element.prototype.on = function(type, listener, capture) {
+  if (this.nodeType == 1 && listener instanceof Function) {
+    this.addEventListener(type, listener, capture);
+  }
+  return this;
+};
+
+Element.prototype.html = function(str) {
+  "use strict";
+
+  if (str === undefined)
+    return this.innerHTML;
+
+  if (this.nodeType == 1)
+    this.innerHTML = str;
+
+  return this;
+};
+
+Element.prototype.text = function(str) {
+  "use strict";
+
+  if (str === undefined)
+    return this.innerText;
+
+  if (this.nodeType == 1)
+    this.innerText = str;
+
+  return this;
+};
+
+
+/*
+ * Utility object 'U'
+ */
+var U = (function(document) {
+  "use strict";
+
+  var U = function(id, context) {
+    context = context || document;
+    return context.getElementById(id);
+  };
+
+  /* Make an element from a css style string */
+  function _make(str) {
+    str = str + '#';
+    var prev = 0, attr, elem, name, i = 0;
+
+    for (; i < str.length; ++i) {
+      if (/#|\./.test(str[i])) {
+        if (attr) {
+          elem.setAttribute(attr, str.slice(prev, i));
+        } else {
+          elem = document.createElement(i===0 ? 'div' : str.slice(prev, i));
+        }
+        attr = ((str[i] == '#') ? 'id' : 'class');
+        prev = i+1;
+      }
     }
     return elem;
   }
+
+  U.make = function (str, attrs, css) {
+    var elem = _make(str);
+
+    if (attrs) {
+      attrs.each(function(value, attr) {
+        elem.setAttribute(attr, value);
+      });
+    }
+
+    if (css) {
+      css.each(function(value, prop) {
+        elem.style[prop] = value;
+      });
+    }
+
+    return elem;
+  };
   
-  function HTMLEncode(str) {
-    var div = make('div');
+  U.HTMLEncode = function (str) {
+    var div = this.make('div');
     div.innerText = str;
     return div.innerHTML;
-  }
+  };
   
-  function HTMLDecode(str) {
-    var div = make('div');
+  U.HTMLDecode = function(str) {
+    var div = this.make('div');
     div.innerHTML = str;
     return div.innerText;
-  }
+  };
 
-  function extractContacts(str) {
+  U.extractContacts = function(str) {
     // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
     var contacts = {};
     var items = str.split(':');
     if (items.length > 1) {
-      contacts['prefix'] = items[0];
+      contacts.prefix = items[0];
       items = items[1].split(',');
     } else {
       items = items[0].split(',');
@@ -37,7 +140,7 @@ var U = (function() {
     for (var i = 0; i < items.length; ++i) {
       var item = items[i];
       var pos = item.search(/<.*>/);
-      if (pos == -1) {
+      if (pos === -1) {
         contacts.items.push([item.trim(), item.trim()]);
       } else {
         contacts.items.push([item.substr(0, pos).trim(),
@@ -46,14 +149,15 @@ var U = (function() {
     }
 
     return contacts;
-  }
+  };
 
-  function getHumanDate(date) {
+  U.getHumanDate = function(date) {
     if (!(date instanceof Date)) {
       date = date.replace(/(,|at)/g, '');
       date = new Date(date);
-      if (isNaN(date))
+      if (isNaN(date)) {
         return date;
+      }
     }
 
     var delta = new Date() - date;
@@ -74,13 +178,7 @@ var U = (function() {
     }
 
     return date.toLocaleDateString();
-  }
-  
-  return {
-    make: make,
-    HTMLEncode: HTMLEncode,
-    HTMLDecode: HTMLDecode,
-    extractContacts: extractContacts,
-    getHumanDate: getHumanDate
   };
-}());
+
+  return U;
+} (document));

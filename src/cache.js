@@ -1,5 +1,5 @@
 var Cache = (function() {
-  var cache = {};
+  var cache = {}, loads = 0, hits = 0, misses = 0;
 
   function _getMessageID(link) {
     var msgID = link.match(/message_id=([\w]*)/);
@@ -14,15 +14,12 @@ var Cache = (function() {
     return fetchEmailMessages(account, msgID,
       function(messages) {
         cachedEmails[msgID].messages = messages; 
-
         if (onSuccess) {
-          console.log('Success in cache. Calling ' + onSuccess.name
-            + ' with ' + account.name + ': ');
           onSuccess(messages);
         }
       },
       function() {
-        console.warn("Failure updating message " + msgID);
+        console.error("Failure updating message " + msgID);
         if (onError)
           onError();
       }
@@ -76,25 +73,22 @@ var Cache = (function() {
               entryNode.getElementsByTagName("link")[0].getAttribute("href");
             var id = _getMessageID(link);
 
-            var email =
-              {
+            newEmails[id] = {
                 "modified": modified,
                 "subject": subject,
                 "summary": summary,
                 "author": author,
                 "link": link,
-                "id": id,
+                "id": id
               };
-
-            newEmails[id] = email;
 
             entryNode = entrySet.iterateNext();
           }
 
           // Update existing cached emails
-          for (id in cachedEmails) {
+          cachedEmails.each(function(cachedEmail, id) {
             if (id in newEmails) {
-              if (cachedEmails[id].modified != newEmails[id].modified) {
+              if (cachedEmail.modified != newEmails[id].modified) {
                 console.log('Email "' + newEmails[id].subject + '" changed');
                 cachedEmails[id] = newEmails[id];
                 _updateEmailMessages(account, id);
@@ -102,15 +96,15 @@ var Cache = (function() {
             } else {
               delete cachedEmails[id];
             }
-          }
+          });
 
           // Add any new emails
-          for (id in newEmails) {
+          newEmails.each(function(newEmail, id) {
             if (!(id in cachedEmails)) {
-              cachedEmails[id] = newEmails[id];
+              cachedEmails[id] = newEmail;
               _updateEmailMessages(account, id);
             }
-          }
+          });
 
           return cache[name];
         }
@@ -119,14 +113,18 @@ var Cache = (function() {
     }
 
     parseAccountFeed(account, parseInboxData, onSuccess, onError);
+    ++loads;
   }
 
   function getEmailMessages(account, msgID, onSuccess, onError) {
-    if (!msgID in cache[account.name].emails) {
+    if (!(msgID in cache[account.name].emails)) {
+      console.log('Message ' + msgID + ' not found in cache. Updating'); 
+      ++misses;
       return _updateEmailMessages(accout, msgID, onSuccess, onError);
     } else {
-      console.log('Found message in cache. Calling ' + onSuccess.name
-          + ' with ' + account.name + ': ');
+      console.log('Found message in cache. Calling ' + 
+          onSuccess.name + ' with ' + account.name + ': ');
+      ++hits;
       onSuccess(cache[account.name].emails[msgID].messages);
       return null;
     }
@@ -140,6 +138,13 @@ var Cache = (function() {
     },
     _clear: function() {
       cache = {};
+    },
+    stats: function() {
+      return {
+        hits: hits,
+        misses: misses,
+        loads: loads
+      };
     }
-  }
+  };
 }) ();

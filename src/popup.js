@@ -10,51 +10,50 @@ function init() {
 
   accountInfo = JSON.parse(localStorage.accountInfo);
 
-  var inboxes = document.getElementById("inboxes");
-  for(var domain in accountInfo) {
-    var accounts = accountInfo[domain];
-    for(var i = 0; i < accounts.length; i++) {
-      var account = accounts[i];
-      account.name = "";
+  var onInboxUrlClick = function() { goToInbox(this.account); };
+
+  var inboxes = U('inboxes');
+  accountInfo.each(function(accounts) {
+    accounts.each(function(account, idx) {
+      account.name = '';
       account.unreadCount = -1;
       account.loggedIn = false;
 
-      var inboxRow = U.make('div',
-          {'class': (i == 0 ? "inbox-row inbox-row-first" : "inbox-row")});
+      var inboxRow = U.make('div.' +
+        (idx === 0 ? 'inbox-row inbox-row-first' : 'inbox-row'));
 
-        var inboxHeader = U.make("div", {"class": "inbox-header"});
+        var inboxHeader = U.make('div.inbox-header');
 
-          var inboxIcon = U.make("img",
-              {"class": "inbox-icon", "src": "icon_128.png"});
-          inboxHeader.appendChild(inboxIcon);
+          var inboxIcon = U.make('img.inbox-icon',
+              {'src': 'icon_128.png'});
+          inboxHeader.append(inboxIcon);
 
-          var inboxUrl = U.make("div", {"class": "url"});
+          var inboxUrl = U.make('div.url');
           inboxUrl.account = account;
-          inboxUrl.onclick = function() { goToInbox(this.account); }
-          inboxUrl.innerText = "Loading...";
+          inboxUrl.onclick = onInboxUrlClick;
+          inboxUrl.innerText = 'Loading...';
           account.inboxUrl = inboxUrl;
 
-        inboxHeader.appendChild(inboxUrl);
-      inboxRow.appendChild(inboxHeader);
+        inboxHeader.append(inboxUrl);
+      inboxRow.append(inboxHeader);
 
-        var inboxPreview = U.make("div",
-            {"class": "preview", "id": ("inbox-preview-" + i)});
+        var inboxPreview = U.make('div.preview#inbox-preview-' + idx);
         account.inboxPreview = inboxPreview;
-      inboxRow.appendChild(inboxPreview);
+      inboxRow.append(inboxPreview);
 
-      inboxes.appendChild(inboxRow);
+      inboxes.append(inboxRow);
 
       Cache.loadEmails(account, updateUnreadCount, showLoggedOut);
-    }
-  }
+    });
+  });
 
-  document.getElementById('options-link').onclick = function() {
-    openTab("options.html")
+  U('options-link').onclick = function() {
+    openTab('options.html');
   };
 
-  document.getElementById('multibar-close').onclick = function() {
+  U('multibar-close').onclick = function() {
     hideMultiBar(true);
-  }
+  };
 }
 
 function getMessageID(link) {
@@ -73,14 +72,14 @@ function openMailInTab(account, link) {
   var msgID = getMessageID(link); 
 
   if(msgID)
-    url = getInboxUrl(account) + "/" + msgID;
+    url = getInboxUrl(account) + '/' + msgID;
 
   openTab(url);
 }
 
 function showProgressAnimation(mailPreview) {
   unselectMail(mailPreview);
-  mailPreview.setAttribute("class", "preview-row-busy");
+  mailPreview.className = 'preview-row-busy';
   showThrobber();
 }
 
@@ -103,13 +102,13 @@ function doMailAction(mailPreview, action) {
     removeMail(mailPreview);
     hideThrobber();
     Cache.loadEmails(mailPreview.account, updateUnreadCount, showLoggedOut);
-  }
+  };
 
   var onError = function() {
-    showMailError("Could not connect to the Gmail server");
+    showMailError('Could not connect to the Gmail server');
     hideThrobber();
     markMailAvailable(mailPreview);
-  }
+  };
 
   if(msgID) {
     showProgressAnimation(mailPreview);
@@ -125,13 +124,13 @@ function doMailReply(mailPreview, body, replyAll) {
     hideThrobber();
     Cache.loadEmails(mailPreview.account, updateUnreadCount,
         showLoggedOut);
-  }
+  };
 
   var onError = function() {
-    showMailError("Could not connect to the Gmail server");
+    showMailError('Could not connect to the Gmail server');
     hideThrobber();
     markMailAvailable(mailPreview);
-  }
+  };
 
   if(msgID) {
     showProgressAnimation(mailPreview);
@@ -161,17 +160,16 @@ function doMultiMailAction(actions) {
         failed[i].isDirty = true;
       }
 
-      for(var domain in accountInfo) {
-        var accounts = accountInfo[domain];
-        for(var i = 0; i < accounts.length; i++) {
-          if(accounts[i].isDirty) {
-            Cache.loadEmails(accounts[i], updateUnreadCount, showLoggedOut);
-            delete accounts[i].isDirty;
+      accountInfo.each(function(accounts) {
+        accounts.each(function(account) {
+          if(account.isDirty) {
+            Cache.loadEmails(account, updateUnreadCount, showLoggedOut);
+            delete account.isDirty;
           }
-        }
-      }
+        });
+      });
     }
-  }
+  };
 
   var doSingleMailAction = function(mailPreview, action) {
     var msgID = getMessageID(mailPreview.mailLink);
@@ -184,7 +182,7 @@ function doMultiMailAction(actions) {
           onActionComplete();
         },
         function() {
-          showMailError("Could not connect to the Gmail server");
+          showMailError('Could not connect to the Gmail server');
           markMailAvailable(mailPreview);
           failed.push(mailPreview.account);
           onActionComplete();
@@ -195,28 +193,141 @@ function doMultiMailAction(actions) {
 
   showThrobber();
 
-  for(var i = 0; i < selected.length; i++)
-    for(var j = 0; j < actions.length; j++) {
-      var mailPreview = selected[i];
-      var action = actions[j];
-
+  selected.each(function(mailPreview) {
+    actions.each(function(action) {
       doSingleMailAction(mailPreview, action);
-    }
+    });
+  });
 }
 
 function createButton(text, className, onclick, iconX, iconY) {
-  var b = U.make("div", {"class": className});
+  var b = U.make('div.' + className);
   if(iconX !== undefined) {
-    b.innerHTML = "<span class='tool-icon' style='background-position: " + iconX  + "px " + iconY + "px;'></span>";
-  } else {
-    b.innerHTML = "";
+    b.append(U.make('span.tool-icon', null, {
+      'background-position': iconX + 'px ' + iconY + 'px'
+    }));
   }
-  b.innerHTML += text;
+  b.append(text);
   b.onclick = function(e) {
     e.cancelBubble = true;
     onclick();
   };
   return b;
+}
+
+
+function onMessageHeaderClick() {
+  var message = this.parentElement;
+  var messageContents =
+    message.getElementsByClassName('message-contents')[0];
+
+  if (message.className == 'message') {
+    messageContents.style.height = '0px';
+    message.className = 'message-hidden';
+  } else {
+    messageContents.style.height =
+      messageContents.firstElementChild.clientHeight + 'px';
+
+    var transitionListener = function() {
+      messageContents.removeEventListener('webkitTransitionEnd',
+          transitionListener);
+      message.className = 'message';
+    };
+    messageContents.addEventListener('webkitTransitionEnd',
+        transitionListener);
+  }
+}
+
+function cancelBubble(e) {
+  e.cancelBubble = true;
+}
+
+function makeMailBody(messages) {
+  var mailBody = U.make('div#mail-body');
+  messages.each(function(message, i) {
+    var type = (i == (messages.length-1) ?
+      '.message' : '.message-hidden');
+    mailBody.append(U.make(type)
+    .append(U.make('.message-header')
+      .on('click', onMessageHeaderClick)
+      .append(U.make('.message-from').append(message.from))
+      .append(U.make('.message-summary').html(message.summary))
+      .append(U.make('.message-date', {'title': message.date})
+        .text(U.getHumanDate(message.date))))
+    .append(U.make('.message-contents')
+      .append(U.make('div')
+        .append(U.make('.message-to').html(message.to))
+        .append(U.make('.message-body').html(message.body)))))
+    .on('click', cancelBubble);
+  });
+  return mailBody;
+}
+
+function makeMailReply(mailPreview) {
+  var div = U.make('DIV#mail-reply');
+  var replyBody = U.make('TEXTAREA#mail-reply-body', {
+      'rows': '1',
+      'cols': '80',
+      'placeholder': 'Reply here',
+      'wrap': 'virtual'
+      });
+  div.append(replyBody);
+
+  replyBody.oninput = function() {
+    this.setAttribute('rows', this.value.split('\n').length);
+    if (this.value.trim().length) {
+      replyButton.removeAttribute('disabled');
+      replyControls.classList.remove('dim');
+    } else {
+      replyButton.setAttribute('disabled', true);
+      replyControls.classList.add('dim');
+    }
+  };
+
+  var replyControls = U.make('div#reply-controls.dim')
+    .append(U.make('label')
+        .append(U.make('input#reply-all', {'type': 'checkbox'}))
+        .append('Reply All'));
+
+  var replyButton = U.make('input', {
+    'type': 'button',
+      'disabled': 'disabled',
+      'value': 'Send'
+  });
+
+  replyButton.on('click', function() {
+    doMailReply(mailPreview, replyBody.value, U('reply-all').checked);
+  });
+
+  replyControls.append(replyButton);
+  div.append(replyControls).on('click', cancelBubble);
+
+  return div;
+}
+
+function makeMailToolbar(mailPreview) {
+  return U.make('div#mail-tools')
+    .append(createButton('Open in Gmail...', 'preview-row-button',
+          function() { 
+            openMailInTab(mailPreview.account, mailPreview.mailLink);
+          }, -63, -63))
+    .append(createButton('Mark as read', 'preview-row-button',
+          function() {
+            doMailAction(mailPreview, 'rd');
+          }))
+    .append(createButton('Archive', 'preview-row-button',
+          function() {
+            doMailAction(mailPreview, 'rd');
+            doMailAction(mailPreview, 'arch');
+          }, -84, -21))
+    .append(createButton('Spam', 'preview-row-button',
+          function() {
+            doMailAction(mailPreview, 'sp');
+          }, -42, -42))
+    .append(createButton('Delete', 'preview-row-button',
+          function() {
+            doMailAction(mailPreview, 'tr');
+          }, -63, -42));
 }
 
 function selectMail(mailPreview) {
@@ -231,148 +342,40 @@ function selectMail(mailPreview) {
 
   xhrMsgBody = Cache.getEmailMessages(mailPreview.account, msgID, 
     function(messages) {
-      var msgBody = "";
-      for (var i = 0; i < messages.length; ++i) {
-        var cls = i == (messages.length-1) ? 'message' : 'message-hidden';
-        var message = messages[i];
-        msgBody +=
-          "<div class='" + cls + "'>" +
-            "<div class='message-header'>" + 
-              "<div class='message-from'>" + message.from + "</div>" +
-              "<div class='message-summary'>" + message.summary + "</div>" +
-              "<div class='message-date' title='" + message.date + "'>" +
-                U.getHumanDate(message.date) +
-              "</div>" +
-            "</div>" +
-            "<div class='message-contents'>" +
-              "<div>" +
-                "<div class='message-to'>" + message.to + "</div>" +
-                "<div class='message-body'>" + message.body + "</div>" +
-              "</div>" +
-            "</div>" +
-          "</div>";
-      }
-
       hideThrobber();
 
-      var summary = mailPreview.getElementsByClassName("summary")[0];
-      summary.style.display = "none";
+      var summary = mailPreview.getElementsByClassName('summary')[0];
+      summary.style.display = 'none';
 
-      var div = U.make("div", {"id": "mail-body"});
-      div.innerHTML = msgBody;
-      div.onclick = function(e) { e.cancelBubble = true };
-
-      messageHeaders = div.querySelectorAll('.message-header');
-      for (var i = 0; i < messageHeaders.length; ++i) {
-        messageHeaders[i].onclick = function() {
-          var message = this.parentElement;
-          var messageContents =
-            message.getElementsByClassName('message-contents')[0];
-
-          if (message.className == "message") {
-            messageContents.style.height = "0px";
-            message.className = "message-hidden";
-          } else {
-            messageContents.style.height =
-              messageContents.firstElementChild.clientHeight + "px";
-
-            var transitionListener = function() {
-              messageContents.removeEventListener('webkitTransitionEnd',
-                  transitionListener);
-              message.className = "message";
-            };
-            messageContents.addEventListener('webkitTransitionEnd', transitionListener);
-          }
-        }
-      }
-
-      mailPreview.appendChild(div);
-
-      div = U.make('DIV', {'id': 'mail-reply'});
-      var replyBody = U.make('TEXTAREA',
-          {
-            'id': 'mail-reply-body',
-            'rows': '1',
-            'cols': '80',
-            'placeholder': 'Reply here',
-            'wrap': 'virtual'
-          });
-      div.appendChild(replyBody);
-
-      var replyControls = U.make('div',
-          {'id': 'reply-controls', 'class': 'dim'});
-      replyControls.innerHTML =
-        "<label><input type='checkbox' id='reply-all'/>Reply All</label>";
-      var replyButton = U.make('input',
-          {
-            'type': 'button',
-            'disabled': 'disabled',
-            'value': 'Send'
-          });
-      replyControls.appendChild(replyButton);
-      div.appendChild(replyControls);
-
-      replyBody.oninput = function() {
-        this.setAttribute('rows', this.value.split('\n').length);
-        if (this.value.trim().length) {
-          replyButton.removeAttribute('disabled');
-          replyControls.classList.remove('dim');
-        } else {
-          replyButton.setAttribute('disabled', true);
-          replyControls.classList.add('dim');
-        }
-      }
-      replyButton.onclick = function() {
-        doMailReply(mailPreview, replyBody.value,
-            document.getElementById('reply-all').checked);
-      }
-      div.onclick = function(e) { e.cancelBubble = true };
-      mailPreview.appendChild(div);
+      mailPreview.append(makeMailBody(messages));
+      mailPreview.append(makeMailReply(mailPreview));
 
       var account = mailPreview.account;
-      var d = U.make("div", {"id": "mail-tools"});
-      d.setAttribute("id", "mail-tools");
-      d.appendChild(createButton("Open in Gmail...", "preview-row-button", function() { 
-        openMailInTab(mailPreview.account, mailPreview.mailLink)
-      }, -63, -63));
-      d.appendChild(createButton("Mark as read", "preview-row-button", function() {
-        doMailAction(mailPreview, "rd");
-      }));
-      d.appendChild(createButton("Archive", "preview-row-button", function() {
-        doMailAction(mailPreview, "rd");
-        doMailAction(mailPreview, "arch");
-      }, -84, -21));
-      d.appendChild(createButton("Spam", "preview-row-button", function() {
-        doMailAction(mailPreview, "sp");
-      }, -42, -42));
-      d.appendChild(createButton("Delete", "preview-row-button", function() {
-        doMailAction(mailPreview, "tr");
-      }, -63, -42));
-      mailPreview.appendChild(d);
+      mailPreview.append(makeMailToolbar(mailPreview));
 
-      mailPreview.setAttribute("class", "preview-row-down");
+      mailPreview.className = 'preview-row-down';
       selectedMail = mailPreview;
     }
   );
 
-   mailPreview.setAttribute("class", "preview-row-down");
+   mailPreview.className = 'preview-row-down';
    selectedMail = mailPreview;
 }
 
 function unselectMail(mailPreview) {
   hideThrobber();
 
-  var to_remove = ["mail-tools", "mail-body", "mail-reply"];
+  var to_remove = ['mail-tools', 'mail-body', 'mail-reply'];
 
   for (var i = 0; i < to_remove.length; ++i) {
-    var d = document.getElementById(to_remove[i]);
+    var d = U(to_remove[i]);
     if(d) mailPreview.removeChild(d);
   }
 
-  var summary = mailPreview.getElementsByClassName("summary")[0];
-  summary.style.display = "";
+  var summary = mailPreview.getElementsByClassName('summary')[0];
+  summary.style.display = '';
 
-  mailPreview.setAttribute("class", "preview-row");
+  mailPreview.className = 'preview-row';
   selectedMail = null;
 
   if(xhrMsgBody) {
@@ -395,13 +398,13 @@ function removeMail(mailPreview) {
 }
 
 /* Multi-select functions */
-function onSelecterClick(mailSelecter) {
-  if(mailSelecter.checked) {
-    mailSelecter.mailPreview.setAttribute("class", "preview-row-down");
+function onMailSelecterClick() {
+  if(this.checked) {
+    this.mailPreview.className = 'preview-row-down';
     showMultiBar();
   } else {
-    mailSelecter.mailPreview.setAttribute("class", "preview-row");
-    var selecters = document.getElementsByClassName("mailSelecter");
+    this.mailPreview.className = 'preview-row';
+    var selecters = document.getElementsByClassName('mailSelecter');
     for(var i = 0; i < selecters.length; i++)
       if(selecters[i].checked)
         return;
@@ -410,7 +413,7 @@ function onSelecterClick(mailSelecter) {
 }
 
 function getMultiSelectedMails() {
-  var selecters = document.getElementsByClassName("mailSelecter");
+  var selecters = document.getElementsByClassName('mailSelecter');
   var selected = [];
   for(var i = 0; i < selecters.length; i++) {
     var s = selecters[i];
@@ -424,13 +427,13 @@ function getMultiSelectedMails() {
 // Show multibar if any mail is selected 
 function showMultiBar() {
   // Don't show if we're busy
-  if(throbberElem.style.display != "none")
+  if(throbberElem.style.display != 'none')
     return;
 
-  var selecters = document.getElementsByClassName("mailSelecter");
+  var selecters = document.getElementsByClassName('mailSelecter');
   for(var i = 0; i < selecters.length; i++) {
     if(selecters[i].checked) {
-      multibarElem.style.display = "block";
+      multibarElem.style.display = 'block';
       multibarElem.style.opacity = 1;
       return;
     }
@@ -446,48 +449,48 @@ function hideMultiBar(deselectAll) {
   multibarElem.addEventListener('webkitTransitionEnd', transitionListener);
 
   if(deselectAll) {
-    var selecters = document.getElementsByClassName("mailSelecter");
+    var selecters = document.getElementsByClassName('mailSelecter');
     for(var i = 0; i < selecters.length; i++) {
       var s = selecters[i];
       if(s.checked) {
         s.checked = false;
         if(selectedMail != s.nextSibling)
-          s.nextSibling.setAttribute("class", "preview-row");
+          s.nextSibling.className = 'preview-row';
       }
     }
   }
 }
 
 function makeMultiBar() {
-  multibarElem = document.getElementById("multibar");
-  multibarElem .appendChild(createButton("Mark as read", "multibar-button",
+  multibarElem = U('multibar')
+    .append(createButton('Mark as read', 'multibar-button',
       function() {
-        doMultiMailAction(["rd"]);
-      }));
-  multibarElem.appendChild(createButton("Archive", "multibar-button",
-      function() {
-        doMultiMailAction(["rd", "arch"]);
-      }, -84, -21));
-  multibarElem.appendChild(createButton("Spam", "multibar-button",
-      function() {
-        doMultiMailAction(["sp"]);
-      }, -42, -42));
-  multibarElem.appendChild(createButton("Delete", "multibar-button",
-      function() {
-        doMultiMailAction(["tr"]);
-      }, -63, -42));
+        doMultiMailAction(['rd']);
+      }))
+    .append(createButton('Archive', 'multibar-button',
+        function() {
+          doMultiMailAction(['rd', 'arch']);
+        }, -84, -21))
+    .append(createButton('Spam', 'multibar-button',
+        function() {
+          doMultiMailAction(['sp']);
+        }, -42, -42))
+    .append(createButton('Delete', 'multibar-button',
+        function() {
+          doMultiMailAction(['tr']);
+        }, -63, -42));
 }
 /* End multi-select functions */
 
 function makeThrobber() {
-  throbberElem = document.getElementById('throbber');
-  var canvas = document.getElementById('throbber-canvas');
+  throbberElem = U('throbber');
+  var canvas = U('throbber-canvas');
 
   if(canvas && canvas.getContext) {
     canvas.width = 16;
     canvas.height = 16;
     var ctx = canvas.getContext('2d');
-    ctx.strokeStyle = "#ACE";
+    ctx.strokeStyle = '#ACE';
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.translate(8, 8);
@@ -509,7 +512,7 @@ function makeThrobber() {
 }
 
 function showThrobber() {
-  throbberElem.style.display = "block";
+  throbberElem.style.display = 'block';
   hideMultiBar(false);
 }
 
@@ -518,13 +521,13 @@ function hideThrobber() {
   showMultiBar();
 }
 
-function onPreviewClick(mailPreview) {
-  if(selectedMail == mailPreview) {
-    unselectMail(mailPreview);
+function onPreviewClick() {
+  if(selectedMail == this) {
+    unselectMail(this);
   } else {
     if(selectedMail)
       unselectMail(selectedMail);
-    selectMail(mailPreview);
+    selectMail(this);
   }
   //mailPreview.scrollIntoView();
 }
@@ -539,15 +542,15 @@ function updateUnreadCount(account, data) {
   account.loggedIn = true;
 
   var inboxUrl = account.inboxUrl;
-  inboxUrl.innerText = name + " (" + count + ") ";
+  inboxUrl.innerText = name + ' (' + count + ') ';
 
   var inboxPreview = account.inboxPreview;
-  inboxPreview.innerHTML = "";
+  inboxPreview.html('');
 
   var sortedEmails = [];
-  for(var msgID in emails) {
-    sortedEmails.push(emails[msgID]);
-  }
+  emails.each(function(email) {
+    sortedEmails.push(email);
+  });
   sortedEmails.sort(function(a, b) {
     return a.modified < b.modified;
   });
@@ -555,49 +558,52 @@ function updateUnreadCount(account, data) {
   for (var i = 0; i < sortedEmails.length; ++i) {
     var email = sortedEmails[i];
     // Checkbox for multi-select
-    var mailSelecter = U.make("input",
-      { 'type': 'checkbox',
-        'class': 'mailSelecter' });
-    mailSelecter.onclick = function() { onSelecterClick(this) };
-    inboxPreview.appendChild(mailSelecter);
+    var mailSelecter = U.make('input.mailSelecter', {'type': 'checkbox'})
+      .on('click', onMailSelecterClick);
+    inboxPreview.append(mailSelecter);
 
     // Preview of a single email
-    var mailPreview = U.make("div", {"class": "preview-row"});
-    mailPreview.innerHTML =
-      "<div class='subject'>" + email.subject + "</div>" +
-      "<div class='author'>"  + email.author  + "</div>" + 
-      "<div class='summary'>" + email.summary + "</div>";
+    var mailPreview = U.make('div.preview-row')
+      .append(U.make('.subject').text(email.subject))
+      .append(U.make('.author').text(email.author))
+      .append(U.make('.summary').text(email.summary));
     mailPreview.mailLink = email.link;
     mailPreview.account = account;
-    mailPreview.onclick = function() { onPreviewClick(this); };
-    inboxPreview.appendChild(mailPreview);
+    mailPreview.onclick = onPreviewClick;
+    inboxPreview.append(mailPreview);
 
     mailSelecter.mailPreview = mailPreview;
   }
 
   chrome.extension.sendRequest({
-    "domain": account.domain,
-    "number": account.number,
-    "count": count
+    'domain': account.domain,
+    'number': account.number,
+    'count': count
   });
 }
 
 
 function showLoggedOut(account) {
   account.loggedIn = false;
-  account.inboxUrl.innerText = "Login or enter credentials in extension options";
+  account.inboxUrl.innerText = 'Login or enter credentials in extension options';
 }
 
 function goToInbox(account) {
-  chrome.tabs.getAllInWindow(undefined, function(tabs) {
-    for (var i = 0, tab; tab = tabs[i]; i++) {
+  chrome.tabs.query({}, function(tabs) {
+    var found = false;
+
+    tabs.each(function(tab) {
       if (tab.url && isAccountUrl(account, tab.url)) {
         chrome.tabs.update(tab.id, {selected: true});
-        return;
+        found = true;
+        return false;
       }
+    });
+
+    if (!found) {
+      chrome.tabs.create({url: getInboxUrl(account)});
     }
-    chrome.tabs.create({url: getInboxUrl(account)});
   });
 }
 
-document.addEventListener("DOMContentLoaded", init, false);
+document.addEventListener('DOMContentLoaded', init, false);

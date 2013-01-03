@@ -13,21 +13,20 @@ function addDomain(domain) {
   }
 
   // Check for collisions
-  if(document.getElementById('domain-list-item-' + domain))
+  if (U('domain-list-item-' + domain))
     return;
 
-  if(!accountInfo[domain])
+  if (!accountInfo[domain])
     accountInfo[domain] = [{number: 0, domain: domain}];
 
-  var domainItem = document.createElement('div');
-  domainItem.setAttribute('class', 'domain-list-item');
-  domainItem.setAttribute('id', 'domain-list-item-' + domain);
-  domainItem.innerHTML = "https://mail.google.com/<b>" + domain + "</b>"
-    + "<button>Remove</button>";
-  domainItem.getElementsByTagName('button')[0].addEventListener('click', 
-      function() {
-        removeDomain(domain);
+  var domainItem = U.make('div', {
+        'class': 'domain-list-item',
+        'id': 'domain-list-item-' + domain
       });
+  domainItem.innerHTML = "https://mail.google.com/<b>" + domain +
+    "</b>" + "<button>Remove</button>";
+  domainItem.getElementsByTagName('button')[0].
+    addEventListener('click', function() { removeDomain(domain); });
   domainList.appendChild(domainItem);
 
   updateDomainCredentialInputs(domain);
@@ -37,16 +36,16 @@ function addDomain(domain) {
 
 function removeDomain(domain) {
   delete accountInfo[domain];
-  domainList.removeChild(document.getElementById('domain-list-item-' + domain));
-  credentialList.removeChild(document.getElementById('credential-input-' + domain));
+  domainList.removeChild(U('domain-list-item-' + domain));
+  credentialList.removeChild(U('credential-input-' + domain));
   markDirty();
 }
 
 function updateNumAccounts(domain) {
   markDirty();
 
-  var numAccountsTextbox = document.getElementById('num-accounts-' + domain);
-  numAccounts = parseInt(numAccountsTextbox.value);
+  var numAccountsTextbox = U('num-accounts-' + domain);
+  numAccounts = parseInt(numAccountsTextbox.value, 10);
 
   var accounts = accountInfo[domain];
   for(var i = accounts.length; i < numAccounts; i++) {
@@ -58,22 +57,20 @@ function updateNumAccounts(domain) {
 }
 
 function saveAll() {
-  for(var domain in accountInfo)
-    saveDomainCredentialInputs(domain);
+  accountInfo.each(saveDomainCredentialInputs);
   saveToLocalStorage(accountInfo);
 }
 
-function saveDomainCredentialInputs(domain) {
-  var container = document.getElementById('credential-input-' + domain);
-  var numAccounts = document.getElementById('num-accounts-' + domain).value;
-  var accounts = accountInfo[domain];
-  for(i = 0; i < numAccounts; i++) {
+function saveDomainCredentialInputs(accounts, domain) {
+  var container = U('credential-input-' + domain);
+  var numAccounts = U('num-accounts-' + domain).value;
+  for(var i = 0; i < numAccounts; i++) {
     accounts[i] = {
-      user: document.getElementById('user-' + domain + i).value,
-      pass: document.getElementById('pass-' + domain + i).value,
+      user: U('user-' + domain + i).value,
+      pass: U('pass-' + domain + i).value,
       number: i,
       domain: domain
-    }
+    };
   }
   accounts.length = numAccounts;
 }
@@ -82,65 +79,66 @@ function updateAll() {
   domainList.innerHTML = "";
   credentialList.innerHTML = "";
 
-  for(var domain in accountInfo) {
+  accountInfo.each(function(accounts, domain) {
     addDomain(domain);
-  }
+  });
 }
 
 function updateDomainCredentialInputs(domain) {
   var accounts = accountInfo[domain];
 
-  var container = document.getElementById('credential-input-' + domain);
+  var container = U('credential-input-' + domain);
   if(!container) {
-    container = document.createElement('div');
-    container.setAttribute('id', 'credential-input-' + domain);
+    container = U.make('div', {'id': 'credential-input-' + domain});
     credentialList.appendChild(container);
   }
   container.innerHTML = "";
 
-  var header = document.createElement('div');
-  header.setAttribute('class', 'section-header');
+  var header = U.make('div', {'class': 'section-header'});
   header.innerHTML = "Credentials for domain '" + domain + "'";
   container.appendChild(header);
 
-  var accountsDiv = document.createElement('div');
-  accountsDiv.innerHTML = "Number of accounts: "
-    + "<input type='number' min=1 max=10 id='num-accounts-" + domain +"'"
-    + "value='" + accounts.length + "' placeholder='Number of accounts' >";
+  var accountsDiv = U.make('div');
+  accountsDiv.innerHTML = "Number of accounts: " +
+    "<input type='number' min=1 max=10 id='num-accounts-" +
+    domain +"'" + "value='" + accounts.length +
+    "' placeholder='Number of accounts' >";
   container.appendChild(accountsDiv);
-  document.getElementById('num-accounts-' + domain).addEventListener('input',
+
+  U('num-accounts-' + domain).addEventListener('input',
     function() {
       updateNumAccounts(domain);
     });
 
-  for(i = 0; i < accounts.length; i++) {
+  for(var i = 0; i < accounts.length; i++) {
     var account = accounts[i];
     account.domain = domain;
 
-    var div = document.createElement('div');
-    div.setAttribute('class', 'credential-box');
-
-    var header = document.createElement('div');
+    var div = U.make('div', {'class': 'credential-box'});
+    header = U.make('div', {
+      'class': 'account-title',
+      'id': 'account-title-' + domain + i
+    });
     header.innerHTML = "Account " + (i + 1);
-    header.setAttribute('class', 'account-title');
-    header.setAttribute('id', 'account-title-' + domain + i);
     div.appendChild(header);
 
     getAccountTitle(account);
 
-    var user = document.createElement('input');
-    user.setAttribute('type', 'text');
-    user.setAttribute('id', 'user-' + domain + i);
-    user.setAttribute('placeholder', 'Username');
+    var user = U.make('input', {
+      'type': 'text',
+      'id': 'user-' + domain + i,
+      'placeholder': 'Username'
+    });
     user.oninput = markDirty;
     div.appendChild(user);
 
-    div.appendChild(document.createElement('br'));
+    div.appendChild(U.make('br'));
     
-    var pass = document.createElement('input');
-    pass.setAttribute('type', 'password');
-    pass.setAttribute('id', 'pass-' + domain + i);
-    pass.setAttribute('placeholder', 'Password');
+    var pass = U.make('input', {
+      'id': 'pass-' + domain + i, 
+      'type': 'password',
+      'placeholder': 'Password'
+    });
     pass.oninput = markDirty;
     div.appendChild(pass);
 
@@ -154,9 +152,7 @@ function updateDomainCredentialInputs(domain) {
 }
 
 function updateTitle(account, title) {
-  console.dir(account);
-  console.dir(title);
-  var div = document.getElementById('account-title-' + account.domain + account.number);
+  var div = U('account-title-' + account.domain + account.number);
   if(div)
     div.innerText = title;
 }
@@ -182,18 +178,16 @@ function getAccountTitle(account) {
 }
 
 function init() {
-  console.log("init");
-
   if(localStorage.accountInfo) {
     accountInfo = JSON.parse(localStorage.accountInfo);
   }
 
-  addButton = document.getElementById("add-button");
-  cancelButton = document.getElementById("cancel-button");
-  saveButton = document.getElementById("save-button");
-  domainList = document.getElementById("domain-list");
-  credentialList = document.getElementById('credential-inputs');
-  domainNameTextbox = document.getElementById('domain-name');
+  addButton = U("add-button");
+  cancelButton = U("cancel-button");
+  saveButton = U("save-button");
+  domainList = U("domain-list");
+  credentialList = U('credential-inputs');
+  domainNameTextbox = U('domain-name');
 
   addButton.addEventListener("click", function() { addDomain(null); });
   cancelButton.addEventListener("click", init);
