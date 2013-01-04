@@ -301,12 +301,12 @@ var gmail = function () {
   }
 
   function fetch(account, msgID, onSuccess, onError) {
+    analytics.gmailFetch('Started');
     var mailURL = getAccountUrl(account);
     var url = getHTMLModeUrl(account) + '?v=pt&th=' + msgID;
 
     return doAjaxRequest(url, function (responseText) {
       var div = $.make('div').html(responseText);
-
       var messageTables = div.querySelectorAll('.message');
 
       if (messageTables) {
@@ -314,12 +314,17 @@ var gmail = function () {
         for (var i = 0; i < messageTables.length; ++i) {
           messages.push(makeMessage(messageTables[i], mailURL));
         }
+        analytics.gmailFetch('Parsed', messages.length);
         onSuccess(messages);
       } else {
+        analytics.gmailFetch('ParseFailed');
         onSuccess('<p><i>Could not parse this e-mail.' + 
           'Please use the <b>Open in Gmail</b> button below.</i></p>');
       }
-    }, onError);
+    }, function () {
+      analytics.gmailFetch('Failed');
+      onError(arguments);
+    });
   }
 
   return {

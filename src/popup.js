@@ -3,11 +3,12 @@ var cache = chrome.extension.getBackgroundPage().cache;
 var popup = function () {
   'use strict';
 
-  var selectedMail = null; // Set to an e-mail if user has pressed it
-  var xhrMsgBody = null;
-  var throbberTimer = 0;
-  var throbberElem, multibarElem;
-  var accountInfo;
+  var selectedMail = null, // Set to an e-mail if user has pressed it
+      xhrMsgBody = null,
+      throbberTimer = 0,
+      throbberElem,
+      multibarElem,
+      accountInfo;
 
   function init() {
     makeMultiBar();
@@ -15,7 +16,10 @@ var popup = function () {
 
     accountInfo = JSON.parse(localStorage.accountInfo);
 
-    var onInboxUrlClick = function () { goToInbox(this.account); };
+    var onInboxUrlClick = function () {
+      analytics.inboxUrlClick(this.account.name);
+      goToInbox(this.account);
+    };
 
     var inboxes = $('inboxes');
     accountInfo.each(function (accounts) {
@@ -47,15 +51,17 @@ var popup = function () {
 
         inboxes.append(inboxRow);
 
-        cache.loadEmails(account, updateUnreadCount, showLoggedOut);
+        cache.loadEmails(account, updateInboxPreview, showLoggedOut);
       });
     });
 
     $('options-link').onclick = function () {
+      analytics.optionsClick();
       openTab('options.html');
     };
 
     $('multibar-close').onclick = function () {
+      analytics.multibarClose();
       hideMultiBar(true);
     };
   }
@@ -104,7 +110,7 @@ var popup = function () {
     function onMailActionSuccess() {
       removeMail(mailPreview);
       hideThrobber();
-      cache.loadEmails(mailPreview.account, updateUnreadCount, showLoggedOut);
+      cache.loadEmails(mailPreview.account, updateInboxPreview, showLoggedOut);
     }
 
     function onMailActionError() {
@@ -128,7 +134,7 @@ var popup = function () {
 
     var onSuccess = function () {
       hideThrobber();
-      cache.loadEmails(mailPreview.account, updateUnreadCount,
+      cache.loadEmails(mailPreview.account, updateInboxPreview,
           showLoggedOut);
     };
 
@@ -149,11 +155,13 @@ var popup = function () {
   /* Perform multiple actions on multiple mails
      Waits for all the requests to complete/fail before updating inboxes
   */
-  function doMultiMailAction(actions) {
+  function doMultiMailAction(actions, analyticsCallback) {
     var selected = getMultiSelectedMails();
     var nTotal = selected.length;
     var nFinished = 0;
     var failed = [];
+
+    analyticsCallback.apply(analytics, ['', nTotal]);
 
     var onActionComplete = function () {
       nFinished++;
@@ -169,7 +177,7 @@ var popup = function () {
         accountInfo.each(function (accounts) {
           accounts.each(function (account) {
             if (account.isDirty) {
-              cache.loadEmails(account, updateUnreadCount, showLoggedOut);
+              cache.loadEmails(account, updateInboxPreview, showLoggedOut);
               delete account.isDirty;
             }
           });
@@ -227,9 +235,15 @@ var popup = function () {
       message.getElementsByClassName('message-contents')[0];
 
     if (message.className == 'message') {
+      analytics.messageHide(message.id,
+          $.stopTimer('message-show-' + message.id));
+
       messageContents.style.height = '0px';
       message.className = 'message-hidden';
     } else {
+      $.startTimer('message-show-' + message.id);
+      analytics.messageShow(message.id);
+
       messageContents.style.height =
         messageContents.firstElementChild.clientHeight + 'px';
 
@@ -252,7 +266,8 @@ var popup = function () {
     messages.each(function (message, i) {
       var type = (i == (messages.length - 1) ?
         '.message' : '.message-hidden');
-      mailBody.append($.make(type)
+      var id = 'message-' + (messages.length - i);
+      mailBody.append($.make(type + '#' + id)
       .append($.make('.message-header')
         .on('click', onMessageHeaderClick)
         .append($.make('.message-from').append(message.from))
@@ -279,7 +294,20 @@ var popup = function () {
     div.append(replyBody);
 
     replyBody.oninput = function () {
-      this.setAttribute('rows', this.value.split('\n').length);
+      if (!this._replyStarted) {
+        this._replyStarted = true;
+        analytics.replyStart();
+      }
+
+      var lines = this.value.split('\n');
+      var rows = lines.length;
+      if (lines.length) {
+        var line = lines[lines.length - 1];
+        if (line.length > 60)
+          rows += 1;
+      }
+      this.setAttribute('rows', rows);
+
       if (this.value.trim().length) {
         replyButton.removeAttribute('disabled');
         replyControls.classList.remove('dim');
@@ -301,6 +329,7 @@ var popup = function () {
     });
 
     replyButton.on('click', function () {
+      analytics.replySend('', replyBody.value.length);
       doMailReply(mailPreview, replyBody.value, $('reply-all').checked);
     });
 
@@ -314,23 +343,28 @@ var popup = function () {
     return $.make('div#mail-tools')
       .append(createButton('Open in Gmail...', 'preview-row-button',
             function () { 
+              analytics.mailOpen();
               openMailInTab(mailPreview.account, mailPreview.mailLink);
             }, -63, -63))
       .append(createButton('Mark as read', 'preview-row-button',
             function () {
+              analytics.mailMarkAsRead();
               doMailAction(mailPreview, gmail.markAsRead);
             }))
       .append(createButton('Archive', 'preview-row-button',
             function () {
+              analytics.mailArchive();
               doMailAction(mailPreview, gmail.markAsRead);
               doMailAction(mailPreview, gmail.archive);
             }, -84, -21))
       .append(createButton('Spam', 'preview-row-button',
             function () {
+              analytics.mailMarkAsSpam();
               doMailAction(mailPreview, gmail.markAsSpam);
             }, -42, -42))
       .append(createButton('Delete', 'preview-row-button',
             function () {
+              analytics.mailDelete();
               doMailAction(mailPreview, gmail.trash);
             }, -63, -42));
   }
@@ -340,13 +374,17 @@ var popup = function () {
       return;
 
     var msgID = getMessageID(mailPreview.mailLink);
+
     if (!msgID)
       return;
 
-    showThrobber(mailPreview);
+    showThrobber();
+
+    $.startTimer('mail-get');
 
     xhrMsgBody = cache.getEmailMessages(mailPreview.account, msgID, 
       function (messages) {
+        analytics.previewShow('', $.stopTimer('mail-get'));
         hideThrobber();
 
         var summary = mailPreview.getElementsByClassName('summary')[0];
@@ -359,8 +397,11 @@ var popup = function () {
 
         mailPreview.className = 'preview-row-down';
         selectedMail = mailPreview;
+
+        $.startTimer('mail-show');
       },
       function () {
+        analytics.previewFail('', $.stopTimer('mail-get'));
         mailPreview.className = 'preview-row';
         selectedMail = null;
       }
@@ -371,6 +412,7 @@ var popup = function () {
   }
 
   function unselectMail(mailPreview) {
+    analytics.previewFail('', $.stopTimer('mail-show'));
     hideThrobber();
 
     var to_remove = ['mail-tools', 'mail-body', 'mail-reply'];
@@ -450,15 +492,6 @@ var popup = function () {
   }
 
   function hideMultiBar(deselectAll) {
-    var transitionListener = function (e) {
-      if (e.target == multibarElem && e.propertyName == 'opacity') {
-        if (multibarElem.style.opacity === 0) {
-          this.removeEventListener('webkitTransitionEnd', transitionListener);
-          this.style.display = 'none';
-        }
-      }
-    };
-    multibarElem.addEventListener('webkitTransitionEnd', transitionListener);
     multibarElem.style.opacity = 0;
 
     if (deselectAll) {
@@ -478,20 +511,31 @@ var popup = function () {
     multibarElem = $('multibar')
       .append(createButton('Mark as read', 'multibar-button',
         function () {
-          doMultiMailAction([gmail.markAsRead]);
+          doMultiMailAction([gmail.markAsRead], analytics.multibarMarkAsRead);
         }))
       .append(createButton('Archive', 'multibar-button',
           function () {
-            doMultiMailAction([gmail.markAsRead, gmail.archive]);
+            doMultiMailAction([gmail.markAsRead, gmail.archive],
+              analytics.multibarArchive);
           }, -84, -21))
       .append(createButton('Spam', 'multibar-button',
           function () {
-            doMultiMailAction([gmail.markAsSpam]);
+            doMultiMailAction([gmail.markAsSpam],
+              analytics.multibarSpam);
           }, -42, -42))
       .append(createButton('Delete', 'multibar-button',
           function () {
-            doMultiMailAction([gmail.trash]);
+            doMultiMailAction([gmail.trash],
+              analytics.multibarDelete);
           }, -63, -42));
+
+    multibarElem.addEventListener('webkitTransitionEnd', function (e) {
+      if (e.target == multibarElem && e.propertyName == 'opacity') {
+        if (parseFloat(multibarElem.style.opacity) === 0) {
+          multibarElem.style.display = 'none';
+        }
+      }
+    });
   }
   /* End multi-select functions */
 
@@ -525,11 +569,13 @@ var popup = function () {
   }
 
   function showThrobber() {
+    $.startTimer('throbber');
     throbberElem.style.display = 'block';
     hideMultiBar(false);
   }
 
   function hideThrobber() {
+    analytics.throbberFinish('', $.stopTimer('throbber'));
     throbberElem.style.display = 'none';
     showMultiBar();
   }
@@ -546,7 +592,7 @@ var popup = function () {
     //mailPreview.scrollIntoView();
   }
 
-  function updateUnreadCount(account, data) {
+  function updateInboxPreview(account, data) {
     var name = data.name;
     var count = data.unreadCount;
     var emails = data.emails;
