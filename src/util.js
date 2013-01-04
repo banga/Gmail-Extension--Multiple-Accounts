@@ -202,6 +202,21 @@ var $ = (function (document) {
     localStorage.accountInfo = JSON.stringify(info);
   };
 
+  var timers = {};
+
+  U.timers = function () {
+    return timers;
+  };
+
+  U.startTimer = function (label) {
+    timers[label] = new Date().getTime();
+    return timers[label];
+  };
+
+  U.stopTimer = function (label) {
+    return new Date().getTime() - timers[label];
+  };
+
   return U;
 } (document));
 
