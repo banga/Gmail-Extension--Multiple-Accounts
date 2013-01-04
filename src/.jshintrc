@@ -10,6 +10,7 @@
 
   "predef": [
     "$",
+    "analytics",
     "chrome",
     "cache",
     "gmail"
