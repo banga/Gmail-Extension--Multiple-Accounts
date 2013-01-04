@@ -451,10 +451,11 @@ var popup = function () {
 
   function hideMultiBar(deselectAll) {
     var transitionListener = function (e) {
-      console.dir(e);
       if (e.target == multibarElem && e.propertyName == 'opacity') {
-        this.removeEventListener('webkitTransitionEnd', transitionListener);
-        this.style.display = 'none';
+        if (multibarElem.style.opacity === 0) {
+          this.removeEventListener('webkitTransitionEnd', transitionListener);
+          this.style.display = 'none';
+        }
       }
     };
     multibarElem.addEventListener('webkitTransitionEnd', transitionListener);
