@@ -1,8 +1,8 @@
 /*
  * Object extensions
  */
-Object.prototype.each = function(func) {
-  "use strict";
+Object.prototype.each = function (func) {
+  'use strict';
   if (this.length) {
     for (var i = 0; i < this.length; ++i) {
       if (func(this[i], i, this[i]) === false)
@@ -23,7 +23,9 @@ Object.prototype.each = function(func) {
 /*
  * DOM element extensions
  */
-Element.prototype.append = function(value) {
+/*global Element:true*/
+Element.prototype.append = function (value) {
+  'use strict';
   if (value instanceof Element) {
     this.appendChild(value);
   } else {
@@ -33,15 +35,16 @@ Element.prototype.append = function(value) {
   return this;
 };
 
-Element.prototype.on = function(type, listener, capture) {
+Element.prototype.on = function (type, listener, capture) {
+  'use strict';
   if (this.nodeType == 1 && listener instanceof Function) {
     this.addEventListener(type, listener, capture);
   }
   return this;
 };
 
-Element.prototype.html = function(str) {
-  "use strict";
+Element.prototype.html = function (str) {
+  'use strict';
 
   if (str === undefined)
     return this.innerHTML;
@@ -52,8 +55,8 @@ Element.prototype.html = function(str) {
   return this;
 };
 
-Element.prototype.text = function(str) {
-  "use strict";
+Element.prototype.text = function (str) {
+  'use strict';
 
   if (str === undefined)
     return this.innerText;
@@ -66,12 +69,12 @@ Element.prototype.text = function(str) {
 
 
 /*
- * Utility object 'U'
+ * Utility object
  */
-var U = (function(document) {
-  "use strict";
+var $ = (function (document) {
+  'use strict';
 
-  var U = function(id, context) {
+  var U = function (id, context) {
     context = context || document;
     return context.getElementById(id);
   };
@@ -79,17 +82,18 @@ var U = (function(document) {
   /* Make an element from a css style string */
   function _make(str) {
     str = str + '#';
-    var prev = 0, attr, elem, name, i = 0;
+    var prev = 0, attr, elem, i = 0;
 
     for (; i < str.length; ++i) {
       if (/#|\./.test(str[i])) {
         if (attr) {
           elem.setAttribute(attr, str.slice(prev, i));
         } else {
-          elem = document.createElement(i===0 ? 'div' : str.slice(prev, i));
+          elem = document.createElement(i === 0 ?
+            'div' : str.slice(prev, i));
         }
         attr = ((str[i] == '#') ? 'id' : 'class');
-        prev = i+1;
+        prev = i + 1;
       }
     }
     return elem;
@@ -99,13 +103,13 @@ var U = (function(document) {
     var elem = _make(str);
 
     if (attrs) {
-      attrs.each(function(value, attr) {
+      attrs.each(function (value, attr) {
         elem.setAttribute(attr, value);
       });
     }
 
     if (css) {
-      css.each(function(value, prop) {
+      css.each(function (value, prop) {
         elem.style[prop] = value;
       });
     }
@@ -119,13 +123,13 @@ var U = (function(document) {
     return div.innerHTML;
   };
   
-  U.HTMLDecode = function(str) {
+  U.HTMLDecode = function (str) {
     var div = this.make('div');
     div.innerHTML = str;
     return div.innerText;
   };
 
-  U.extractContacts = function(str) {
+  U.extractContacts = function (str) {
     // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
     var contacts = {};
     var items = str.split(':');
@@ -151,7 +155,7 @@ var U = (function(document) {
     return contacts;
   };
 
-  U.getHumanDate = function(date) {
+  U.getHumanDate = function (date) {
     if (!(date instanceof Date)) {
       date = date.replace(/(,|at)/g, '');
       date = new Date(date);
@@ -172,7 +176,7 @@ var U = (function(document) {
 
     for (var i = 0; i < units.length; ++i) {
       delta = Math.floor(delta / sizes[i]);
-      if (delta < sizes[i+1]) {
+      if (delta < sizes[i + 1]) {
         return delta + ' ' + units[i] + (delta > 1 ? 's' : '') + tense;
       }
     }
@@ -180,5 +184,25 @@ var U = (function(document) {
     return date.toLocaleDateString();
   };
 
+  U.saveToLocalStorage = function (accountInfo) {
+    var info = {};
+
+    accountInfo.each(function (accounts, domain) {
+      info[domain] = [];
+      accounts.each(function (account, i) {
+        info[domain][i] = {
+          user: account.user,
+          pass: account.pass,
+          domain: domain,
+          number: i
+        };
+      });
+    });
+
+    localStorage.accountInfo = JSON.stringify(info);
+  };
+
   return U;
 } (document));
+
+console.dir($);

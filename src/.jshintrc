@@ -1,0 +1,17 @@
+{
+  "browser": true,
+  "devel": true,
+  "forin": true,
+  "indent": 2,
+  "quotmark": "single",
+  "undef": true,
+  "unused": true,
+  "strict": true,
+
+  "predef": [
+    "$",
+    "chrome",
+    "cache",
+    "gmail"
+  ]
+}
