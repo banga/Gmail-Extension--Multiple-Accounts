@@ -297,7 +297,7 @@ pre {
 .contact-list:before {
   content: attr(prefix) ":";
   font-weight: bold;
-  margin-right: 6px;
+  margin-right: 2px;
 }
 .contact-list {
   margin-right: 10px;

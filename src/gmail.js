@@ -235,16 +235,18 @@ function makeMessage(messageTable, mailURL) {
   var div = cells[2].firstElementChild.firstElementChild;
   while (div) {
     var contacts = U.extractContacts(div.innerText.replace(/\n/g, ''));
-    message.to += "<span class='contact-list' prefix='" +
-      contacts.prefix + "'>";
+
+    message.to +=
+      "<span class='contact-list' prefix='" + contacts.prefix + "'>";
     var items = contacts.items;
     for (i = 0; i < items.length; ++i) {
       message.to +=
         "<a class='contact-name' email ='" + items[i][1] + "'>" +
-          U.HTMLEncode(items[i][0]) + ((i < contacts.length-1) ? ', ' : '') + 
+          U.HTMLEncode(items[i][0]) + ((i < items.length-1) ? ', ' : '') + 
         "</a>";
     }
     message.to += "</span>";
+
     div = div.nextElementSibling;
   }
 
