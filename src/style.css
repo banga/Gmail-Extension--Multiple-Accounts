@@ -196,6 +196,7 @@ pre {
   left: 14em; 
   z-index: 100;
   opacity: 0;
+  display: none;
   -webkit-transition: all 0.2s;
 }
 #throbber {
