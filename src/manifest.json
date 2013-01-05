@@ -18,5 +18,5 @@
   "permissions": [
     "tabs", "http://*.google.com/", "https://*.google.com/"
    ],
-  "version": "1.11.2"
+  "version": "1.11.3"
 }
