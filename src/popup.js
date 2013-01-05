@@ -299,21 +299,19 @@ var popup = function () {
         analytics.replyStart();
       }
 
-      var lines = this.value.split('\n');
-      var rows = lines.length;
-      if (lines.length) {
-        var line = lines[lines.length - 1];
-        if (line.length > 60)
-          rows += 1;
+      if (this.scrollHeight > this.clientHeight) {
+        this.style.height = this.scrollHeight + 'px';
       }
-      this.setAttribute('rows', rows);
 
       if (this.value.trim().length) {
         replyButton.removeAttribute('disabled');
         replyControls.classList.remove('dim');
+        this.style.paddingBottom = '2em';
       } else {
         replyButton.setAttribute('disabled', true);
         replyControls.classList.add('dim');
+        this.style.height = 'auto';
+        this.style.paddingBottom = '8px';
       }
     };
 

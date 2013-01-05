@@ -346,6 +346,7 @@ textarea {
   background-color: #FAFAFA;
   font-size: 1em;
   padding: 8px;
+  -webkit-transition: all 0.2s ease-in-out;
 }
 textarea:active, textarea:focus {
   border: #AAA 1px solid;
