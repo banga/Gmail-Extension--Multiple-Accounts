@@ -18,41 +18,47 @@ var analytics = (function () {
 
   // _trackEvent(category, action, opt_label, opt_value, opt_noninteraction)
   function track(category, action, opt_label, opt_value, opt_noninteraction) {
-    _gaq.push(['_trackEvent', category, action, opt_label, opt_value, opt_noninteraction]);
+    _gaq.push(['_trackEvent', category, action, opt_label, opt_value,
+      opt_noninteraction]);
   }
 
   return {
-    multibarMarkAsRead: track.bind('Multibar', 'Mark As Read'),
-    multibarArchive:    track.bind('Multibar', 'Archive'),
-    multibarSpam:       track.bind('Multibar', 'Spam'),
-    multibarDelete:     track.bind('Multibar', 'Delete'),
-    multibarClose:      track.bind('Multibar', 'Close'),
+    multibarMarkAsRead: track.bind(this, 'Multibar', 'Mark As Read'),
+    multibarArchive:    track.bind(this, 'Multibar', 'Archive'),
+    multibarSpam:       track.bind(this, 'Multibar', 'Spam'),
+    multibarDelete:     track.bind(this, 'Multibar', 'Delete'),
+    multibarClose:      track.bind(this, 'Multibar', 'Close'),
 
     // opt_value = millis for which it showed
-    throbberFinish:     track.bind('Throbber', 'Finish'),
+    throbberFinish:     track.bind(this, 'Throbber', 'Finish'),
 
-    optionsClick:       track.bind('Options', 'Click'),
+    optionsClick:       track.bind(this, 'Options', 'Click'),
 
     // opt_label = URL
-    inboxUrlClick:      track.bind('Inbox URL', 'Click'),
+    inboxUrlClick:      track.bind(this, 'Inbox URL', 'Click'),
 
-    previewShow:        track.bind('Preview', 'Show'),
-    previewHide:        track.bind('Preview', 'Hide'),
-    previewFail:        track.bind('Preview', 'Fail'),
+    previewShow:        track.bind(this, 'Preview', 'Show'),
+    previewHide:        track.bind(this, 'Preview', 'Hide'),
+    previewFail:        track.bind(this, 'Preview', 'Fail'),
 
-    messageShow:        track.bind('Message', 'Show'),
-    messageHide:        track.bind('Message', 'Hide'),
+    messageShow:        track.bind(this, 'Message', 'Show'),
+    messageHide:        track.bind(this, 'Message', 'Hide'),
 
-    replyStart:         track.bind('Reply', 'Start'),
-    replySend:          track.bind('Reply', 'Send'),
+    replyStart:         track.bind(this, 'Reply', 'Start'),
+    replySend:          track.bind(this, 'Reply', 'Send'),
 
-    mailOpen:           track.bind('Mail', 'Open'),
-    mailMarkAsRead:     track.bind('Mail', 'Mark As Read'),
-    mailArchive:        track.bind('Mail', 'Archive'),
-    mailMarkAsSpam:     track.bind('Mail', 'Mark As Spam'),
-    mailDelete:         track.bind('Mail', 'Delete'),
+    mailOpen:           track.bind(this, 'Mail', 'Open'),
+    mailMarkAsRead:     track.bind(this, 'Mail', 'Mark As Read'),
+    mailArchive:        track.bind(this, 'Mail', 'Archive'),
+    mailMarkAsSpam:     track.bind(this, 'Mail', 'Mark As Spam'),
+    mailDelete:         track.bind(this, 'Mail', 'Delete'),
 
-    gmailFetch:         track.bind('Gmail', 'Fetch')
+    gmailFetch:         track.bind(this, 'Gmail', 'Fetch'),
+
+    cacheHit:           track.bind(this, 'Cache', 'Hit'),
+    cacheMiss:          track.bind(this, 'Cache', 'Miss'),
+    cacheLoad:          track.bind(this, 'Cache', 'Load'),
+    cacheUpdate:        track.bind(this, 'Cache', 'Update')
   };
 }) ();
 

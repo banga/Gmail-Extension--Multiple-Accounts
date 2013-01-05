@@ -214,7 +214,12 @@ var $ = (function (document) {
   };
 
   U.stopTimer = function (label) {
-    return new Date().getTime() - timers[label];
+    if (label in timers) {
+      var startTime = timers[label];
+      delete timers[label];
+      return new Date().getTime() - startTime;
+    }
+    return 0;
   };
 
   return U;

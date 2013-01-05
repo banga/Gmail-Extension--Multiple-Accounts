@@ -1,0 +1,108 @@
+
+https://mail.google.com/mail/u/0/h/ymts0gajy6aq/?&v=b&fv=b&cpt=c&at=AF6bupM-wmLVbDy8fSwaTVkmeLBMqZYufA&pv=tl&cs=c
+
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="redir"
+
+?&v=c
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="to"
+
+Shrey Banga <banga@cs.unc.edu>
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="cc"
+
+
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="bcc"
+
+
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="subject"
+
+Re: hi
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="file0"; filename="screenshot.png"
+Content-Type: image/png
+
+
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="body"
+
+ajksdhaskjdhlkjahdkaljhklajahsdkljdh
+
+Shrey
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF
+Content-Disposition: form-data; name="nvp_bu_send"
+
+Send
+------WebKitFormBoundaryxqFA2DkDNlhLNDZF--
+
+function doGmailCompose(account, to, cc, bcc, subject, body, onSuccess, onError) {
+  /*
+     /mail/u/0/h/<randno>/?&v=b&fv=b&cpt=c&at=<at>&pv=tl&cs=c
+     form-data: to, cc, bcc, subject, body, file0..., nvp_bu_send
+   */
+
+  if(!account.at) {
+    getAccountAt(account, function() {
+      doGmailCompose.apply(window, arguments);
+    });
+    return;
+  }
+
+  var url = getHTMLModeUrl(account) + '?v=b&fv=b&cpt=c&at=' + account.at +
+    '&pv=tl&cs=c';
+  var params = new FormData();
+  params.append('to', to);
+  params.append('cc', cc);
+  params.append('bcc', bcc);
+  params.append('subject', subject);
+  params.append('body', body);
+  params.append('nvp_bu_send', 'Send');
+
+  return doAjaxRequest(url, onSuccess, onError, params);
+}
+
+---------------
+
+Code for sending HTML email:
+
+    var boundary = '----WebKitFormBoundaryQPNZlFyX09OM';
+    boundary += Math.floor(Math.random() * 32768);
+
+    var payload = boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="to"';
+    payload += '\r\n\r\n' + to + '\r\n';
+    payload += '--' + boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="cc"';
+    payload += '\r\n\r\n' + cc + '\r\n';
+    payload += '--' + boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="bcc"';
+    payload += '\r\n\r\n' + bcc + '\r\n';
+    payload += '--' + boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="subject"';
+    payload += '\r\n\r\n' + subject + '\r\n';
+    payload += '--' + boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="body"';
+
+    var partBoundary = '----mimepart' + Math.floor(Math.random() * 1e10).toString(26);
+    payload += '\r\nContent-Type: multipart/alternative; boundary=' + partBoundary + '; charset=UTF-8';
+    payload += '\r\n\r\n' + partBoundary;
+
+    payload += '\r\nContent-Type: text/html; charset=UTF-8';
+    payload += '\r\n\r\n' + body + '\r\n';
+    payload += '\r\n\r\n' + partBoundary;
+
+    payload += '\r\nContent-Type: text/plain; charset=UTF-8';
+    payload += '\r\n\r\n' + body + '\r\n';
+    payload += '\r\n\r\n--' + partBoundary + '--\r\n';
+
+    payload += '\r\n--' + boundary + '\r\n';
+    payload += 'Content-Disposition: form-data; name="nvp_bu_send"';
+    payload += '\r\n\r\n' + 'Send' + '\r\n';
+    payload += '--' + boundary + '--' + '\r\n';
+
+    return doAjaxRequest(url, onSuccess, onError, payload, {
+        'Content-Type': 'multipart/form-data; boundary=' + boundary
+      });

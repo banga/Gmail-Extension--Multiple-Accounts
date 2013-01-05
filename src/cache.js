@@ -14,6 +14,8 @@ var cache = function () {
   function _updateEmailMessages(account, msgID, onSuccess, onError) {
     var cachedEmails = cache_[account.name].emails;
 
+    analytics.cacheUpdate(gmail.getInboxUrl(account));
+
     return gmail.fetch(account, msgID,
       function (messages) {
         cachedEmails[msgID].messages = messages; 
@@ -116,6 +118,7 @@ var cache = function () {
 
     gmail.parseFeed(account, parseInboxData, onSuccess, onError);
     ++loads;
+    analytics.cacheLoad();
   }
 
   function getEmailMessages(account, msgID, onSuccess, onError) {
@@ -130,12 +133,13 @@ var cache = function () {
 
     if (!(msgID in cache_[account.name].emails)) {
       console.log('Message ' + msgID + ' not found in cache_. Updating'); 
-      ++misses;
+      analytics.cacheMiss();
       return _updateEmailMessages(account, msgID, onSuccess, onError);
     } else {
       console.log('Found message in cache_. Calling ' + 
           onSuccess.name + ' with ' + account.name + ': ');
       ++hits;
+      analytics.cacheHit();
       onSuccess(cache_[account.name].emails[msgID].messages);
       return null;
     }

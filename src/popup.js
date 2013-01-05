@@ -329,8 +329,10 @@ var popup = function () {
     });
 
     replyButton.on('click', function () {
-      analytics.replySend('', replyBody.value.length);
-      doMailReply(mailPreview, replyBody.value, $('reply-all').checked);
+      var checked = $('reply-all').checked;
+      analytics.replySend(checked ? 'ReplyAll' : 'Reply',
+        replyBody.value.length);
+      doMailReply(mailPreview, replyBody.value, checked);
     });
 
     replyControls.append(replyButton);
@@ -412,7 +414,7 @@ var popup = function () {
   }
 
   function unselectMail(mailPreview) {
-    analytics.previewFail('', $.stopTimer('mail-show'));
+    analytics.previewHide('', $.stopTimer('mail-show'));
     hideThrobber();
 
     var to_remove = ['mail-tools', 'mail-body', 'mail-reply'];
@@ -569,14 +571,18 @@ var popup = function () {
   }
 
   function showThrobber() {
-    $.startTimer('throbber');
-    throbberElem.style.display = 'block';
+    if (throbberElem.style.display !== 'block') {
+      $.startTimer('throbber');
+      throbberElem.style.display = 'block';
+    }
     hideMultiBar(false);
   }
 
   function hideThrobber() {
-    analytics.throbberFinish('', $.stopTimer('throbber'));
-    throbberElem.style.display = 'none';
+    if (throbberElem.style.display !== 'none') {
+      analytics.throbberFinish('', $.stopTimer('throbber'));
+      throbberElem.style.display = 'none';
+    }
     showMultiBar();
   }
 
