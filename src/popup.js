@@ -17,7 +17,7 @@ var popup = function () {
     accountInfo = JSON.parse(localStorage.accountInfo);
 
     var onInboxUrlClick = function () {
-      analytics.inboxUrlClick(this.account.name);
+      analytics.inboxUrlClick(gmail.getInboxUrl(this.account));
       goToInbox(this.account);
     };
 
