@@ -85,10 +85,16 @@ var bg = function () {
 
   function checkIfUpdated() {
     var version = chrome.app.getDetails().version;
+
+    if (!('version' in localStorage)) {
+      analytics.installed(version);
+    }
+
     var localVersion = localStorage.version || '';
     if (version !== localVersion) {
       // chrome.tabs.create({url: 'updates.html'});
       localStorage.version = version;
+      analytics.updated(version);
     }
   }
 

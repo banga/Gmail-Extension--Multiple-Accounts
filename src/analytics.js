@@ -23,6 +23,9 @@ var analytics = (function () {
   }
 
   return {
+    installed:          track.bind(this, 'App', 'Installed'),
+    updated:            track.bind(this, 'App', 'Updated'),
+
     multibarMarkAsRead: track.bind(this, 'Multibar', 'Mark As Read'),
     multibarArchive:    track.bind(this, 'Multibar', 'Archive'),
     multibarSpam:       track.bind(this, 'Multibar', 'Spam'),
