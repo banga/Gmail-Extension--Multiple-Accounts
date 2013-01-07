@@ -345,6 +345,7 @@ textarea {
   border: #BBB 1px solid;
   background-color: #FAFAFA;
   font-size: 1em;
+  font-family: sans-serif;
   padding: 8px;
   -webkit-transition: all 0.2s ease-in-out;
 }
