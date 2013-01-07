@@ -48,9 +48,9 @@ body {
 }
 #topright {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 16px;
+  top: 2px;
+  right: 4px;
+  font-size: 18px;
   color: black;
   cursor: default;
 }
