@@ -1,5 +1,5 @@
 body {
-  width: 80ex;
+  width: 40em;
   font-family: sans-serif;
   font-size: 1em;
   margin: 0 10px 0 0;
@@ -9,16 +9,65 @@ body {
   overflow-y: scroll;
   -webkit-user-select: none;
 }
-#options-link {
-  color: #024;
-  font-size: 0.5em;
-  margin-bottom: -25px;
-  padding-top: 6px;
-  float: right;
-  cursor: pointer;
+#feedback {
+  display: none;
+  text-align: center;
+  font-size: 12px;
+  height: 28em;
+  margin: 5px;
 }
-#options-link:hover {
-  text-decoration: underline;
+#feedback p {
+  font-size: 22px;
+  color: #999;
+  text-shadow: 1px 1px 0 white;
+}
+#feedback textarea {
+  margin: 5px;
+}
+#feedback-compose {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-right: 1px dashed #AAA;
+  padding-left: 5px;
+  padding-top: 1em;
+  height: 100%;
+}
+#feedback-donate {
+  position: absolute;
+  top: 2em;
+  right: 0;
+  width: 20em;
+}
+#donate-button {
+  margin-top: 5em;
+}
+#donate-button, #rate-button {
+  font-size: 13px;
+  padding: 5px 8px;
+}
+#topright {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 16px;
+  color: black;
+  cursor: default;
+}
+#topright > div{
+  cursor: pointer;
+  opacity: 0.5;
+  -webkit-transition: all 0.4s;
+}
+#topright > div:hover{
+  opacity: 1;
+}
+#topright .separator {
+  display: inline-block;
+  border-right: 1px solid #AAA;
+  height: 8px;
+  position: relative;
+  top: -2px;
 }
 .inbox-row {
   clear: both;
@@ -110,7 +159,7 @@ body {
   margin-left: 18px;
   box-shadow: inset 0px 1px 4px rgba(0,0,0,0.3);
   background: #E9E9E9;
-  background-image: url('grain.png');
+  background-image: url('../images/grain.png');
   border: 1px solid #FFF;
   border-radius: 5px;
   cursor: pointer;
@@ -164,7 +213,7 @@ body {
   display: inline-block;
   width: 21px;
   height: 21px;
-  background-image: url("mail_icons.png");
+  background-image: url("../images/mail_icons.png");
   background-repeat: no-repeat no-repeat;
   margin: -3px 2px 0 0;
   vertical-align: middle;
@@ -352,6 +401,7 @@ textarea {
 textarea:active, textarea:focus {
   border: #AAA 1px solid;
   background-color: #FFF;
+  outline: none;
 }
 #reply-controls {
   position: absolute;

@@ -18,8 +18,10 @@ var analytics = (function () {
 
   // _trackEvent(category, action, opt_label, opt_value, opt_noninteraction)
   function track(category, action, opt_label, opt_value, opt_noninteraction) {
-    _gaq.push(['_trackEvent', category, action, opt_label, opt_value,
-      opt_noninteraction]);
+    setTimeout(function () {
+      _gaq.push(['_trackEvent', category, action, opt_label, opt_value,
+        opt_noninteraction]);
+    }, 0);
   }
 
   return {
@@ -36,6 +38,13 @@ var analytics = (function () {
     throbberFinish:     track.bind(this, 'Throbber', 'Finish'),
 
     optionsClick:       track.bind(this, 'Options', 'Click'),
+
+    feedbackStart:      track.bind(this, 'Feedback', 'Start'),
+    feedbackSend:       track.bind(this, 'Feedback', 'Send'),
+    feedbackFail:       track.bind(this, 'Feedback', 'Fail'),
+
+    donateClick:        track.bind(this, 'Donate', 'Click'),
+    rateClick:          track.bind(this, 'Rate', 'Click'),
 
     // opt_label = URL
     inboxUrlClick:      track.bind(this, 'Inbox URL', 'Click'),

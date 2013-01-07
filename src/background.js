@@ -106,7 +106,7 @@ var bg = function () {
     canvasContext = canvas.getContext('2d');
 
     chrome.browserAction.setBadgeBackgroundColor({color: [20, 120, 255, 255]});
-    chrome.browserAction.setIcon({path: 'gmail_logged_in.png'});
+    chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
     loadingAnimation.start();
 
     loadAccountInfo();
@@ -214,7 +214,7 @@ var bg = function () {
     });
 
     if (allLoggedOut) {
-      chrome.browserAction.setIcon({path: 'gmail_not_logged_in.png'});
+      chrome.browserAction.setIcon({path: 'images/gmail_not_logged_in.png'});
       chrome.browserAction.setBadgeBackgroundColor(
           {color: [190, 190, 190, 230]});
       chrome.browserAction.setBadgeText({text: '?'});

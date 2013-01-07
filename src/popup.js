@@ -1,4 +1,6 @@
-var cache = chrome.extension.getBackgroundPage().cache;
+var backgroundPage = chrome.extension.getBackgroundPage();
+var cache = backgroundPage.cache;
+var analytics = backgroundPage.analytics;
 
 var popup = function () {
   'use strict';
@@ -33,13 +35,12 @@ var popup = function () {
 
         var inboxHeader = $.make('div.inbox-header');
 
-        var inboxIcon = $.make('img.inbox-icon', {'src': 'icon_128.png'});
+        var inboxIcon = $.make('img.inbox-icon', {'src': 'images/icon_128.png'});
         inboxHeader.append(inboxIcon);
 
-        var inboxUrl = $.make('div.url');
+        var inboxUrl = $.make('div.url').text('Loading...')
+          .on('click', onInboxUrlClick);
         inboxUrl.account = account;
-        inboxUrl.onclick = onInboxUrlClick;
-        inboxUrl.innerText = 'Loading...';
         account.inboxUrl = inboxUrl;
 
         inboxHeader.append(inboxUrl);
@@ -55,15 +56,76 @@ var popup = function () {
       });
     });
 
-    $('options-link').onclick = function () {
+    $('feedback-link').on('click', function () {
+      analytics.feedbackStart();
+      var feedbackElem = $('feedback');
+      if (feedbackElem.style.display == 'none') {
+        var feedbackAccountSelect = $('feedback-account');
+        feedbackAccountSelect.innerHTML = '';
+        accountInfo.each(function (accounts) { 
+          accounts.each(function (account) {
+            var accountOption = $.make('option', {value: account.name});
+            accountOption.text = account.name;
+            accountOption.account = account;
+            feedbackAccountSelect.append(accountOption);
+          });
+        });
+        feedbackElem.style.display = 'block';
+        inboxes.style.display = 'none';
+      } else {
+        feedbackElem.style.display = 'none';
+        inboxes.style.display = 'block';
+      }
+    });
+
+    $('feedback-send-button').on('click', function () {
+      var account;
+      $('feedback-account').children.each(function (option) {
+        if (option.selected) {
+          account = option.account;
+          return false;
+        }
+      });
+      console.log(account.name);
+
+      var body = $('feedback-body').value;
+      showThrobber();
+      gmail.send(account, 'banga.shrey+gmext@gmail.com', '', '',
+        'Extension Feedback', body, function () {
+          analytics.feedbackSend();
+          hideThrobber();
+          $('feedback').style.display = 'none';
+          $('inboxes').style.display = 'block';
+        }, function () {
+          analytics.feedbackFail();
+          hideThrobber();
+          console.error('Feedback sending failed');
+        });
+    });
+
+    $('donate-button').on('click', function () {
+      analytics.donateClick();
+      openTab('https://www.paypal.com/cgi-bin/webscr?cmd=_donations' +
+        '&business=323R63UN8G5GS&lc=US&currency_code=USD' +
+        '&item_name=Google%20Mail%20Multi-Account%20Checker' +
+        '&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted');
+    });
+
+    $('rate-button').on('click', function () {
+      analytics.rateClick();
+      openTab('https://chrome.google.com/webstore/detail/' +
+        'google-mail-multi-account/mcpnehokodklgijkcakcfmccgpanipfp/reviews');
+    });
+
+    $('options-link').on('click', function () {
       analytics.optionsClick();
       openTab('options.html');
-    };
+    });
 
-    $('multibar-close').onclick = function () {
+    $('multibar-close').on('click', function () {
       analytics.multibarClose();
       hideMultiBar(true);
-    };
+    });
   }
 
   function getMessageID(link) {
@@ -221,10 +283,10 @@ var popup = function () {
       }));
     }
     b.append(text);
-    b.onclick = function (e) {
+    b.on('click', function (e) {
       e.cancelBubble = true;
       onclick();
-    };
+    });
     return b;
   }
 
@@ -633,7 +695,7 @@ var popup = function () {
         .append($.make('.summary').text(email.summary));
       mailPreview.mailLink = email.link;
       mailPreview.account = account;
-      mailPreview.onclick = onPreviewClick;
+      mailPreview.on('click', onPreviewClick);
       inboxPreview.append(mailPreview);
 
       mailSelecter.mailPreview = mailPreview;
