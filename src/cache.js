@@ -2,7 +2,7 @@
 var cache = function () {
   'use strict';
 
-  var cache_ = {}, loads = 0, hits = 0, misses = 0;
+  var cache = {}, loads = 0, hits = 0, misses = 0;
 
   function _getMessageID(link) {
     var msgID = link.match(/message_id=([\w]*)/);
@@ -12,7 +12,7 @@ var cache = function () {
   }
 
   function _updateEmailMessages(account, msgID, onSuccess, onError) {
-    var cachedEmails = cache_[account.name].emails;
+    var cachedEmails = cache[account.name].emails;
 
     analytics.cacheUpdate(gmail.getInboxUrl(account));
 
@@ -31,63 +31,53 @@ var cache = function () {
     );
   }
 
+  function getNodeValue(root, selector, alt) {
+    try {
+      return root.querySelector(selector).textContent;
+    } catch (e) {
+      return alt;
+    }
+  }
+
   function loadEmails(account, onSuccess, onError) {
     function parseInboxData(xmlDoc) {
-      var fullCountSet = xmlDoc.evaluate('/gmail:feed/gmail:fullcount',
-        xmlDoc, gmail.NSResolver, XPathResult.ANY_TYPE, null);
-      var fullCountNode = fullCountSet.iterateNext();
+      var fullCountNode = xmlDoc.querySelector('fullcount');
 
       if (fullCountNode) {
-        var titleSet = xmlDoc.evaluate('/gmail:feed/gmail:title',
-          xmlDoc, gmail.NSResolver, XPathResult.ANY_TYPE, null);
-        var titleNode = titleSet.iterateNext();
+        // TODO: Update account's url
+
+        var titleNode = xmlDoc.querySelector('title');
 
         if (titleNode) {
           var name = titleNode.textContent;
           var nameHdr = 'Gmail - Inbox for ';
           name = name.substr(nameHdr.length);
-
-          var entrySet = xmlDoc.evaluate('/gmail:feed/gmail:entry',
-            xmlDoc, gmail.NSResolver, XPathResult.ANY_TYPE, null);
-          var entryNode = entrySet.iterateNext();
-
           account.name = name;
 
-          if (!(name in cache_)) {
-            cache_[name] = { 'emails': {} };
+          if (!(name in cache)) {
+            cache[name] = { 'emails': {} };
           }
+          cache[name].name = name;
+          cache[name].unreadCount = fullCountNode.textContent;
 
-          cache_[name].name = name;
-          cache_[name].unreadCount = fullCountNode.textContent;
-
-          var cachedEmails = cache_[name].emails;
+          var entryNodes = xmlDoc.querySelectorAll('entry');
+          var cachedEmails = cache[name].emails;
           var newEmails = {};
 
-          while (entryNode) {
-            var modified =
-              entryNode.getElementsByTagName('modified')[0].textContent;
-            var subject = 
-              entryNode.getElementsByTagName('title')[0].textContent;
-            var summary = 
-              entryNode.getElementsByTagName('summary')[0].textContent;
-            var author = 
-              entryNode.getElementsByTagName('author')[0]
-              .getElementsByTagName('name')[0].textContent;
-            var link =
-              entryNode.getElementsByTagName('link')[0].getAttribute('href');
-            var id = _getMessageID(link);
+          entryNodes.each(function (entryNode) {
+            var newEmail = {
+              modified: getNodeValue(entryNode, 'modified', ''),
+              subject: getNodeValue(entryNode, 'title', ''),
+              summary: getNodeValue(entryNode, 'summary', ''),
+              author: getNodeValue(entryNode, 'author name', '')
+            };
 
-            newEmails[id] = {
-                'modified': modified,
-                'subject': subject,
-                'summary': summary,
-                'author': author,
-                'link': link,
-                'id': id
-              };
+            var link = entryNode.querySelector('link');
+            newEmail.link = (link ? link.getAttribute('href') : '');
+            var id = _getMessageID(newEmail.link);
 
-            entryNode = entrySet.iterateNext();
-          }
+            newEmails[id] = newEmail;
+          });
 
           // Update existing cached emails
           cachedEmails.each(function (cachedEmail, id) {
@@ -110,7 +100,7 @@ var cache = function () {
             }
           });
 
-          return cache_[name];
+          return cache[name];
         }
       }
       return null;
@@ -122,26 +112,28 @@ var cache = function () {
   }
 
   function getEmailMessages(account, msgID, onSuccess, onError) {
-    if (!(account.name in cache_)) {
+    if (!(account.name in cache)) {
       console.log('Account ' + account.name + ' not found in cache. Loading');
       ++misses;
       loadEmails(account,
-          getEmailMessages.bind(account, msgID, onSuccess, onError),
+          getEmailMessages.bind(null, account, msgID, onSuccess, onError),
           onError);
       return;
     }
 
-    if (!(msgID in cache_[account.name].emails)) {
-      console.log('Message ' + msgID + ' not found in cache_. Updating'); 
-      analytics.cacheMiss();
-      return _updateEmailMessages(account, msgID, onSuccess, onError);
-    } else {
-      console.log('Found message in cache_. Calling ' + 
-          onSuccess.name + ' with ' + account.name + ': ');
+    var emails = cache[account.name].emails;
+
+    if (msgID in emails && 'messages' in emails[msgID]) {
+      console.log('Found email messages in cache. Calling ' + 
+          onSuccess.name + ' with ' + account.name);
       ++hits;
       analytics.cacheHit();
-      onSuccess(cache_[account.name].emails[msgID].messages);
+      onSuccess(emails[msgID].messages);
       return null;
+    } else {
+      console.log('Messages for ' + msgID + ' not found in cache. Updating'); 
+      analytics.cacheMiss();
+      return _updateEmailMessages(account, msgID, onSuccess, onError);
     }
   }
 
@@ -150,10 +142,10 @@ var cache = function () {
     loadEmails: loadEmails,
     getEmailMessages: getEmailMessages,
     cache: function () {
-      return cache_;
+      return cache;
     },
     clear: function () {
-      cache_ = {};
+      cache = {};
     },
     stats: function () {
       return {

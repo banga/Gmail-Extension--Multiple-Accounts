@@ -160,9 +160,7 @@
 
   function getAccountTitle(account) {
     function parseTitle(xmlDoc) {
-      var titleSet = xmlDoc.evaluate('/gmail:feed/gmail:title',
-          xmlDoc, gmail.NSResolver, XPathResult.ANY_TYPE, null);
-      var titleNode = titleSet.iterateNext();
+      var titleNode = xmlDoc.querySelector('title');
       if (titleNode) {
         var title = titleNode.textContent;
         var prefix = 'Inbox for ';
@@ -174,8 +172,8 @@
         return null;
       }
     }
-
-    gmail.parseFeed(account, parseTitle, updateTitle); 
+    gmail.updateAccountUrl(account,
+        gmail.parseFeed.bind(gmail, account, parseTitle, updateTitle)); 
   }
 
   function init() {

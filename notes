@@ -1,3 +1,40 @@
+function ajax(url, method, params, headers) {
+  var xhr;
+
+  try {
+    xhr = new XMLHttpRequest();
+
+    xhr.onreadystatechange = function () {
+      if (this.readyState == 4) {
+        console.log('Status ' + this.status);
+        //console.log(this.response);
+      }
+    };
+
+    xhr.onerror = function (e) {
+      console.error(e);
+    };
+    
+    xhr.open(method || 'GET', url, true);
+
+    if (headers) {
+      headers.each(function (header, key) {
+        xhr.setRequestHeader(key, header);
+      });
+    }
+
+    xhr.send(params);
+  } catch (e) {
+    console.error(e);
+  }
+
+  return xhr;
+}
+ajax('https://mail.google.com/a/cs.unc.edu/u/0/')
+
+-----------------------
+
+
 
 https://mail.google.com/mail/u/0/h/ymts0gajy6aq/?&v=b&fv=b&cpt=c&at=AF6bupM-wmLVbDy8fSwaTVkmeLBMqZYufA&pv=tl&cs=c
 

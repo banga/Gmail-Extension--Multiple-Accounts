@@ -16,7 +16,7 @@ var popup = function () {
     makeMultiBar();
     makeThrobber();
 
-    accountInfo = JSON.parse(localStorage.accountInfo);
+    accountInfo = backgroundPage.bg.accountInfo();
 
     var onInboxUrlClick = function () {
       analytics.inboxUrlClick(gmail.getInboxUrl(this.account));
@@ -333,7 +333,7 @@ var popup = function () {
       .append($.make('.message-header')
         .on('click', onMessageHeaderClick)
         .append($.make('.message-from').append(message.from))
-        .append($.make('.message-summary').html(message.summary))
+        .append($.make('.message-summary').html($.HTMLDecode(message.summary)))
         .append($.make('.message-date', {'title': message.date})
           .text($.getHumanDate(message.date))))
       .append($.make('.message-contents')
@@ -461,11 +461,13 @@ var popup = function () {
         selectedMail = mailPreview;
 
         $.startTimer('mail-show');
-      },
-      function () {
+      }, function () {
         analytics.previewFail('', $.stopTimer('mail-get'));
+        hideThrobber();
+
         mailPreview.className = 'preview-row';
         selectedMail = null;
+        console.error('Preview failed');
       }
     );
 

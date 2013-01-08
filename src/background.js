@@ -78,7 +78,7 @@ var bg = function () {
       accounts.each(function (account) {
         account.requestFailureCount = 0;
         account.isLoggedOut = true;
-        startRequest(account);
+        gmail.updateAccountUrl(account, startRequest.bind(null, account));
       });
     });
   }
@@ -241,7 +241,10 @@ var bg = function () {
   document.addEventListener('DOMContentLoaded', init, false);
 
   return {
-    init: init
+    init: init,
+    accountInfo: function () {
+      return accountInfo;
+    }
   };
 } ();
 

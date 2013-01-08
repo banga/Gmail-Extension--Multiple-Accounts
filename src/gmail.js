@@ -5,12 +5,6 @@ var gmail = function () {
   var instanceId = 'gmc' + parseInt(Date.now() * Math.random(), 10);
   var requestTimeout = 1000 * 2;  // 2 seconds
 
-  function NSResolver(prefix) {
-    if (prefix == 'gmail') {
-      return 'http://purl.org/atom/ns#';
-    }
-  }
-
   function getGmailUrl(account) {
     var url = 'https://mail.google.com/';
     if (account && account.domain)
@@ -21,7 +15,8 @@ var gmail = function () {
   }
 
   function getAccountUrl(account) {
-    return getGmailUrl(account) + 'u/' + account.number + '/';
+    return account.url;
+    //return getGmailUrl(account) + 'u/' + account.number + '/';
   }
 
   function getInboxUrl(account) {
@@ -31,7 +26,7 @@ var gmail = function () {
   function getFeedUrl(account) {
     // 'zx' is a Gmail query parameter that is expected to contain a random
     // string and may be ignored/stripped.
-    return getAccountUrl(account) + 'feed/atom?zx=' +
+    return getAccountUrl(account) + 'feed/atom/?zx=' +
       encodeURIComponent(instanceId);
   }
 
@@ -147,7 +142,7 @@ var gmail = function () {
         if (this.readyState == 4) {
           if (this.status == 200) {
             if (onSuccess) {
-              onSuccess(this.responseText);
+              onSuccess(this.responseText, this);
             }
           } else if (this.status == 401) {
             console.error('Authentication required');
@@ -183,6 +178,22 @@ var gmail = function () {
     }
 
     return xhr;
+  }
+
+  function updateAccountUrl(account, onFinish) {
+    account.url = getGmailUrl(account) + 'u/' + account.number + '/';
+    var xhr = doAjaxRequest(account.url, function () {
+      var doc = $.make('document').html(xhr.response);
+      var meta = doc.querySelector('meta[name="application-url"]');
+      if (meta) {
+        account.url = meta.getAttribute('content') + '/';
+        console.log('Url updated:');
+        console.dir(account);
+      }
+      onFinish();
+    }, function () {
+      onFinish();
+    });
   }
 
   function doGmailAction(action, account, msgID, onSuccess, onError) {
@@ -303,9 +314,10 @@ var gmail = function () {
   function fetch(account, msgID, onSuccess, onError) {
     analytics.gmailFetch('Started');
     var mailURL = getAccountUrl(account);
-    var url = getHTMLModeUrl(account) + '?v=pt&th=' + msgID;
+    var url = getHTMLModeUrl(account) + '?&v=pt&th=' + msgID;
 
     return doAjaxRequest(url, function (responseText) {
+      console.log(responseText);
       var div = $.make('div').html(responseText);
       var messageTables = div.querySelectorAll('.message');
 
@@ -318,8 +330,8 @@ var gmail = function () {
         onSuccess(messages);
       } else {
         analytics.gmailFetch('ParseFailed');
-        onSuccess('<p><i>Could not parse this e-mail.' + 
-          'Please use the <b>Open in Gmail</b> button below.</i></p>');
+        onError(arguments);
+        console.error('Parse failed');
       }
     }, function () {
       analytics.gmailFetch('Failed');
@@ -333,7 +345,7 @@ var gmail = function () {
     getInboxUrl: getInboxUrl,
     isGmailUrl: isGmailUrl,
     isAccountUrl: isAccountUrl,
-    NSResolver: NSResolver,
+    updateAccountUrl: updateAccountUrl,
     parseFeed: parseFeed,
 
     archive: doGmailAction.bind(this, 'arch'),
