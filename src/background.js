@@ -1,3 +1,5 @@
+var accountInfo = {mail: [{number: 0}]};
+
 var bg = function () {
   'use strict';
   var animationFrames = 36;
@@ -10,7 +12,6 @@ var bg = function () {
   var rotation = 0;
   var loadingAnimation = new LoadingAnimation();
   // User data
-  var accountInfo = {mail: [{number: 0}]};
 
   // A 'loading' animation displayed while we wait for the first response from
   // Gmail. This animates the badge text with a dot that cycles from left to
@@ -241,10 +242,7 @@ var bg = function () {
   document.addEventListener('DOMContentLoaded', init, false);
 
   return {
-    init: init,
-    accountInfo: function () {
-      return accountInfo;
-    }
+    init: init
   };
 } ();
 

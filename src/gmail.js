@@ -15,6 +15,11 @@ var gmail = function () {
   }
 
   function getAccountUrl(account) {
+    if (!account.url) {
+      console.error('Account doesn\'t have a url:');
+      console.dir(account);
+      return getGmailUrl(account) + 'u/' + account.number + '/';
+    }
     return account.url;
     //return getGmailUrl(account) + 'u/' + account.number + '/';
   }
@@ -115,6 +120,7 @@ var gmail = function () {
 
   function getAccountAt(account, onSuccess) {
     var url = getHTMLModeUrl(account);// + '?ui=html&zy=c';
+    console.log('getAccountAt: ' + url);
     var xhr = new XMLHttpRequest();
     xhr.onreadystatechange = function () {
       if (this.readyState == 4 && this.status == 200) {
@@ -182,13 +188,13 @@ var gmail = function () {
 
   function updateAccountUrl(account, onFinish) {
     account.url = getGmailUrl(account) + 'u/' + account.number + '/';
+    console.log('Updating url for ' + account.url);
     var xhr = doAjaxRequest(account.url, function () {
       var doc = $.make('document').html(xhr.response);
       var meta = doc.querySelector('meta[name="application-url"]');
       if (meta) {
         account.url = meta.getAttribute('content') + '/';
-        console.log('Url updated:');
-        console.dir(account);
+        console.log('url changed to ' + account.url);
       }
       onFinish();
     }, function () {
@@ -317,7 +323,6 @@ var gmail = function () {
     var url = getHTMLModeUrl(account) + '?&v=pt&th=' + msgID;
 
     return doAjaxRequest(url, function (responseText) {
-      console.log(responseText);
       var div = $.make('div').html(responseText);
       var messageTables = div.querySelectorAll('.message');
 

@@ -3,7 +3,7 @@
  */
 Object.prototype.each = function (func) {
   'use strict';
-  if (this.length) {
+  if ('length' in this) {
     for (var i = 0; i < this.length; ++i) {
       if (func(this[i], i, this[i]) === false)
         break;

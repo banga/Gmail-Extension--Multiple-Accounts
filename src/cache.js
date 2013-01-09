@@ -64,20 +64,22 @@ var cache = function () {
           var cachedEmails = cache[name].emails;
           var newEmails = {};
 
-          entryNodes.each(function (entryNode) {
-            var newEmail = {
-              modified: getNodeValue(entryNode, 'modified', ''),
-              subject: getNodeValue(entryNode, 'title', ''),
-              summary: getNodeValue(entryNode, 'summary', ''),
-              author: getNodeValue(entryNode, 'author name', '')
-            };
+          if (entryNodes) {
+            entryNodes.each(function (entryNode) {
+              var newEmail = {
+                modified: getNodeValue(entryNode, 'modified', ''),
+                subject: getNodeValue(entryNode, 'title', ''),
+                summary: getNodeValue(entryNode, 'summary', ''),
+                author: getNodeValue(entryNode, 'author name', '')
+              };
 
-            var link = entryNode.querySelector('link');
-            newEmail.link = (link ? link.getAttribute('href') : '');
-            var id = _getMessageID(newEmail.link);
+              var link = entryNode.querySelector('link');
+              newEmail.link = (link ? link.getAttribute('href') : '');
+              var id = _getMessageID(newEmail.link);
 
-            newEmails[id] = newEmail;
-          });
+              newEmails[id] = newEmail;
+            });
+          }
 
           // Update existing cached emails
           cachedEmails.each(function (cachedEmail, id) {

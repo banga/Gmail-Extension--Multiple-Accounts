@@ -1,6 +1,7 @@
 var backgroundPage = chrome.extension.getBackgroundPage();
 var cache = backgroundPage.cache;
 var analytics = backgroundPage.analytics;
+var accountInfo = backgroundPage.accountInfo;
 
 var popup = function () {
   'use strict';
@@ -9,14 +10,11 @@ var popup = function () {
       xhrMsgBody = null,
       throbberTimer = 0,
       throbberElem,
-      multibarElem,
-      accountInfo;
+      multibarElem;
 
   function init() {
     makeMultiBar();
     makeThrobber();
-
-    accountInfo = backgroundPage.bg.accountInfo();
 
     var onInboxUrlClick = function () {
       analytics.inboxUrlClick(gmail.getInboxUrl(this.account));
