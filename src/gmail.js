@@ -205,7 +205,7 @@ var gmail = function () {
   function doGmailAction(action, account, msgID, onSuccess, onError) {
     if (!account.at) {
       getAccountAt(account, function () {
-        doGmailAction(account, msgID, action, onSuccess, onError);
+        doGmailAction(action, account, msgID, onSuccess, onError);
       });
       return;
     }

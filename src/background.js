@@ -154,10 +154,10 @@ var bg = function () {
   }
 
   function updateUnreadCount(account, count) {
-    if (account.unreadCount != count) {
+    //if (account.unreadCount != count) {
       account.unreadCount = count;
       animateFlip();
-    }
+    //}
   }
 
   chrome.extension.onRequest.addListener(function (request) {

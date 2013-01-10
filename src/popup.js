@@ -500,10 +500,9 @@ var popup = function () {
     var neighbor = mailPreview.previousElementSibling ||
       mailPreview.nextElementSibling || mailPreview.parentElement;
 
-    var mailRow = mailPreview.parentElement;
     var mailSelect = mailPreview.previousSibling;
-    mailRow.removeChild(mailSelect);
-    mailRow.removeChild(mailPreview);
+    mailSelect.parentElement.removeChild(mailSelect);
+    mailPreview.parentElement.removeChild(mailPreview);
     selectedMail = null;
 
     neighbor.scrollIntoViewIfNeeded();
@@ -662,6 +661,8 @@ var popup = function () {
     var name = data.name;
     var count = data.unreadCount;
     var emails = data.emails;
+
+    console.log(data);
 
     account.name = name;
     account.unreadCount = count;
