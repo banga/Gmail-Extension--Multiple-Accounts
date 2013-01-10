@@ -389,12 +389,12 @@ pre {
   border-radius: 4px;
   box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 2px inset; 
   width: 97%;
+  font-family: sans-serif;
 }
 textarea {
   border: #BBB 1px solid;
   background-color: #FAFAFA;
   font-size: 1em;
-  font-family: sans-serif;
   padding: 8px;
   -webkit-transition: all 0.2s ease-in-out;
 }
