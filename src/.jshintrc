@@ -10,6 +10,10 @@
 
   "predef": [
     "$",
+    "Account",
+    "Conversation",
+    "Email",
+    "EmailView",
     "analytics",
     "chrome",
     "cache",

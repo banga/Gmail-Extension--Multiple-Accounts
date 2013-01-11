@@ -1,17 +1,18 @@
 /*
  * Object extensions
  */
-Object.prototype.each = function (func) {
+Object.prototype.each = function (func, thisObj) {
   'use strict';
+  thisObj = thisObj || this;
   if ('length' in this) {
     for (var i = 0; i < this.length; ++i) {
-      if (func(this[i], i, this[i]) === false)
+      if (func.call(thisObj, this[i], i, this[i]) === false)
         break;
     }
   } else {
     for (var attr in this) {
       if (this.hasOwnProperty(attr)) {
-        if (func(this[attr], attr, this[attr]) === false)
+        if (func.call(thisObj, this[attr], attr, this[attr]) === false)
           break;
       }
     }
@@ -67,6 +68,16 @@ Element.prototype.text = function (str) {
   return this;
 };
 
+Element.prototype.attr = function (name, value) {
+  'use strict';
+
+  if (value === undefined)
+    return this.getAttribute(name);
+
+  this.setAttribute(name, value);
+
+  return this;
+};
 
 /*
  * Utility object
@@ -74,6 +85,9 @@ Element.prototype.text = function (str) {
 var $ = (function (document) {
   'use strict';
 
+  /********************
+   * DOM manipulation *
+   ********************/
   var U = function (id, context) {
     context = context || document;
     return context.getElementById(id);
@@ -87,7 +101,7 @@ var $ = (function (document) {
     for (; i < str.length; ++i) {
       if (/#|\./.test(str[i])) {
         if (attr) {
-          elem.setAttribute(attr, str.slice(prev, i));
+          elem.attr(attr, str.slice(prev, i));
         } else {
           elem = document.createElement(i === 0 ?
             'div' : str.slice(prev, i));
@@ -104,7 +118,7 @@ var $ = (function (document) {
 
     if (attrs) {
       attrs.each(function (value, attr) {
-        elem.setAttribute(attr, value);
+        elem.attr(attr, value);
       });
     }
 
@@ -117,6 +131,9 @@ var $ = (function (document) {
     return elem;
   };
   
+  /***********
+   * Parsing *
+   ***********/
   U.HTMLEncode = function (str) {
     var div = this.make('div');
     div.innerText = str;
@@ -132,24 +149,21 @@ var $ = (function (document) {
   U.extractContacts = function (str) {
     // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
     var contacts = {};
-    var items = str.split(':');
-    if (items.length > 1) {
-      contacts.prefix = items[0];
-      items = items[1].split(',');
-    } else {
-      items = items[0].split(',');
+    var match = /([^:]*):(.*)/.exec(str);
+    if (match) {
+      contacts.prefix = match[1];
+      str = match[2];
     }
 
+    var reContact = /([^<>]*)(<[^>]*>)?,?/g;
     contacts.items = [];
-    for (var i = 0; i < items.length; ++i) {
-      var item = items[i];
-      var pos = item.search(/<.*>/);
-      if (pos === -1) {
-        contacts.items.push([item.trim(), item.trim()]);
-      } else {
-        contacts.items.push([item.substr(0, pos).trim(),
-            item.substr(pos).trim()]);
-      }
+    match = reContact.exec(str);
+    while (match.index < str.length) {
+      contacts.items.push([
+          match[1].trim(),
+          match[2] || match[1].trim()
+        ]);
+      match = reContact.exec(str);
     }
 
     return contacts;
@@ -202,6 +216,9 @@ var $ = (function (document) {
     localStorage.accountInfo = JSON.stringify(info);
   };
 
+  /**********
+   * TIMERS *
+   **********/
   var timers = {};
 
   U.timers = function () {
@@ -220,6 +237,103 @@ var $ = (function (document) {
       return new Date().getTime() - startTime;
     }
     return 0;
+  };
+
+  /********
+   * AJAX *
+   *******/
+  U.ajax = function (args) {
+    var xhr;
+
+    try {
+      xhr = new XMLHttpRequest();
+
+      xhr.onreadystatechange = function () {
+        if (this.readyState == 4) {
+          if (this.status == 200) {
+            if (args.onSuccess) {
+              args.onSuccess(this);
+            }
+          } else {
+            if (args.onError) {
+              args.onError(this);
+            }
+          }
+        }
+      };
+
+      xhr.onerror = function (e) {
+        console.error(e);
+        if (args.onError)
+          args.onError(this, e);
+      };
+      
+      xhr.open(args.method || 'GET', args.url, true);
+
+      if (args.headers) {
+        args.headers.each(function (header, key) {
+          xhr.setRequestHeader(key, header);
+        });
+      }
+
+      xhr.send(args.payload);
+    } catch (e) {
+      console.error(e);
+      if (args.onError)
+        args.onError();
+    }
+
+    return xhr;
+  };
+
+  U.get = U.ajax; 
+
+  U.post = function (args) {
+    args.method = 'POST';
+    return U.ajax(args);
+  };
+
+
+  /*****************
+   * Event pub-sub *
+   ****************/
+  U.addEventHandling = function (cls, eventNames) {
+    cls.prototype.publish = function (eventName, args) {
+      if (this._listeners) {
+        var that = this;
+        this._eventArgs[eventName].push(args);
+        this._listeners[eventName].each(function (listener) {
+          listener.call(that, args);
+        });
+      }
+    };
+
+    cls.prototype.subscribe = function (eventName, listener) {
+      if (eventNames.indexOf(eventName) == -1) {
+        console.error('Event ' + eventName +
+            ' not in published list for ' + cls.name);
+        console.log(eventNames);
+        return;
+      }
+
+      if (!this._listeners) {
+        var listeners = {};
+        var eventArgs = [];
+        eventNames.each(function (name) {
+          listeners[name] = [];
+          eventArgs[name] = [];
+        });
+        this._listeners = listeners;
+        this._eventArgs = eventArgs;
+      }
+
+      this._listeners[eventName].push(listener);
+      var that = this;
+      this._eventArgs[eventName].each(function (args) {
+        listener.call(that, args);
+      });
+      return this;
+    };
   };
 
   return U;

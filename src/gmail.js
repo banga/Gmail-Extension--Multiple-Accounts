@@ -3,7 +3,7 @@ var gmail = function () {
   'use strict';
 
   var instanceId = 'gmc' + parseInt(Date.now() * Math.random(), 10);
-  var requestTimeout = 1000 * 2;  // 2 seconds
+  var requestTimeout = 1000 * 5;
 
   function getGmailUrl(account) {
     var url = 'https://mail.google.com/';
@@ -57,9 +57,22 @@ var gmail = function () {
   }
 
   function parseFeed(account, xmlHandler, onSuccess, onError) {
-    var xhr = new XMLHttpRequest();
+    var xhr = $.get({
+      url: getFeedUrl(account),
+      onSuccess: function (xhr) {
+        var data = xmlHandler(xhr.responseXML);
+        if (data) {
+          handleSuccess(data);
+        } else {
+          handleError();
+        }
+      },
+      onError: handleError 
+    });
+
+    var invokedErrorCallback = false;
     var abortTimerId = window.setTimeout(function () {
-      xhr.abort();  // synchronously calls onreadystatechange
+      xhr.abort();
     }, requestTimeout);
 
     function handleSuccess(data) {
@@ -69,7 +82,6 @@ var gmail = function () {
         onSuccess(account, data);
     }
 
-    var invokedErrorCallback = false;
     function handleError() {
       ++account.requestFailureCount;
       window.clearTimeout(abortTimerId);
@@ -77,128 +89,42 @@ var gmail = function () {
         onError(account);
       invokedErrorCallback = true;
     }
-
-    try {
-      xhr.onreadystatechange = function () {
-        if (xhr.readyState != 4)
-          return;
-
-        if (xhr.responseXML) {
-          var data = xmlHandler(xhr.responseXML);
-
-          if (data) {
-            handleSuccess(data);
-            return;
-          } else {
-            console.error('Empty XHR response');
-          }
-        }
-
-        // Authorization required
-        if (xhr.status == 401)
-          console.error('Authorization required');
-
-        handleError();
-      };
-
-      xhr.onerror = function () {
-        handleError();
-      };
-
-      if (account.user && account.pass) {
-        xhr.open('GET', getFeedUrl(account), true,
-            account.user, account.pass);
-      } else {
-        xhr.open('GET', getFeedUrl(account), true);
-      }
-      xhr.send(null);
-    } catch (e) {
-      console.error(e);
-      handleError();
-    }
   }
 
   function getAccountAt(account, onSuccess) {
     var url = getHTMLModeUrl(account);// + '?ui=html&zy=c';
     console.log('getAccountAt: ' + url);
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function () {
-      if (this.readyState == 4 && this.status == 200) {
-        var m = this.responseText.match(/\at=([^"]+)/);
+
+    $.get({
+      url: url,
+      onSuccess: function (xhr) {
+        var m = xhr.responseText.match(/\at=([^"]+)/);
         if (m && m.length > 0) {
           account.at = m[1];
           onSuccess();
         }
+      },
+      onError: function (xhr, error) {
+        console.error(error);
       }
-    };
-    xhr.onerror = function (error) {
-      console.error('getAccountAt error: ' + error);
-    };
-    xhr.open('GET', url, true);
-    xhr.send(null);
-  }
-
-  function doAjaxRequest(url, onSuccess, onError, params, headers) {
-    var xhr;
-
-    try {
-      xhr = new XMLHttpRequest();
-
-      xhr.onreadystatechange = function () {
-        if (this.readyState == 4) {
-          if (this.status == 200) {
-            if (onSuccess) {
-              onSuccess(this.responseText, this);
-            }
-          } else if (this.status == 401) {
-            console.error('Authentication required');
-          } else {
-            console.error('doAjaxRequest: response ' + this.status);
-            console.log(url);
-            console.log(onSuccess.name);
-            if (onError)
-              onError();
-          }
-        }
-      };
-
-      xhr.onerror = function (e) {
-        console.error('doAjaxRequest: ' + e);
-        if (onError)
-          onError();
-      };
-      
-      xhr.open('POST', url, true);
-
-      if (headers) {
-        headers.each(function (header, key) {
-          xhr.setRequestHeader(key, header);
-        });
-      }
-
-      xhr.send(params);
-    } catch (e) {
-      console.error('doAjaxRequest exception: ' + e);
-      if (onError)
-        onError();
-    }
-
-    return xhr;
+    });
   }
 
   function updateAccountUrl(account, onFinish) {
     account.url = getGmailUrl(account) + 'u/' + account.number + '/';
     console.log('Updating url for ' + account.url);
-    var xhr = doAjaxRequest(account.url, function () {
-      var doc = $.make('document').html(xhr.response);
-      var meta = doc.querySelector('meta[name="application-url"]');
-      if (meta) {
-        account.url = meta.getAttribute('content') + '/';
-        console.log('url changed to ' + account.url);
-      }
-      onFinish();
-    }, function () {
-      onFinish();
+    $.post({
+      url: account.url,
+      onSuccess: function (xhr) {
+        var doc = $.make('document').html(xhr.response);
+        var meta = doc.querySelector('meta[name="application-url"]');
+        if (meta) {
+          account.url = meta.getAttribute('content') + '/';
+          console.log('url changed to ' + account.url);
+        }
+        onFinish();
+      },
+      onError: onFinish
     });
   }
 
@@ -213,8 +139,13 @@ var gmail = function () {
     var url = getHTMLModeUrl(account);
     var params = 't=' + msgID + '&at=' + account.at + '&act=' + action;
 
-    return doAjaxRequest(url, onSuccess, onError, params,
-        {'Content-type': 'application/x-www-form-urlencoded'});
+    return $.post({
+      url: url,
+      onSuccess: onSuccess,
+      onError: onError,
+      params: params,
+      headers: {'Content-type': 'application/x-www-form-urlencoded'}
+    });
   }
 
   function doGmailReply(account, msgID, body, replyAll, onSuccess, onError) {
@@ -238,7 +169,12 @@ var gmail = function () {
     params.append('haot', 'qt');
     params.append('qrr', replyAll ? 'a' : 'o');
 
-    return doAjaxRequest(url, onSuccess, onError, params);
+    return $.post({
+      url: url,
+      onSuccess: onSuccess,
+      onError: onError,
+      params: params
+    });
   }
 
   function doGmailSend(account, to, cc, bcc, subject, body, onSuccess, onError) {
@@ -265,7 +201,12 @@ var gmail = function () {
     params.append('body', body);
     params.append('nvp_bu_send', 'Send');
     
-    return doAjaxRequest(url, onSuccess, onError, params);
+    return $.post({
+      url: url,
+      onSuccess: onSuccess,
+      onError: onError,
+      params: params
+    });
   }
 
   function makeMessageSummary(message) {
@@ -279,6 +220,7 @@ var gmail = function () {
         i;
 
     var message = {};
+    console.dir(cells);
     var from = $.extractContacts(cells[0].text());
     message.from = '<a class="contact-name" email="' +
       from.items[0][1] + '">' + from.items[0][0] + '</a>';
@@ -322,25 +264,29 @@ var gmail = function () {
     var mailURL = getAccountUrl(account);
     var url = getHTMLModeUrl(account) + '?&v=pt&th=' + msgID;
 
-    return doAjaxRequest(url, function (responseText) {
-      var div = $.make('div').html(responseText);
-      var messageTables = div.querySelectorAll('.message');
+    return $.post({
+      url: url,
+      onSuccess: function (xhr) {
+        var div = $.make('div').html(xhr.responseText);
+        var messageTables = div.querySelectorAll('.message');
 
-      if (messageTables) {
-        var messages = [];
-        for (var i = 0; i < messageTables.length; ++i) {
-          messages.push(makeMessage(messageTables[i], mailURL));
+        if (messageTables) {
+          var messages = [];
+          for (var i = 0; i < messageTables.length; ++i) {
+            messages.push(makeMessage(messageTables[i], mailURL));
+          }
+          analytics.gmailFetch('Parsed', messages.length);
+          onSuccess(messages);
+        } else {
+          analytics.gmailFetch('ParseFailed');
+          onError(arguments);
+          console.error('Parse failed');
         }
-        analytics.gmailFetch('Parsed', messages.length);
-        onSuccess(messages);
-      } else {
-        analytics.gmailFetch('ParseFailed');
+      },
+      onError: function () {
+        analytics.gmailFetch('Failed');
         onError(arguments);
-        console.error('Parse failed');
       }
-    }, function () {
-      analytics.gmailFetch('Failed');
-      onError(arguments);
     });
   }
 
