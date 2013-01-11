@@ -179,8 +179,12 @@ function AccountView(account) {
   'use strict';
 
   this.account = account;
-  this.root = $.make('.account-view');
-  this.header = $.make('.account-header').text('Loading...');
+  this.root = $.make('.account');
+
+  this.header = $.make('.account-header')
+    .append($.make('.account-icon'))
+    .append($.make('.account-link').text('Loading...'));
+
   this.conversations = $.make('.conversation-list');
   this.root.append(this.header).append(this.conversations);
 
@@ -193,7 +197,7 @@ function AccountView(account) {
 AccountView.prototype.init = function () {
   'use strict';
   console.dir(this.account);
-  this.header.text('Inbox for ' + this.account.name);
+  this.header.lastElementChild.text('Inbox for ' + this.account.name);
 };
 
 AccountView.prototype.addConversation = function (conversation) {

@@ -101,7 +101,11 @@ var $ = (function (document) {
     for (; i < str.length; ++i) {
       if (/#|\./.test(str[i])) {
         if (attr) {
-          elem.attr(attr, str.slice(prev, i));
+          if (attr == 'class') {
+            elem.classList.add(str.slice(prev, i)); 
+          } else {
+            elem.attr(attr, str.slice(prev, i));
+          }
         } else {
           elem = document.createElement(i === 0 ?
             'div' : str.slice(prev, i));

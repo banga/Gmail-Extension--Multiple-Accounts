@@ -1,7 +1,7 @@
 function testAccount(domain, number) {
   'use strict';
-  var account = new Account(domain, number)
-  document.body.appendChild(account.view.root);
+  var account = new Account(domain, number);
+  $('inboxes').appendChild(account.view.root);
   return account;
 }
 
@@ -19,9 +19,17 @@ function testGmail() {
 }
 
 function testContacts() {
+  'use strict';
   var str = 'To:"Shrey, Banga" <banga@cs.unc.edu>, Shrey Banga <banga.shrey@gmail.com>, "Banga, Shrey" <sb_4getmenot@yahoo.com>, test-123asd@xyz.co.uk';
 
   console.dir($.extractContacts(str));
 }
 
-testContacts();
+var a1, a2;
+
+document.addEventListener('DOMContentLoaded', function () {
+  'use strict';
+  testContacts();
+  //a1 = testGoogleApps();
+  a2 = testGmail();
+});
