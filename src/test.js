@@ -1,6 +1,6 @@
-function testAccount(domain, number) {
+function testAccount(domain, number, labels) {
   'use strict';
-  var account = new Account(domain, number);
+  var account = new Account(domain, number, labels);
   $('inboxes').appendChild(account.view.root);
   return account;
 }
@@ -12,7 +12,7 @@ function testGoogleApps() {
 
 function testGmail() {
   'use strict';
-  return testAccount('mail', 0)
+  return testAccount('mail', 0, ['', 'Quora', 'Extension Feedback'])
     .subscribe('conversationUpdated', function () {
       console.log.apply(console, arguments);
     });

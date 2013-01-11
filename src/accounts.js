@@ -1,12 +1,16 @@
 /*
  * Account represents a single mail account, such as banga@cs.unc.edu
+ * It can read from multiple feeds, each for a different label
  */ 
-function Account(domain, number) {
+function Account(domain, number, labels) {
   'use strict';
   this.domain = domain || 'mail';
-  this.number = number;
+  this.number = number || 0;
+  this.labels = labels || [''];
   this.url = Account.GMAIL_URL + this.domain + '/u/' +
     this.number + '/';
+
+  this.lastUpdated = {};
   this.conversations = {};
   this.unreadCount = 0;
   this.view = new AccountView(this);
@@ -21,6 +25,7 @@ $.addEventHandling(Account, [
     'initFailed',
     'feedParsed',
     'feedParseFailed',
+    'allFeedsParsed',
     'conversationAdded',
     'conversationDeleted',
     'conversationUpdated',
@@ -47,9 +52,9 @@ Account.prototype.htmlModeURL = function () {
   return this.url + 'h/' + Math.ceil(Math.random() * 1.5e17).toString(26) + '/';
 };
 
-Account.prototype.feedURL = function () {
+Account.prototype.feedURL = function (label) {
   'use strict';
-  return this.url + 'feed/atom/';
+  return this.url + 'feed/atom/' + label;
 };
 
 Account.prototype.init = function () {
@@ -106,21 +111,66 @@ Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
 
 Account.prototype.update = function () {
   'use strict';
-  var onSuccess = this.publish.bind(this, 'feedParsed', this);
-  var onError = this.publish.bind(this, 'feedParseFailed', this);
+  var onError = this.publish.bind(this, 'feedParseFailed', this),
+      that = this,
+      q = [];
+
+  this.labels.each(function (label) {
+    q.push(label);
+    console.log('Label: \'' + label + '\'');
+  });
+
+  processQueue();
+
+  function processQueue() {
+    if (q.length) {
+      that.parseFeed(q.pop(), processQueue, onError);
+    } else {
+      that.unreadCount = 0;
+      // Finished parsing
+      that.conversations.each(function (conversation, id) {
+        if (!conversation.hasLabels()) {
+          that.publish('conversationDeleted', conversation);
+          delete that.conversations[id];
+        } else {
+          conversation.updateIfDirty();
+          ++that.unreadCount;
+        }
+      });
+      that.publish('feedParsed');
+    }
+  }
+};
+
+Account.prototype.parseFeed = function (label, onSuccess, onError) {
+  'use strict';
   var onConversationUpdated = this.publish.bind(this, 'conversationUpdated');
   var onConversationUpdateFailed =
     this.publish.bind(this, 'conversationUpdateFailed');
   var that = this;
 
+  console.log('Parsing feed for \'' + label + '\'');
+
   $.get({
-    url: this.feedURL(),
+    url: this.feedURL(label),
     onSuccess: function (xhr) {
       var xmlDoc = xhr.responseXML;
       var fullCountNode = xmlDoc.querySelector('fullcount');
 
       if (fullCountNode) {
-        that.unreadCount = fullCountNode.textContent;
+        var modifiedNode = xmlDoc.querySelector('modified');
+        if (modifiedNode) {
+          var modified = new Date(modifiedNode.textContent);
+          var lastUpdated = that.lastUpdated[label] || new Date(0);
+          if (modified <= lastUpdated) {
+            // Feed is unmodified
+            console.log('Feed for ' + label + ' not modified');
+            onSuccess();
+            return;
+          }
+          that.lastUpdated[label] = modified;
+        }
+
         var titleNode = xmlDoc.querySelector('title');
 
         if (titleNode) {
@@ -128,42 +178,41 @@ Account.prototype.update = function () {
           that.name = titleNode.textContent.substr(nameHdr.length);
 
           var entryNodes = xmlDoc.querySelectorAll('entry');
-          var newConversations = {};
 
           if (entryNodes) {
+            var msgIDs = {};
             entryNodes.each(function (entryNode, idx) {
               var newConversation = new Conversation(that, entryNode, idx); 
-              newConversations[newConversation.id] = newConversation;
-              newConversation.subscribe('updated', onConversationUpdated);
-              newConversation.subscribe('updateFailed',
-                onConversationUpdateFailed);
+              var msgID = newConversation.id;
+              msgIDs[msgID] = '';
+
+              if (msgID in that.conversations) {
+                // Update existing conversation
+                var conversation = that.conversations[msgID];
+                if (conversation.modified != newConversation.modified) {
+                  conversation.fromFeed(entryNode);
+                  conversation.markDirty();
+                } else {
+                  conversation.addLabel(label);
+                }
+              } else {
+                // New conversation
+                newConversation.addLabel(label);
+                newConversation.subscribe('updated', onConversationUpdated);
+                newConversation.subscribe('updateFailed',
+                  onConversationUpdateFailed);
+                that.conversations[msgID] = newConversation;
+                that.publish('conversationAdded', newConversation);
+              }
+            });
+
+            that.conversations.each(function (conversation, id) {
+              if (!(id in msgIDs)) {
+                // Conversation is not in this label anymore
+                conversation.removeLabel(label);
+              }
             });
           }
-
-          // Update existing conversations which have changed 
-          that.conversations.each(function (conversation, id) {
-            if (id in newConversations) {
-              var newConversation = newConversations[id];
-              if (conversation.modified != newConversation.modified) {
-                console.log(newConversation.subject + '" changed');
-                that.conversations[id] = newConversation;
-                newConversation.update();
-              }
-              conversation.index = newConversation.index;
-            } else {
-              that.publish('conversationDeleted', conversation);
-              delete that.conversations[id];
-            }
-          });
-
-          // Add new conversations
-          newConversations.each(function (newConversation, id) {
-            if (!(id in that.conversations)) {
-              that.conversations[id] = newConversation;
-              that.publish('conversationAdded', newConversation);
-              newConversation.update();
-            }
-          });
 
           onSuccess();
           return;
@@ -185,8 +234,8 @@ function AccountView(account) {
     .append($.make('.account-icon'))
     .append($.make('.account-link').text('Loading...'));
 
-  this.conversations = $.make('.conversation-list');
-  this.root.append(this.header).append(this.conversations);
+  this.conversationList = $.make('.conversation-list');
+  this.root.append(this.header).append(this.conversationList);
 
   this.account.subscribe('feedParsed', this.init.bind(this));
   this.account.subscribe('conversationAdded', this.addConversation.bind(this));
@@ -202,17 +251,23 @@ AccountView.prototype.init = function () {
 
 AccountView.prototype.addConversation = function (conversation) {
   'use strict';
-  console.log('Adding conversation:');
-  console.dir(conversation);
-  var child = this.conversations.firstElementChild;
-  for (var i = 0; i < conversation.index; ++i)
+  console.log('Adding conversation: ' + conversation.subject);
+
+  var modified = new Date(conversation.modified),
+      child = this.conversationList.firstElementChild;
+
+  while (child) {
+    if (modified > new Date(child.conversation.modified)) {
+      break;
+    }
     child = child.nextElementSibling;
-  this.conversations.insertBefore(conversation.view.root, child);
+  }
+
+  this.conversationList.insertBefore(conversation.view.root, child);
 };
 
 AccountView.prototype.deleteConversation = function (conversation) {
   'use strict';
-  console.log('Deleting conversation:');
-  console.dir(conversation);
-  this.conversations.removeChild(conversation.view.root);
+  console.log('Deleting conversation ' + conversation.subject);
+  this.conversationList.removeChild(conversation.view.root);
 };

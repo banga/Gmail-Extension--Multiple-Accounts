@@ -120,7 +120,8 @@ body {
 }
 .contents-collapsed > .conversation-body,
 .contents-collapsed > .conversation-reply,
-.contents-collapsed > .conversation-tools {
+.contents-collapsed > .conversation-tools,
+.contents-collapsed > .labels {
   display: none;
 }
 .contents > .summary {
@@ -175,6 +176,16 @@ body {
   opacity: 0.9;
   display: block;
   min-height: 20px;
+}
+.labels {
+  clear: both;
+}
+.label {
+  font-size: 11px;
+  color: #EEE;
+  background: #AAA;
+  border-radius: 2px;
+  padding: 1px;
 }
 .conversation.busy {
   color: #666;

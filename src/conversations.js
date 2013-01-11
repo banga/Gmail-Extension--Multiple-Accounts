@@ -1,15 +1,41 @@
-function Conversation(account, entryNode, index) {
+function Conversation(account, entryNode) {
   'use strict';
   this.account = account;
   this.fromFeed(entryNode);
-  this.index = index;
   this.view = new ConversationView(this);
+  this.labels = {};
+  this.isDirty = true;
 }
 
 $.addEventHandling(Conversation, [
     'updated',
     'updateFailed'
   ]);
+
+Conversation.prototype.addLabel = function (label) {
+  'use strict';
+  this.labels[label] = '';
+};
+
+Conversation.prototype.removeLabel = function (label) {
+  'use strict';
+  delete this.labels[label];
+};
+
+Conversation.prototype.clearLabels = function () {
+  'use strict';
+  this.labels = {};
+};
+
+Conversation.prototype.hasLabels = function () {
+  'use strict';
+  var hasLabels = false;
+  this.labels.each(function () {
+    hasLabels = true;
+    return false;
+  });
+  return hasLabels;
+};
 
 Conversation.prototype.fromFeed = function (entryNode) {
   'use strict';
@@ -29,8 +55,8 @@ Conversation.prototype.fromFeed = function (entryNode) {
   this.link = (node ? node.getAttribute('href') : '');
 
   var msgID = this.link.match(/message_id=([\w]*)/);
-  if (msgID && msgID.length >= 2)
-    this.id = msgID[1];
+  this.id = msgID[1];
+  console.assert(this.id);
 
   this.emails = [];
 };
@@ -39,7 +65,10 @@ Conversation.prototype.update = function () {
   'use strict';
   console.assert(this.id);
   var that = this;
-  var onSuccess = this.publish.bind(this, 'updated', this);
+  var onSuccess = function () {
+    that.isDirty = false;
+    that.publish('updated', that);
+  };
   var onError = this.publish.bind(this, 'updateFailed', this);
 
   return $.post({
@@ -62,10 +91,22 @@ Conversation.prototype.update = function () {
   });
 };
 
+Conversation.prototype.markDirty = function () {
+  'use strict';
+  this.isDirty = true;
+};
+
+Conversation.prototype.updateIfDirty = function () {
+  'use strict';
+  if (this.isDirty)
+    this.update();
+};
+
 function ConversationView(conversation) {
   'use strict';
   this.conversation = conversation;
   this.root = $.make('.conversation');
+  this.root.conversation = conversation;
 
   this.conversation.subscribe('updated', this.update.bind(this));
 }
@@ -173,10 +214,20 @@ ConversationView.prototype.makeToolbar = function () {
           }, -63, -42));
 };
 
-ConversationView.prototype.update = function () {
+ConversationView.prototype.makeLabels = function () {
   'use strict';
-  this.root.html('');
+  var labelsElem = $.make('.labels');
+  this.conversation.labels.each(function (_, label) {
+    if (label) {
+      labelsElem.append($.make('span.label').text(label));
+      console.log('LABEL = ' + label);
+    }
+  });
+  return labelsElem;
+};
 
+ConversationView.prototype.makeEmailList = function () {
+  'use strict';
   var emailListElem = $.make('.conversation-body');
   var count = this.conversation.emails.length;
   this.conversation.emails.each(function (email, idx) {
@@ -185,12 +236,19 @@ ConversationView.prototype.update = function () {
     emailElem.attr('id', 'email-' + idx);
     emailListElem.append(emailElem);
   });
+  return emailListElem;
+};
+
+ConversationView.prototype.update = function () {
+  'use strict';
+  this.root.html('');
 
   var contents = $.make('.contents-collapsed')
     .append($.make('.subject').text(this.conversation.subject))
     .append($.make('.author').text(this.conversation.author))
     .append($.make('.summary').text(this.conversation.summary))
-    .append(emailListElem)
+    .append(this.makeLabels())
+    .append(this.makeEmailList())
     .append(this.makeReplyControls())
     .append(this.makeToolbar());
 
