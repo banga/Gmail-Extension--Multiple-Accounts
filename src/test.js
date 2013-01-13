@@ -1,7 +1,7 @@
 function testAccount(domain, number, labels) {
   'use strict';
   var account = new Account(domain, number, labels);
-  $('inboxes').appendChild(account.view.root);
+  $('main').appendChild(account.view.root);
   return account;
 }
 

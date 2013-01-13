@@ -27,10 +27,10 @@ Object.prototype.each = function (func, thisObj) {
 /*global Element:true*/
 Element.prototype.append = function (value) {
   'use strict';
-  if (value instanceof Element) {
-    this.appendChild(value);
-  } else {
+  if (typeof value == 'string') {
     this.innerHTML += value;
+  } else {
+    this.appendChild(value);
   }
 
   return this;
@@ -202,24 +202,6 @@ var $ = (function (document) {
     return date.toLocaleDateString();
   };
 
-  U.saveToLocalStorage = function (accountInfo) {
-    var info = {};
-
-    accountInfo.each(function (accounts, domain) {
-      info[domain] = [];
-      accounts.each(function (account, i) {
-        info[domain][i] = {
-          user: account.user,
-          pass: account.pass,
-          domain: domain,
-          number: i
-        };
-      });
-    });
-
-    localStorage.accountInfo = JSON.stringify(info);
-  };
-
   /**********
    * TIMERS *
    **********/
@@ -302,41 +284,55 @@ var $ = (function (document) {
    * Event pub-sub *
    ****************/
   U.addEventHandling = function (cls, eventNames) {
-    cls.prototype.publish = function (eventName, args) {
-      if (this._listeners) {
-        var that = this;
-        this._eventArgs[eventName].push(args);
-        this._listeners[eventName].each(function (listener) {
-          listener.call(that, args);
+    function makeStorageIfNeeded(obj) {
+      if (!obj._listeners) {
+        obj._listeners = {};
+        eventNames.each(function (name) {
+          obj._listeners[name] = [];
         });
       }
+    }
+
+    cls.prototype.publish = function (eventName, args) {
+      makeStorageIfNeeded(this);
+      this._listeners[eventName].each(function (listener) {
+        listener.callback.call(listener.subscriber, args);
+      });
     };
 
-    cls.prototype.subscribe = function (eventName, listener) {
-      if (eventNames.indexOf(eventName) == -1) {
-        console.error('Event ' + eventName +
-            ' not in published list for ' + cls.name);
-        console.log(eventNames);
-        return;
-      }
+    cls.prototype.subscribe = function (eventName, callback, subscriber) {
+      subscriber = subscriber || null;
 
-      if (!this._listeners) {
-        var listeners = {};
-        var eventArgs = [];
-        eventNames.each(function (name) {
-          listeners[name] = [];
-          eventArgs[name] = [];
-        });
-        this._listeners = listeners;
-        this._eventArgs = eventArgs;
-      }
-
-      this._listeners[eventName].push(listener);
-      var that = this;
-      this._eventArgs[eventName].each(function (args) {
-        listener.call(that, args);
+      makeStorageIfNeeded(this);
+      this._listeners[eventName].push({
+        callback: callback,
+        subscriber: subscriber
       });
       return this;
+    };
+
+    cls.prototype.unsubscribe = function (args) {
+      // args - subscriber, callback, eventName
+      if (args.eventName) {
+        var listeners = this._listeners[args.eventName];
+        for (var idx = 0; idx < listeners.length; ++idx) {
+          var listener = listeners[idx];
+          if ((listener.subscriber === args.subscriber) ||
+              listener.callback === args.callback)
+            break;
+        }
+
+        if (idx == listeners.length)
+          return;
+
+        return listeners.splice(idx, 1);
+      } else {
+        var that = this;
+        eventNames.each(function (eventName) {
+          args.eventName = eventName;
+          that.unsubscribe(args);
+        });
+      }
     };
   };
 

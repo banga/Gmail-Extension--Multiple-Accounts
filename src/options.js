@@ -1,179 +1,86 @@
 (function () {
   'use strict';
-
-  var domainNameTextbox;
-  var domainList;
-  var saveButton;
-  var accountInfo = {mail: [{number: 0, domain: 'mail'}]};
-  var credentialList; 
+  var accountInfo = {version: 2, accounts: []},
+      signInWindowID = 0,
+      signInTabID = 0;
 
   init();
 
-  function addDomain(domain) {
-    if (!domain) {
-      domain = domainNameTextbox.value;
-      domainNameTextbox.value = '';
+  function discoverAccounts() {
+    function discoverAccount(accountNumber) {
+      fetchAccountInfo(accountNumber,
+        function (number, title) {
+          console.log(number, title);
+          addAccount(number, title);
+          discoverAccount(number + 1);
+        },
+        function (number) {
+          console.log('Found ' + number + ' accounts');
+          $('discovering-message').style.display = 'none';
+        });
     }
-
-    // Check for collisions
-    if ($('domain-list-item-' + domain))
-      return;
-
-    if (!accountInfo[domain])
-      accountInfo[domain] = [{number: 0, domain: domain}];
-
-    var domainItem = $.make('div', {
-      'class': 'domain-list-item',
-      'id': 'domain-list-item-' + domain
-    }).html('https://mail.google.com/<b>' + domain + '</b>' +
-      '<button>Remove</button>');
-    domainItem.getElementsByTagName('button')[0].on('click',
-        removeDomain.bind(window, domain));
-    domainList.appendChild(domainItem);
-
-    updateDomainCredentialInputs(domain);
-
-    markDirty();
+    discoverAccount(0);
   }
 
-  function removeDomain(domain) {
-    delete accountInfo[domain];
-    domainList.removeChild($('domain-list-item-' + domain));
-    credentialList.removeChild($('credential-input-' + domain));
-    markDirty();
-  }
-
-  function updateNumAccounts(domain) {
-    markDirty();
-
-    var numAccountsTextbox = $('num-accounts-' + domain);
-    var numAccounts = parseInt(numAccountsTextbox.value, 10);
-
-    var accounts = accountInfo[domain];
-    for (var i = accounts.length; i < numAccounts; i++) {
-      accounts[i] = {number: i, domain: domain};
-    }
-    accounts.length = numAccounts;
-
-    updateDomainCredentialInputs(domain);
-  }
-
-  function saveAll() {
-    accountInfo.each(saveDomainCredentialInputs);
-    $.saveToLocalStorage(accountInfo);
-  }
-
-  function saveDomainCredentialInputs(accounts, domain) {
-    var numAccounts = $('num-accounts-' + domain).value;
-    for (var i = 0; i < numAccounts; i++) {
-      accounts[i] = {
-        user: $('user-' + domain + i).value,
-        pass: $('pass-' + domain + i).value,
-        number: i,
-        domain: domain
-      };
-    }
-    accounts.length = numAccounts;
-  }
-
-  function updateAll() {
-    domainList.innerHTML = '';
-    credentialList.innerHTML = '';
-
-    accountInfo.each(function (accounts, domain) {
-      addDomain(domain);
+  function fetchAccountInfo(accountNumber, onSuccess, onError) {
+    var url = 'https://mail.google.com/mail/u/' +
+      accountNumber + '/feed/atom/';
+    $.get({
+      url: url,
+      onSuccess: function (xhr) {
+        var title = xhr.responseXML.querySelector('title').textContent;
+        title = /\S*@\S*/.exec(title)[0];
+        onSuccess(accountNumber, title);
+      },
+      onError: function () {
+        onError(accountNumber);
+      }
     });
   }
 
-  function updateDomainCredentialInputs(domain) {
-    var accounts = accountInfo[domain];
-
-    var container = $('credential-input-' + domain);
-    if (!container) {
-      container = $.make('div', {'id': 'credential-input-' + domain});
-      credentialList.appendChild(container);
-    }
-    container.innerHTML = '';
-
-    var header = $.make('div', {'class': 'section-header'});
-    header.innerHTML = 'Credentials for domain "' + domain + '"';
-    container.appendChild(header);
-
-    var accountsDiv = $.make('div');
-    accountsDiv.innerHTML = 'Number of accounts: ' +
-      '<input type="number" min=1 max=10 id="num-accounts-' +
-      domain + '"' + 'value="' + accounts.length +
-      '" placeholder="Number of accounts" >';
-    container.appendChild(accountsDiv);
-
-    $('num-accounts-' + domain).addEventListener('input',
-      function () {
-        updateNumAccounts(domain);
+  function addAccount(number, title) {
+    var newAccount = accountInfo.accounts.every(
+        function (account) {
+          return (account.number !== number);
+        });
+    if (newAccount) {
+      accountInfo.accounts.push({
+        domain: 'mail',
+        number: number
       });
 
-    for (var i = 0; i < accounts.length; i++) {
-      var account = accounts[i];
-      account.domain = domain;
-
-      var div = $.make('div', {'class': 'credential-box'});
-      header = $.make('div', {
-        'class': 'account-title',
-        'id': 'account-title-' + domain + i
-      });
-      header.innerHTML = 'Account ' + (i + 1);
-      div.appendChild(header);
-
-      getAccountTitle(account);
-
-      var user = $.make('input', {
-        'type': 'text',
-        'id': 'user-' + domain + i,
-        'placeholder': 'Username'
-      });
-      user.oninput = markDirty;
-      div.appendChild(user);
-
-      div.appendChild($.make('br'));
-      
-      var pass = $.make('input', {
-        'id': 'pass-' + domain + i, 
-        'type': 'password',
-        'placeholder': 'Password'
-      });
-      pass.oninput = markDirty;
-      div.appendChild(pass);
-
-      if (account.user) {
-        user.setAttribute('value', account.user);
-        pass.setAttribute('value', account.pass);
-      }
-
-      container.appendChild(div);
+      $('accounts-list').append($.make('p').text(title));
     }
   }
 
-  function updateTitle(account, title) {
-    var div = $('account-title-' + account.domain + account.number);
-    if (div)
-      div.innerText = title;
+  function showSignInWindow() {
+    if (signInWindowID) {
+      chrome.windows.update(signInWindowID, { focused: true });
+    } else {
+      chrome.windows.create({
+        url: 'https://accounts.google.com/AddSession?' +
+        'hl=en&continue=https://mail.google.com/mail/u/0/&service=mail',
+        type: 'popup',
+        width: 900,
+        height: 500,
+        left: (screen.width - 900) / 2,
+        top: (screen.height - 500) / 2
+      }, function (win) {
+        signInWindowID = win.id;
+        signInTabID = win.tabs[0].id;
+      });
+    }
   }
 
-  function getAccountTitle(account) {
-    function parseTitle(xmlDoc) {
-      var titleNode = xmlDoc.querySelector('title');
-      if (titleNode) {
-        var title = titleNode.textContent;
-        var prefix = 'Inbox for ';
-        if (title.indexOf(prefix) >= 0) {
-          title = title.substr(title.indexOf(prefix) + prefix.length);
-        }
-        return title;
-      } else {
-        return null;
-      }
-    }
-    gmail.updateAccountUrl(account,
-        gmail.parseFeed.bind(gmail, account, parseTitle, updateTitle)); 
+  function closeSignInWindow() {
+    chrome.windows.remove(signInWindowID, function () {
+      signInWindowID = signInTabID = 0;
+    });
+  }
+
+  function save() {
+    localStorage.accountInfo = JSON.stringify(accountInfo);
+    chrome.extension.getBackgroundPage().loadAccounts();
   }
 
   function init() {
@@ -181,32 +88,36 @@
       accountInfo = JSON.parse(localStorage.accountInfo);
     }
 
-    $('add-button').on('click', function () { addDomain(null); });
-    $('cancel-button').on('click', init);
-    saveButton = $('save-button').on('click', save);
-    domainList = $('domain-list');
-    credentialList = $('credential-inputs');
-    domainNameTextbox = $('domain-name');
+    accountInfo.accounts.each(function (account) {
+      fetchAccountInfo(account.number, function (number, title) {
+        $('accounts-list').append($.make('p').text(title));
+      }, function () {
+      });
+    });
 
-    updateAll();
-    
-    markClean();
-  }
+    discoverAccounts();
 
-  function save() {
-    saveAll();
-    updateAll();
+    $('add-account').on('click', showSignInWindow);
+    $('save').on('click', save);
 
-    markClean();
+    chrome.tabs.onUpdated.addListener(function (tabID, info) {
+      if (tabID == signInTabID && info.url &&
+        info.url.indexOf(Account.GMAIL_URL) === 0) {
+        var match = /mail\/u\/([0-9]+)/.exec(info.url);
+        fetchAccountInfo(parseInt(match[1], 10),
+          function (number, title) {
+            addAccount(number, title);
+            closeSignInWindow();
+          }, function () {
+            console.error('Couldn\'t parse feed for ' + info.url);
+          });
+      }
+    });
 
-    chrome.extension.getBackgroundPage().bg.init();
-  }
-
-  function markDirty() {
-    saveButton.disabled = false;
-  }
-
-  function markClean() {
-    saveButton.disabled = true;
+    chrome.windows.onRemoved.addListener(function (id) {
+      if (id == signInWindowID) {
+        signInWindowID = signInTabID = 0;
+      }
+    });
   }
 }) ();

@@ -1,17 +1,13 @@
-var accountInfo = {mail: [{number: 0}]};
-
-var bg = function () {
+(function () {
   'use strict';
-  var animationFrames = 36;
-  var animationSpeed = 10; // ms
-  var canvas;
-  var canvasContext;
-  var loggedInImage;
-  var pollIntervalMin = 1000 * 60;  // 1 minute
-  var pollIntervalMax = 1000 * 60 * 60;  // 1 hour
-  var rotation = 0;
-  var loadingAnimation = new LoadingAnimation();
-  // User data
+  var main,
+      animationFrames = 36,
+      animationSpeed = 10, // ms
+      canvas,
+      canvasContext,
+      loggedInImage,
+      rotation = 0,
+      loadingAnimation = new LoadingAnimation();
 
   // A 'loading' animation displayed while we wait for the first response from
   // Gmail. This animates the badge text with a dot that cycles from left to
@@ -56,47 +52,91 @@ var bg = function () {
   };
 
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
-    if (changeInfo.url && gmail.isGmailUrl(changeInfo.url)) {
-      accountInfo.each(function (accounts) {
-        accounts.each(function (account) {
-          if (gmail.isAccountUrl(account, changeInfo.url)) {
-            getInboxCount(account, updateUnreadCount);
-            return;
-          }
-        });
+    var url = changeInfo.url;
+    if (url && Account.isGmailURL(url)) {
+      main.accounts.each(function (account) {
+        if (account.isAccountURL(url)) {
+          account.update();
+        }
       });
     }
   });
 
-  function loadAccountInfo() {
-    if (localStorage.accountInfo) {
-      accountInfo = JSON.parse(localStorage.accountInfo);
-    } else {
-      $.saveToLocalStorage(accountInfo);
-    }
-
-    accountInfo.each(function (accounts) {
-      accounts.each(function (account) {
-        account.requestFailureCount = 0;
-        account.isLoggedOut = true;
-        gmail.updateAccountUrl(account, startRequest.bind(null, account));
+  chrome.extension.onMessage.addListener(
+      function (request) {
+        console.dir(request);
       });
+
+  chrome.extension.onConnect.addListener(function (port) {
+    port.onMessage.addListener(function (msg) {
+      console.log('Popup:', msg);
     });
-  }
+
+    port.onDisconnect.addListener(function () {
+      console.log('Popup closed');
+      main.detachView();
+    });
+  });
 
   function checkIfUpdated() {
     var version = chrome.app.getDetails().version;
 
     if (!('version' in localStorage)) {
-      analytics.installed(version);
+      //analytics.installed(version);
     }
 
     var localVersion = localStorage.version || '';
     if (version !== localVersion) {
       // chrome.tabs.create({url: 'updates.html'});
       localStorage.version = version;
-      analytics.updated(version);
+      //analytics.updated(version);
     }
+  }
+
+  function loadAccounts() {
+    var accountInfo;
+
+    if (localStorage.accountInfo) {
+      accountInfo = JSON.parse(localStorage.accountInfo);
+      if (accountInfo.version != '2') {
+        // Update account info to new style (array of Accounts)
+        var oldAccountInfo = accountInfo;
+        accountInfo = {version: 2, accounts: []};
+        oldAccountInfo.each(function (accounts, domain) {
+          accounts.each(function (account, number) {
+            accountInfo.accounts.push({domain: domain, number: number});
+          });
+        });
+        localStorage.accountInfo = JSON.stringify(accountInfo); 
+      }
+    } else {
+      accountInfo = {
+        version: 2,
+        accounts: [{domain: 'gmail', number: 0}]
+      };
+      localStorage.accountInfo = JSON.stringify(accountInfo);
+    }
+
+    main = new Main(accountInfo);
+    window.main = main;
+
+    main.accounts.each(function (account) {
+      account.subscribe('conversationAdded', animateFlip);
+      account.subscribe('conversationDeleted', animateFlip);
+    });
+
+    main.subscribe('accountAdded', function () {
+      loadingAnimation.start();
+    });
+
+    main.subscribe('accountRemoved', function () {
+      animateFlip();
+    });
+
+    main.subscribe('accountFeedsParsed', function () {
+      loadingAnimation.stop();
+      animateFlip();
+    });
   }
 
   function init() {
@@ -110,61 +150,10 @@ var bg = function () {
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
     loadingAnimation.start();
 
-    loadAccountInfo();
+    loadAccounts();
+
+    window.loadAccounts = loadAccounts;
   }
-
-  function getInboxCount(account, onSuccess, onError) {
-    cache.loadEmails(account, 
-      function (account, accountData) {
-        onSuccess(account, accountData.unreadCount);
-      },
-      onError);
-  }
-
-  function scheduleRequest(account) {
-    if (account.requestTimerId) {
-      window.clearTimeout(account.requestTimerId);
-    }
-    var randomness = Math.random() * 2;
-    var exponent = Math.pow(2, account.requestFailureCount);
-    var multiplier = Math.max(randomness * exponent, 1);
-    var delay = Math.min(multiplier * pollIntervalMin, pollIntervalMax);
-    delay = Math.round(delay);
-    
-    account.requestTimerId = window.setTimeout(startRequest, delay, account);
-  }
-
-  // ajax stuff
-  function startRequest(account) {
-    getInboxCount(
-      account,
-      function (account, count) {
-        loadingAnimation.stop();
-        account.isLoggedOut = false;
-        updateUnreadCount(account, count);
-        scheduleRequest(account);
-      },
-      function (account) {
-        loadingAnimation.stop();
-        account.isLoggedOut = true;
-        showLoggedOut(account);
-        scheduleRequest(account);
-      }
-    );
-  }
-
-  function updateUnreadCount(account, count) {
-    if (account.unreadCount != count) {
-      account.unreadCount = count;
-      animateFlip();
-    }
-  }
-
-  chrome.extension.onRequest.addListener(function (request) {
-    var account = accountInfo[request.domain][request.number];
-    updateUnreadCount(account, request.count);
-  });
-
 
   function ease(x) {
     return (1 - Math.sin(Math.PI / 2 + x * Math.PI)) / 2;
@@ -172,13 +161,10 @@ var bg = function () {
 
   function countUnread() {
     var totalUnread = 0;
-    accountInfo.each(function (accounts) {
-      accounts.each(function (account) {
-        var unread = parseInt(account.unreadCount, 10);
-        if (unread && unread >= 0)
-          totalUnread += unread;
-      });
+    main.accounts.each(function (account) {
+      totalUnread += account.unreadCount;
     });
+    console.log('UNREAD: ' + totalUnread);
     return totalUnread;  
   }
 
@@ -240,10 +226,4 @@ var bg = function () {
   }
 
   document.addEventListener('DOMContentLoaded', init, false);
-
-  return {
-    init: init
-  };
-} ();
-
-console.dir(bg);
+}) ();

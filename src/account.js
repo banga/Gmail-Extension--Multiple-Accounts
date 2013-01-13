@@ -2,22 +2,30 @@
  * Account represents a single mail account, such as banga@cs.unc.edu
  * It can read from multiple feeds, each for a different label
  */ 
-function Account(domain, number, labels) {
+function Account(args) {
   'use strict';
-  this.domain = domain || 'mail';
-  this.number = number || 0;
-  this.labels = labels || [''];
-  this.url = Account.GMAIL_URL + this.domain + '/u/' +
-    this.number + '/';
+  this.domain = args.domain || 'mail';
+  this.number = args.number || 0;
+  this.labels = args.labels || [''];
+  this.url = args.url ||
+    (Account.GMAIL_URL + this.domain + '/u/' + this.number + '/');
 
+  this.status = Account.STATUS_INIT;
   this.lastUpdated = {};
   this.conversations = {};
   this.unreadCount = 0;
-  this.view = new AccountView(this);
 
   this.init();
-  this.subscribe('init', this.update.bind(this));
-  this.subscribe('initFailed', this.init.bind(this));
+  this.subscribe('init', this.update, this);
+  this.subscribe('initFailed', this.init, this);
+
+  this.subscribe('feedParsed', function () {
+    this.status = Account.STATUS_FEED_PARSED;
+  }, this);
+
+  this.subscribe('feedParseFailed', function () {
+    this.status = Account.STATUS_FEED_PARSE_FAILED;
+  }, this);
 }
 
 $.addEventHandling(Account, [
@@ -25,7 +33,6 @@ $.addEventHandling(Account, [
     'initFailed',
     'feedParsed',
     'feedParseFailed',
-    'allFeedsParsed',
     'conversationAdded',
     'conversationDeleted',
     'conversationUpdated',
@@ -33,6 +40,19 @@ $.addEventHandling(Account, [
   ]);
 
 Account.GMAIL_URL = 'https://mail.google.com/';
+Account.STATUS_INIT = 0;
+Account.STATUS_FEED_PARSED = 1;
+Account.STATUS_FEED_PARSE_FAILED = 2;
+
+Account.prototype.toJSON = function () {
+  'use strict';
+  return {
+    domain: this.domain,
+    number: this.number,
+    labels: this.labels,
+    url:    this.url
+  };
+};
 
 Account.isGmailURL = function (url) {
   'use strict';
@@ -198,9 +218,10 @@ Account.prototype.parseFeed = function (label, onSuccess, onError) {
               } else {
                 // New conversation
                 newConversation.addLabel(label);
-                newConversation.subscribe('updated', onConversationUpdated);
+                newConversation.subscribe('updated', onConversationUpdated,
+                  this);
                 newConversation.subscribe('updateFailed',
-                  onConversationUpdateFailed);
+                  onConversationUpdateFailed, this);
                 that.conversations[msgID] = newConversation;
                 that.publish('conversationAdded', newConversation);
               }
@@ -224,50 +245,19 @@ Account.prototype.parseFeed = function (label, onSuccess, onError) {
   });
 };
 
-function AccountView(account) {
+Account.prototype.detachView = function () {
   'use strict';
-
-  this.account = account;
-  this.root = $.make('.account');
-
-  this.header = $.make('.account-header')
-    .append($.make('.account-icon'))
-    .append($.make('.account-link').text('Loading...'));
-
-  this.conversationList = $.make('.conversation-list');
-  this.root.append(this.header).append(this.conversationList);
-
-  this.account.subscribe('feedParsed', this.init.bind(this));
-  this.account.subscribe('conversationAdded', this.addConversation.bind(this));
-  this.account.subscribe('conversationDeleted',
-      this.deleteConversation.bind(this));
-}
-
-AccountView.prototype.init = function () {
-  'use strict';
-  console.dir(this.account);
-  this.header.lastElementChild.text('Inbox for ' + this.account.name);
-};
-
-AccountView.prototype.addConversation = function (conversation) {
-  'use strict';
-  console.log('Adding conversation: ' + conversation.subject);
-
-  var modified = new Date(conversation.modified),
-      child = this.conversationList.firstElementChild;
-
-  while (child) {
-    if (modified > new Date(child.conversation.modified)) {
-      break;
-    }
-    child = child.nextElementSibling;
+  if (this.view) {
+    this.conversations.each(function (conversation) {
+      conversation.detachView();
+    });
+    this.view.onDetach();
+    this.view = null;
   }
-
-  this.conversationList.insertBefore(conversation.view.root, child);
 };
 
-AccountView.prototype.deleteConversation = function (conversation) {
+Account.prototype.attachView = function (view) {
   'use strict';
-  console.log('Deleting conversation ' + conversation.subject);
-  this.conversationList.removeChild(conversation.view.root);
+  this.detachView();
+  this.view = view;
 };

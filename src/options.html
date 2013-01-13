@@ -3,7 +3,6 @@
   <head>
     <title>Google Mail Checker - Options</title>
     <script src="util.js"></script>
-    <script src="gmail.js"></script>
     <style>
       body {
         font-family:helvetica, arial, sans-serif;
@@ -42,14 +41,6 @@
         margin-top:1em;
       }
 
-      .credential-box {
-        padding: 5px;
-        margin: 5px;
-        margin-bottom: 15px;
-        background:#ebeff9;
-        float: left;
-      }
-
       #footer {
         clear: both;
         margin-top:4em;
@@ -60,20 +51,16 @@
 
     <div id="header"><h1>Google Multi-Account Mail Checker Options</h1></div>
 
-    <div class="section-header first">Multiple Domains</div>
-    <p>If you use Gmail on multiple domains, add them here.
-    <br/>If your Google Apps domain is <b>domain.com</b>, enter <b>a/domain.com</b> below.</p>
-    <div id="domain-list"></div>
-    https://mail.google.com/<input type="text" id="domain-name" placeholder="Your Google Apps domain name" size=40>
-    <button id="add-button">Add</button>
+    <form action='#'>
+      <div class="section-header first">Accounts</div>
+      <p>You are signed-in to the following accounts:</p>
+      <div id="discovering-message">Discovering accounts...</div>
+      <div id="accounts-list"></div>
+      <input type='button' id='add-account' value='Add Account'/>
+      <input type='button' id='save' value='Save'/>
+    </form>
 
-    <div id='credential-inputs'></div>
-
-    <div id="footer">
-      <button id="save-button" style="font-weight:bold">Save</button>
-      <button id="cancel-button">Cancel</button>
-    </div>
-
+    <script src="account.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

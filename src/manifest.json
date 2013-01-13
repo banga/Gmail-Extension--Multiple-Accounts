@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Google Mail Multi-Account Checker",
   "content_security_policy": "script-src 'self' https://ssl.google-analytics.com; object-src 'self'",
-  "description": "Displays the unread emails in your Gmail inboxes. Click on Options to set up multiple accounts. Click on the button to view emails.",
+  "description": "Acess all your emails without opening Gmail",
   "background": {
     "page": "background.html"
   },

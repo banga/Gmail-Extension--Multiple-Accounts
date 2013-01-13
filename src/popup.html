@@ -3,8 +3,11 @@
   <head>
     <title>Google Mail Multi-Account Checker</title>
     <script src="util.js"></script>
-    <script src="analytics.js"></script>
-    <script src="gmail.js"></script>
+    <!--<script src="analytics.js"></script>-->
+    <script src="email_view.js"></script>
+    <script src="conversation_view.js"></script>
+    <script src="account_view.js"></script>
+    <script src="main_view.js"></script>
     <script src="popup.js"></script>
     <link rel="stylesheet" type="text/css" href="css/style.css" />
     <link rel="stylesheet" type="text/css" href="css/font-awesome.min.css" />
@@ -34,7 +37,7 @@
     <div id="multibar" class="topbar">
       <a id="multibar-close" class='multibar-button' href="#">&#10006;</a>
     </div>
-    <div id="throbber" class="topbar">
+    <div id="throbber" class="topbar" style="display: none">
       <canvas id="throbber-canvas"></canvas>
       Working...
     </div>
@@ -43,8 +46,7 @@
       <div class='separator'></div>
       <div id="options-link" class="icon-cog" title="Options"></div>
     </div>
-    <div id="inboxes">
-    </div>
+    <div id="inboxes"> </div>
   </body>
 </html>
 

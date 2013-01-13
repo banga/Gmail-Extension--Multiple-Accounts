@@ -11,9 +11,13 @@
   "predef": [
     "$",
     "Account",
+    "AccountView",
     "Conversation",
+    "ConversationView",
     "Email",
     "EmailView",
+    "Main",
+    "MainView",
     "analytics",
     "chrome",
     "cache",
