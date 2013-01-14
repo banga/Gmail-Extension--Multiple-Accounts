@@ -26,6 +26,14 @@ function Account(args) {
   this.subscribe('feedParseFailed', function () {
     this.status = Account.STATUS_FEED_PARSE_FAILED;
   }, this);
+
+  this.subscribe('conversationAdded', function () {
+    ++this.unreadCount;
+  }, this);
+
+  this.subscribe('conversationDeleted', function () {
+    --this.unreadCount;
+  }, this);
 }
 
 $.addEventHandling(Account, [
@@ -61,7 +69,7 @@ Account.isGmailURL = function (url) {
 
 Account.prototype.isAccountURL = function (url) {
   'use strict';
-  if (url.indexOf(this.url) !== 0)
+  if (!url || url.indexOf(this.url) !== 0)
     return false;
   return url.length == this.url.length || url[this.url.length] == '?' ||
     url[this.url.length] == '#';
@@ -146,7 +154,6 @@ Account.prototype.update = function () {
     if (q.length) {
       that.parseFeed(q.pop(), processQueue, onError);
     } else {
-      that.unreadCount = 0;
       // Finished parsing
       that.conversations.each(function (conversation, id) {
         if (!conversation.hasLabels()) {
@@ -154,7 +161,6 @@ Account.prototype.update = function () {
           delete that.conversations[id];
         } else {
           conversation.updateIfDirty();
-          ++that.unreadCount;
         }
       });
       that.publish('feedParsed');
@@ -194,8 +200,7 @@ Account.prototype.parseFeed = function (label, onSuccess, onError) {
         var titleNode = xmlDoc.querySelector('title');
 
         if (titleNode) {
-          var nameHdr = 'Gmail - Inbox for ';
-          that.name = titleNode.textContent.substr(nameHdr.length);
+          that.name = /\S*@\S*/.exec(titleNode.textContent)[0];
 
           var entryNodes = xmlDoc.querySelectorAll('entry');
 
@@ -245,6 +250,12 @@ Account.prototype.parseFeed = function (label, onSuccess, onError) {
   });
 };
 
+Account.prototype.removeConversation = function (id) {
+  'use strict';
+  this.publish('conversationDeleted', this.conversations[id]);
+  delete this.conversations[id];
+};
+
 Account.prototype.detachView = function () {
   'use strict';
   if (this.view) {
@@ -260,4 +271,24 @@ Account.prototype.attachView = function (view) {
   'use strict';
   this.detachView();
   this.view = view;
+};
+
+Account.prototype.openInGmail = function () {
+  'use strict';
+  var this_ = this;
+  chrome.tabs.query({}, function (tabs) {
+    var found = false;
+
+    tabs.each(function (tab) {
+      if (this_.isAccountURL(tab.url)) {
+        chrome.tabs.update(tab.id, {selected: true});
+        found = true;
+        return false;
+      }
+    });
+
+    if (!found) {
+      chrome.tabs.create({url: this_.url});
+    }
+  });
 };

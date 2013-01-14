@@ -6,7 +6,10 @@ function AccountView(account) {
 
   this.header = $.make('.account-header')
     .append($.make('.account-icon'))
-    .append($.make('.account-link').text('Loading...'));
+    .append(
+        $.make('.account-link')
+        .on('click', this.account.openInGmail.bind(this.account))
+        .text('Loading...'));
 
   this.conversationList = $.make('.conversation-list');
   this.root.append(this.header).append(this.conversationList);
@@ -28,7 +31,7 @@ AccountView.prototype.onDetach = function () {
 AccountView.prototype.init = function () {
   'use strict';
   if (this.account.name)
-    this.header.lastElementChild.text('Inbox for ' + this.account.name);
+    this.header.lastElementChild.text(this.account.name);
 };
 
 AccountView.prototype.addConversation = function (conversation) {
@@ -49,5 +52,6 @@ AccountView.prototype.addConversation = function (conversation) {
 
 AccountView.prototype.deleteConversation = function (conversation) {
   'use strict';
+  console.log('Removing conversation element');
   this.conversationList.removeChild(conversation.view.root);
 };

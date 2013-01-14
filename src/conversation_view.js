@@ -6,6 +6,8 @@ function ConversationView(conversation) {
   this.root = $.make('.conversation');
   this.root.conversation = conversation;
 
+  this.throbber = new Throbber(20, '#EEE');
+
   this.update();
   this.conversation.subscribe('updated', this.update, this);
 }
@@ -94,28 +96,50 @@ ConversationView.makeToolbarButton = function (text, onclick, iconX, iconY) {
 
 ConversationView.prototype.makeToolbar = function () {
   'use strict';
+  var this_ = this;
+
+  var onSuccess = function () {
+    console.log('Success. Removing...', this_);
+    this_.throbber.stop();
+    this_.conversation.account.removeConversation(this_.conversation.id);
+  };
+
+  var onError = function () {
+    console.error('Gmail action failed');
+    this_.throbber.update('There was an error. Updating...');
+    this_.conversaton.update();
+  };
+
   return $.make('.conversation-tools')
-    .append(ConversationView.makeToolbarButton('Open in Gmail...', function () { 
+    .append(ConversationView.makeToolbarButton('Open in Gmail...',
+          function () { 
             //analytics.mailOpen();
-            //openMailInTab(mailPreview.account, mailPreview.mailLink);
-        }, -63, -63))
-    .append(ConversationView.makeToolbarButton('Mark as read', function () {
+            this_.conversation.openInGmail();
+          }, -63, -63))
+    .append(ConversationView.makeToolbarButton('Mark as read',
+          function () {
             //analytics.mailMarkAsRead();
-            //doMailAction(mailPreview, gmail.markAsRead);
+            this_.throbber.start('Marking as read...');
+            this_.conversation.markAsRead(onSuccess, onError);
           }))
     .append(ConversationView.makeToolbarButton('Archive', function () {
             //analytics.mailArchive();
-            //doMailAction(mailPreview, gmail.markAsRead);
-            //doMailAction(mailPreview, gmail.archive);
+            this_.throbber.start('Archiving...');
+            this_.conversation.archive(function () {
+                this_.conversation.markAsRead(onSuccess, onError);
+              }, onError);
           }, -84, -21))
     .append(ConversationView.makeToolbarButton('Spam', function () {
             //analytics.mailMarkAsSpam();
-            //doMailAction(mailPreview, gmail.markAsSpam);
+            this_.throbber.start('Marking as spam...');
+            this_.conversation.markAsSpam(onSuccess, onError);
           }, -42, -42))
     .append(ConversationView.makeToolbarButton('Delete', function () {
             //analytics.mailDelete();
-            //doMailAction(mailPreview, gmail.trash);
-          }, -63, -42));
+            this_.throbber.start('Deleting...');
+            this_.conversation.trash(onSuccess, onError);
+          }, -63, -42))
+    .append(this.throbber.root);
 };
 
 ConversationView.prototype.makeLabels = function () {
@@ -157,14 +181,15 @@ ConversationView.prototype.update = function () {
     .append(this.makeToolbar());
 
   contents.on('click', function () {
-    if (contents.className == 'contents-collapsed') {
-      contents.className = 'contents';
-    } else {
-      contents.className = 'contents-collapsed';
-    }
+    contents.classList.toggle('contents');
+    contents.classList.toggle('contents-collapsed');
   });
 
   this.root
-    .append($.make('input.selector', {'type': 'checkbox'}))
+    .append(
+        $.make('input.selector', {'type': 'checkbox'})
+        .on('click', function () {
+          contents.classList.toggle('contents-selected');
+        }))
     .append(contents);
 };

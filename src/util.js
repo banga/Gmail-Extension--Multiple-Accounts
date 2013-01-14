@@ -38,8 +38,10 @@ Element.prototype.append = function (value) {
 
 Element.prototype.on = function (type, listener, capture) {
   'use strict';
-  if (this.nodeType == 1 && listener instanceof Function) {
+  if (this.nodeType == 1) {
     this.addEventListener(type, listener, capture);
+  } else {
+    console.warn('Not adding listener to ', this, this.nodeType);
   }
   return this;
 };

@@ -4,8 +4,6 @@
       signInWindowID = 0,
       signInTabID = 0;
 
-  init();
-
   function discoverAccounts() {
     function discoverAccount(accountNumber) {
       fetchAccountInfo(accountNumber,
@@ -38,19 +36,112 @@
     });
   }
 
+  function fetchAccountLabels(accountNumber, onSuccess, onError) {
+    var url = 'https://mail.google.com/mail/u/' +
+      accountNumber + '/h/';
+    $.get({
+      url: url,
+      onSuccess: function (xhr) {
+        var doc = document.createElement('document');
+        doc.innerHTML = xhr.responseText;
+        var labelContainer = doc.querySelector('td.lb');
+        if (labelContainer) {
+          var labelElems = labelContainer.querySelectorAll('a');
+          var labels = [];
+          labelElems.each(function (elem) {
+            var href = elem.getAttribute('href');
+            if (href) {
+              var match = /&l=(\S*)/.exec(href);
+              if (match) {
+                var label = window.unescape(match[1]).replace(/\+/g, ' ');
+                labels.push(label);
+              }
+            }
+          });
+          onSuccess(accountNumber, labels);
+        }
+      },
+      onError: onError
+    });
+  }
+
   function addAccount(number, title) {
     var newAccount = accountInfo.accounts.every(
         function (account) {
           return (account.number !== number);
         });
+
     if (newAccount) {
       accountInfo.accounts.push({
         domain: 'mail',
-        number: number
+        number: number,
+        labels: []
       });
 
-      $('accounts-list').append($.make('p').text(title));
+      fetchAccountLabels(number, function (number, labels) {
+        addAccountElement(number, title, labels);
+      }, function () {
+        addAccountElement(number, title);
+      });
     }
+  }
+
+  function addLabel(number, label) {
+    var account = accountInfo.accounts[number];
+    account.labels = account.labels || [''];
+    if (account.labels.indexOf(label) == -1) {
+      account.labels.push(label);
+    }
+    console.dir(account);
+  }
+
+  function removeLabel(number, label) {
+    var account = accountInfo.accounts[number];
+    account.labels = account.labels || [''];
+    var idx = account.labels.indexOf(label);
+    if (idx != -1) {
+      account.labels.splice(idx, 1);
+    }
+    console.dir(account);
+  }
+
+  function addLabelSelectionElement(accountElem, label, name, accountNumber) {
+    var checkbox = $.make('input')
+      .attr('type', 'checkbox')
+      .attr('value', label);
+
+    accountElem.append(
+        $.make('.label-select')
+        .append(checkbox)
+        .append(name));
+
+    if (accountInfo.accounts[accountNumber] &&
+        accountInfo.accounts[accountNumber].labels.indexOf(label) != -1) {
+      console.log('Checked: ' + label);
+      checkbox.setAttribute('checked');
+    }
+  }
+
+  function addAccountElement(number, title, labels) {
+    var accountElem = $.make('#account-' + number)
+      .append($.make('.title').text(title))
+      .on('change', function (e) { 
+        if (e.target.checked) {
+          addLabel(number, e.target.value);
+        } else {
+          removeLabel(number, e.target.value);
+        }
+      });
+
+    addLabelSelectionElement(accountElem, '', 'Inbox', number);
+
+    if (labels) {
+      labels.each(function (label) {
+        addLabelSelectionElement(accountElem, label, label, number);
+      });
+    }
+
+    $('accounts-list').append(accountElem);
   }
 
   function showSignInWindow() {
@@ -90,7 +181,11 @@
 
     accountInfo.accounts.each(function (account) {
       fetchAccountInfo(account.number, function (number, title) {
-        $('accounts-list').append($.make('p').text(title));
+        fetchAccountLabels(number, function (number, labels) {
+          addAccountElement(number, title, labels);
+        }, function () {
+          addAccountElement(number, title);
+        });
       }, function () {
       });
     });
@@ -120,4 +215,10 @@
       }
     });
   }
+
+
+  init();
+
+  window.accountInfo = accountInfo;
+
 }) ();

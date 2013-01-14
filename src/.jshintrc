@@ -18,6 +18,7 @@
     "EmailView",
     "Main",
     "MainView",
+    "Throbber",
     "analytics",
     "chrome",
     "cache",

@@ -101,6 +101,55 @@ Conversation.prototype.updateIfDirty = function () {
     this.update();
 };
 
+Conversation.prototype.doGmailAction = function (action, onSuccess, onError) {
+  'use strict';
+  var url = this.account.htmlModeURL();
+  var payload = new FormData();
+  payload.append('t', this.id);
+  payload.append('at', this.account.at);
+  payload.append('act', action);
+
+  return $.post({
+    url: url,
+    onSuccess: onSuccess,
+    onError: onError,
+    payload: payload
+  });
+};
+
+Conversation.prototype.archive = function (onSuccess, onError) {
+  'use strict';
+  this.doGmailAction('arch', onSuccess, onError);
+};
+
+Conversation.prototype.markAsRead = function (onSuccess, onError) {
+  'use strict';
+  this.doGmailAction('rd', onSuccess, onError);
+};
+
+Conversation.prototype.markAsSpam = function (onSuccess, onError) {
+  'use strict';
+  this.doGmailAction('sp', onSuccess, onError);
+};
+
+Conversation.prototype.trash = function (onSuccess, onError) {
+  'use strict';
+  this.doGmailAction('tr', onSuccess, onError);
+};
+
+Conversation.prototype.openInGmail = function () {
+  'use strict';
+  var url = this.account.url;
+  var label = Object.keys(this.labels)[0];
+  if (label.length === 0) {
+    url += '#inbox/';
+  } else {
+    url += '#label/' + window.escape(label.replace(' ', '+')) + '/';
+  }
+  url += this.id;
+  chrome.tabs.create({ url: url});
+};
+
 Conversation.prototype.detachView = function () {
   'use strict';
   if (this.view) {

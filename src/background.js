@@ -1,8 +1,10 @@
 (function () {
   'use strict';
   var main,
+      totalUnread = 0,
       animationFrames = 36,
       animationSpeed = 10, // ms
+      animating = false,
       canvas,
       canvasContext,
       loggedInImage,
@@ -121,8 +123,8 @@
     window.main = main;
 
     main.accounts.each(function (account) {
-      account.subscribe('conversationAdded', animateFlip);
-      account.subscribe('conversationDeleted', animateFlip);
+      account.subscribe('conversationAdded', animateIfCountChanged);
+      account.subscribe('conversationDeleted', animateIfCountChanged);
     });
 
     main.subscribe('accountAdded', function () {
@@ -130,13 +132,15 @@
     });
 
     main.subscribe('accountRemoved', function () {
-      animateFlip();
+      animateIfCountChanged();
     });
 
     main.subscribe('accountFeedsParsed', function () {
       loadingAnimation.stop();
-      animateFlip();
+      animateIfCountChanged();
     });
+
+    window.setInterval(main.update.bind(main), 60000);
   }
 
   function init() {
@@ -159,13 +163,23 @@
     return (1 - Math.sin(Math.PI / 2 + x * Math.PI)) / 2;
   }
 
+  function animateIfCountChanged() {
+    var count = countUnread();
+    if (count !== totalUnread) {
+      totalUnread = count;
+      if (!animating) {
+        animating = true;
+        animateFlip();
+      }
+    }
+  }
+
   function countUnread() {
-    var totalUnread = 0;
+    var count = 0;
     main.accounts.each(function (account) {
-      totalUnread += account.unreadCount;
+      count += account.unreadCount;
     });
-    console.log('UNREAD: ' + totalUnread);
-    return totalUnread;  
+    return count;  
   }
 
   function animateFlip() {
@@ -175,9 +189,9 @@
     if (rotation <= 1) {
       setTimeout(animateFlip, animationSpeed);
     } else {
+      animating = false;
       rotation = 0;
       drawIconAtRotation();
-      var totalUnread = countUnread();
       chrome.browserAction.setBadgeText(
           { text: totalUnread ? (totalUnread + '') : '' });
       chrome.browserAction.setBadgeBackgroundColor(

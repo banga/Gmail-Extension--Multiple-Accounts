@@ -18,7 +18,15 @@
   },
   "options_page": "options.html",
   "permissions": [
-    "tabs", "http://*.google.com/", "https://*.google.com/"
+    "notifications",
+    "tabs",
+    "http://*.google.com/",
+    "https://*.google.com/"
+   ],
+   "web_accessible_resources": [
+    "images/icon_16.png",
+    "images/icon_48.png",
+    "images/icon_128.png"
    ],
   "version": "1.12.1"
 }
