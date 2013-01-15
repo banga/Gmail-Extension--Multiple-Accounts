@@ -2,6 +2,9 @@ function ConversationView(conversation) {
   'use strict';
   this.conversation = conversation;
   this.conversation.attachView(this);
+  if (this.conversation.collapsed === undefined) {
+    this.conversation.collapsed = true;
+  }
 
   this.root = $.make('.conversation');
   this.root.conversation = conversation;
@@ -20,6 +23,7 @@ ConversationView.prototype.onDetach = function () {
 
 ConversationView.prototype.makeReplyControls = function () {
   'use strict';
+  var this_ = this;
   var div = $.make('.conversation-reply');
   var replyBody = $.make('textarea.conversation-reply-body', {
       'rows': '1',
@@ -32,7 +36,7 @@ ConversationView.prototype.makeReplyControls = function () {
   replyBody.oninput = function () {
     if (!this._replyStarted) {
       this._replyStarted = true;
-      analytics.replyStart();
+      //analytics.replyStart();
     }
 
     if (this.scrollHeight > this.clientHeight) {
@@ -51,10 +55,10 @@ ConversationView.prototype.makeReplyControls = function () {
     }
   };
 
+  var replyAllCheckbox = $.make('input.reply-all', {'type': 'checkbox'});
+
   var replyControls = $.make('.reply-controls.dim')
-    .append($.make('label')
-        .append($.make('input.reply-all', {'type': 'checkbox'}))
-        .append('Reply All'));
+    .append($.make('label').append(replyAllCheckbox).append('Reply All'));
 
   var replyButton = $.make('input', {
     'type': 'button',
@@ -63,17 +67,22 @@ ConversationView.prototype.makeReplyControls = function () {
   });
 
   replyButton.on('click', function () {
-    var checked = $('reply-all').checked;
-    analytics.replySend(checked ? 'ReplyAll' : 'Reply',
-      replyBody.value.length);
-    //doMailReply(mailPreview, replyBody.value, checked);
+    var checked = replyAllCheckbox.checked;
+    //analytics.replySend(checked ? 'ReplyAll' : 'Reply', replyBody.value.length);
+    this_.markBusy('Sending...');
+    this_.conversation.reply(replyBody.value, checked,
+      function () {
+        this_.markBusy('Sent! Updating...');
+        this_.conversation.update();
+      },
+      this_.onActionFailure.bind(this));
   });
 
   replyControls.append(replyButton);
   div.append(replyControls)
     .on('click', function (e) {
-        e.cancelBubble = true;
-      });
+      e.cancelBubble = true;
+    });
 
   return div;
 };
@@ -179,8 +188,7 @@ ConversationView.prototype.makeEmailList = function () {
   var emailListElem = $.make('.conversation-body');
   var count = this.conversation.emails.length;
   this.conversation.emails.each(function (email, idx) {
-    var emailElem = new EmailView(email).root;
-    emailElem.className = (idx == count - 1 ? 'email' : 'email-hidden'); 
+    var emailElem = new EmailView(email, idx, count).root;
     emailElem.attr('id', 'email-' + idx);
     emailListElem.append(emailElem);
   });
@@ -199,7 +207,8 @@ ConversationView.prototype.update = function () {
       MainView.updateMultibarVisibility();
     });
 
-  this.contents = $.make('.contents-collapsed')
+  this.contents = $.make(
+      this.conversation.collapsed ? '.contents-collapsed' : '.contents')
     .append($.make('.subject').text(this.conversation.subject))
     .append($.make('.author').text(this.conversation.author))
     .append($.make('.summary').text(this.conversation.summary))
@@ -214,12 +223,29 @@ ConversationView.prototype.update = function () {
     } else {
       this_.contents.classList.toggle('contents');
       this_.contents.classList.toggle('contents-collapsed');
+      this_.conversation.collapsed = !this_.conversation.collapsed;
     }
   });
 
   this.root.append(this.selector)
     .append(this.contents)
     .append(this.throbber.root);
+
+  this.root.on('mousemove', function (e) {
+    if (e.which == 1 &&
+      this_.contents.classList.contains('contents-collapsed')) {
+      this_.select();
+    }
+  });
+
+  this.markNotBusy();
+};
+
+ConversationView.prototype.select = function () {
+  'use strict';
+  this.selector.checked = true;
+  this.root.classList.add('conversation-selected');
+  MainView.updateMultibarVisibility();
 };
 
 ConversationView.prototype.markBusy = function (msg) {

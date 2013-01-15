@@ -101,6 +101,19 @@ Conversation.prototype.updateIfDirty = function () {
     this.update();
 };
 
+Conversation.prototype.openInGmail = function () {
+  'use strict';
+  var url = this.account.url;
+  var label = Object.keys(this.labels)[0];
+  if (label.length === 0) {
+    url += '#inbox/';
+  } else {
+    url += '#label/' + window.escape(label.replace(' ', '+')) + '/';
+  }
+  url += this.id;
+  chrome.tabs.create({ url: url});
+};
+
 Conversation.prototype.doGmailAction = function (action, onSuccess, onError) {
   'use strict';
   var url = this.account.htmlModeURL();
@@ -137,17 +150,22 @@ Conversation.prototype.trash = function (onSuccess, onError) {
   this.doGmailAction('tr', onSuccess, onError);
 };
 
-Conversation.prototype.openInGmail = function () {
+Conversation.prototype.reply = function (body, replyAll, onSuccess, onError) {
   'use strict';
-  var url = this.account.url;
-  var label = Object.keys(this.labels)[0];
-  if (label.length === 0) {
-    url += '#inbox/';
-  } else {
-    url += '#label/' + window.escape(label.replace(' ', '+')) + '/';
-  }
-  url += this.id;
-  chrome.tabs.create({ url: url});
+  var url = this.account.htmlModeURL() + '?v=b&qrt=n&fv=cv&cs=qfnq&at=' +
+    this.account.at + '&rm=' + this.id;
+  var payload = new FormData();
+  payload.append('body', body);
+  payload.append('nvp_bu_send', 'Send');
+  payload.append('haot', 'qt');
+  payload.append('qrr', replyAll ? 'a' : 'o');
+
+  return $.post({
+    url: url,
+    payload: payload,
+    onSuccess: onSuccess,
+    onError: onError
+  });
 };
 
 Conversation.prototype.detachView = function () {

@@ -1,9 +1,12 @@
-function EmailView(email) {
+function EmailView(email, idx, count) {
   'use strict';
   this.email = email;
   email.attachView(this);
 
-  this.root = $.make('.email');
+  if (email.collapsed === undefined) {
+    email.collapsed = (idx < (count - 1));
+  }
+  this.root = $.make(email.collapsed ? '.email-hidden' : '.email');
   this.render();
 }
 
@@ -14,6 +17,8 @@ EmailView.prototype.onHeaderClick = function () {
   'use strict';
   var email = this.root;
   var emailContents = this.root.lastElementChild;
+
+  this.email.collapsed = !this.email.collapsed;
 
   if (this.root.className == 'email') {
     emailContents.style.height = '0px';
