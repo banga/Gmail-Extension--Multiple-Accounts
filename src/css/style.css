@@ -114,7 +114,8 @@ body {
   cursor: pointer;
   -webkit-transition: all 0.2s ease-in-out;
 }
-.conversation > .contents-selected,
+.conversation-selected > .contents,
+.conversation-selected > .contents-collapsed,
 .conversation > .contents {
   color: #444;
   padding: 4px 5px;
@@ -126,13 +127,13 @@ body {
   border-radius: 5px;
   cursor: pointer;
 }
+.contents > .summary {
+  display: none;
+}
 .contents-collapsed > .conversation-body,
 .contents-collapsed > .conversation-reply,
 .contents-collapsed > .conversation-tools,
 .contents-collapsed > .labels {
-  display: none;
-}
-.contents > .summary {
   display: none;
 }
 .conversation > .contents-collapsed:hover {
@@ -157,10 +158,11 @@ body {
   opacity: 1;
 }
 .conversation {
+  position: relative;
+  display: block;
   font-size: 0.8em;
   line-height: 1.5em;
   margin-left: 5px;
-  display: block;
 }
 .conversation-body {
   padding-top: 5px;
@@ -194,16 +196,6 @@ body {
   background: #AAA;
   border-radius: 2px;
   padding: 1px;
-}
-.conversation.busy {
-  color: #666;
-  padding: 4px 5px;
-  margin-left: 18px;
-  background: #F5F5F5;
-  border: 1px solid #FFF;
-  cursor: progress;
-  opacity: 0.3;
-  border-radius: 5px;
 }
 .conversation-tools {
   color: #555;
@@ -252,6 +244,12 @@ body {
   vertical-align: middle;
   opacity: 0.5;
 }
+.conversation > .throbber {
+  display: block;
+  cursor: progress;
+  text-align: center;
+  line-height: 40px;
+}
 .throbber-title {
   display: inline;
   color: #555;
@@ -284,16 +282,6 @@ pre {
   opacity: 0;
   display: none;
   -webkit-transition: all 0.2s;
-}
-#throbber {
-  left: 45%;
-  z-index: 101;
-  font: 12px arial;
-  color: #444;
-}
-#throbber-canvas {
-  padding-right: 4px;
-  vertical-align: top;
 }
 .multibar-button {
   display: inline;

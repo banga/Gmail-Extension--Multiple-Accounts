@@ -22,7 +22,7 @@ Throbber.prototype.start = function (msg) {
     this.timer = window.setInterval(this._draw.bind(this), 10);
   }
   this.titleElem.html(msg);
-  this.root.style.display = 'inline';
+  this.root.style.removeProperty('display');
 };
 
 Throbber.prototype.update = function (msg) {
