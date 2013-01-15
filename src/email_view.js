@@ -11,6 +11,8 @@ function EmailView(email, idx, count) {
 }
 
 EmailView.prototype.onDetach = function () {
+  'use strict';
+  this.root = null;
 };
 
 EmailView.prototype.onHeaderClick = function () {

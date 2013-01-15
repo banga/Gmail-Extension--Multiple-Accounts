@@ -1,7 +1,7 @@
-(function () {
+var main;
+var bg = (function () {
   'use strict';
-  var main,
-      totalUnread = 0,
+  var totalUnread = 0,
       animationFrames = 36,
       animationSpeed = 10, // ms
       animating = false,
@@ -10,48 +10,6 @@
       loggedInImage,
       rotation = 0,
       loadingAnimation = new LoadingAnimation();
-
-  // A 'loading' animation displayed while we wait for the first response from
-  // Gmail. This animates the badge text with a dot that cycles from left to
-  // right.
-  function LoadingAnimation() {
-    this.timerId_ = 0;
-    this.maxCount_ = 8;  // Total number of states in animation
-    this.current_ = 0;  // Current state
-    this.maxDot_ = 4;  // Max number of dots in animation
-  }
-
-  LoadingAnimation.prototype.paintFrame = function () {
-    var text = '';
-    for (var i = 0; i < this.maxDot_; i++) {
-      text += (i == this.current_) ? '.' : ' ';
-    }
-    if (this.current_ >= this.maxDot_)
-      text += '';
-
-    chrome.browserAction.setBadgeText({text: text});
-    this.current_++;
-    if (this.current_ == this.maxCount_)
-      this.current_ = 0;
-  };
-
-  LoadingAnimation.prototype.start = function () {
-    if (this.timerId_)
-      return;
-
-    var self = this;
-    this.timerId_ = window.setInterval(function () {
-      self.paintFrame();
-    }, 100);
-  };
-
-  LoadingAnimation.prototype.stop = function () {
-    if (!this.timerId_)
-      return;
-
-    window.clearInterval(this.timerId_);
-    this.timerId_ = 0;
-  };
 
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
     var url = changeInfo.url;
@@ -64,18 +22,8 @@
     }
   });
 
-  chrome.extension.onMessage.addListener(
-      function (request) {
-        console.dir(request);
-      });
-
   chrome.extension.onConnect.addListener(function (port) {
-    port.onMessage.addListener(function (msg) {
-      console.log('Popup:', msg);
-    });
-
     port.onDisconnect.addListener(function () {
-      console.log('Popup closed');
       main.detachView();
     });
   });
@@ -120,31 +68,35 @@
     }
 
     main = new Main(accountInfo);
-    window.main = main;
 
-    main.accounts.each(function (account) {
+    var addAccountListeners = function (account) {
+      account.subscribe('conversationAdded', animateIfCountChanged, bg);
+      account.subscribe('conversationDeleted', animateIfCountChanged, bg);
+
       account.subscribe('conversationAdded', function (conversation) {
-        animateIfCountChanged();
         webkitNotifications.createNotification('images/icon_48.png',
           conversation.subject, conversation.summary).show();
-      });
-      account.subscribe('conversationDeleted', animateIfCountChanged);
-    });
+      }, bg);
+    };
 
-    main.subscribe('accountAdded', function () {
+    main.accounts.each(addAccountListeners);
+
+    main.subscribe('accountAdded', function (account) {
       loadingAnimation.start();
-    });
+      addAccountListeners(account);
+    }, bg);
 
-    main.subscribe('accountRemoved', function () {
+    main.subscribe('accountRemoved', function (account) {
       animateIfCountChanged();
-    });
+      account.unsubscribe(null);
+    }, bg);
 
     main.subscribe('accountFeedsParsed', function () {
       loadingAnimation.stop();
       animateIfCountChanged();
-    });
+    }, bg);
 
-    window.setInterval(main.update.bind(main), 60000);
+    setInterval(main.update.bind(main), 60000);
   }
 
   function init() {
@@ -158,13 +110,7 @@
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
     loadingAnimation.start();
 
-    loadAccounts();
-
-    window.loadAccounts = loadAccounts;
-  }
-
-  function ease(x) {
-    return (1 - Math.sin(Math.PI / 2 + x * Math.PI)) / 2;
+    setTimeout(loadAccounts, 0);
   }
 
   function animateIfCountChanged() {
@@ -203,27 +149,8 @@
     }
   }
 
-  function showLoggedOut(account) {
-    account.unreadCount = -1;
-
-    var allLoggedOut = true;
-    accountInfo.each(function (accounts) {
-      accounts.each(function (account) {
-        if (!account.isLoggedOut) {
-          allLoggedOut = false;
-          return false;
-        }
-      });
-      if (!allLoggedOut)
-        return false;
-    });
-
-    if (allLoggedOut) {
-      chrome.browserAction.setIcon({path: 'images/gmail_not_logged_in.png'});
-      chrome.browserAction.setBadgeBackgroundColor(
-          {color: [190, 190, 190, 230]});
-      chrome.browserAction.setBadgeText({text: '?'});
-    }
+  function ease(x) {
+    return (1 - Math.sin(Math.PI / 2 + x * Math.PI)) / 2;
   }
 
   function drawIconAtRotation() {
@@ -244,4 +171,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', init, false);
+
+  return { };
 }) ();

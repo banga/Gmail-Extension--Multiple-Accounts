@@ -1,5 +1,7 @@
 function MainView(main) {
   'use strict';
+  MainView.instance = this;
+
   this.main = main;
   this.main.view = this;
 
@@ -10,28 +12,35 @@ function MainView(main) {
   this.main.subscribe('accountAdded', this.addAccount, this);
   this.main.subscribe('accountRemoved', this.removeAccount, this);
 
-  MainView.makeMultibar();
+  this.makeMultibar();
 }
 
 MainView.prototype.onDetach = function () {
   'use strict';
+  var this_ = this;
+  this.main.accounts.each(function (account) {
+    account.unsubscribe({subscriber: this_});
+  });
   this.main.unsubscribe({subscriber: this});
+  this.root = null;
+  MainView.instance = null;
 };
 
 MainView.prototype.addAccount = function (account) {
   'use strict';
-  this.root.append(new AccountView(account).root);
-  account.subscribe('conversationDeleted', MainView.updateMultibarVisibility,
-      MainView);
+  this.root.append(new AccountView(account, $).root);
+  account.subscribe('conversationDeleted',
+      MainView.prototype.updateMultibarVisibility, this);
 };
 
 MainView.prototype.removeAccount = function (account) {
   'use strict';
+  account.unsubscribe({subscriber: this});
   this.root.removeChild(account.view.root);
-  MainView.updateMultibarVisibility();
+  this.updateMultibarVisibility();
 };
 
-MainView.makeMultibarButton = function (text, action, iconX, iconY) {
+MainView.prototype.makeMultibarButton = function (text, action, iconX, iconY) {
   'use strict';
   var button = $.make('.multibar-button');
   if (iconX !== undefined) {
@@ -42,30 +51,22 @@ MainView.makeMultibarButton = function (text, action, iconX, iconY) {
   return button.append(text).on('click', function () {
     document.querySelectorAll('.conversation-selected').each(
       function (conversationElem) {
-        console.dir(conversationElem.conversation);
         action.call(conversationElem.conversation.view);
       });
   });
 };
 
-MainView.makeMultibar = function () {
+MainView.prototype.makeMultibar = function () {
   'use strict';
-  MainView.multibarElem = $('multibar')
-    .append(MainView.makeMultibarButton('Mark as read',
+  this.multibarElem = $('multibar')
+    .append(this.makeMultibarButton('Mark as read',
           ConversationView.prototype.markAsRead))
-    .append(MainView.makeMultibarButton('Archive',
+    .append(this.makeMultibarButton('Archive',
           ConversationView.prototype.archive, -84, -21))
-    .append(MainView.makeMultibarButton('Spam',
+    .append(this.makeMultibarButton('Spam',
           ConversationView.prototype.markAsSpam, -42, -42))
-    .append(MainView.makeMultibarButton('Delete',
-          ConversationView.prototype.trash, -63, -42)) 
-    .on('webkitTransitionEnd', function (e) {
-      if (e.target == MainView.multibarElem && e.propertyName == 'opacity') {
-        if (parseFloat(MainView.multibarElem.style.opacity) === 0) {
-          MainView.multibarElem.style.display = 'none';
-        }
-      }
-    });
+    .append(this.makeMultibarButton('Delete',
+          ConversationView.prototype.trash, -63, -42));
 
   $('multibar-close').on('click', function () {
     document.querySelectorAll('.conversation-selected > .selector').each(
@@ -75,26 +76,23 @@ MainView.makeMultibar = function () {
   });
 };
 
-MainView.updateMultibarVisibility = function () {
+MainView.prototype.updateMultibarVisibility = function () {
   'use strict';
   if (!document) return;
 
   if (document.querySelectorAll('.conversation-selected').length) {
-    MainView.showMultibar();
+    this.showMultibar();
   } else {
-    MainView.hideMultibar();
+    this.hideMultibar();
   }
 };
 
-MainView.showMultibar = function () {
+MainView.prototype.showMultibar = function () {
   'use strict';
-  //MainView.multibarElem.style.display = 'block';
-  //MainView.multibarElem.style.opacity = 1;
-  MainView.multibarElem.style.top = '-5px';
+  this.multibarElem.style.top = '-5px';
 };
 
-MainView.hideMultibar = function () {
+MainView.prototype.hideMultibar = function () {
   'use strict';
-  //MainView.multibarElem.style.opacity = 0;
-  MainView.multibarElem.style.top = '-45px';
+  this.multibarElem.style.top = '-45px';
 };

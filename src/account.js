@@ -15,6 +15,8 @@ function Account(args) {
   this.conversations = {};
   this.unreadCount = 0;
 
+  this._labelQueue = [];
+
   this.init();
   this.subscribe('init', this.update, this);
   this.subscribe('initFailed', this.init, this);
@@ -49,8 +51,9 @@ $.addEventHandling(Account, [
 
 Account.GMAIL_URL = 'https://mail.google.com/';
 Account.STATUS_INIT = 0;
-Account.STATUS_FEED_PARSED = 1;
-Account.STATUS_FEED_PARSE_FAILED = 2;
+Account.STATUS_FEED_PARSING = 1;
+Account.STATUS_FEED_PARSED = 2;
+Account.STATUS_FEED_PARSE_FAILED = 3;
 
 Account.prototype.toJSON = function () {
   'use strict';
@@ -98,7 +101,6 @@ Account.prototype.init = function () {
 Account.prototype._fetchAccountURL = function (onSuccess, onError) {
   'use strict';
   var that = this;
-  console.log('_fetchAccountURL');
 
   $.post({
     url: this.url,
@@ -108,7 +110,6 @@ Account.prototype._fetchAccountURL = function (onSuccess, onError) {
       var meta = doc.querySelector('meta[name="application-url"]');
       if (meta) {
         that.url = meta.getAttribute('content') + '/';
-        console.log('url changed to ' + that.url);
       }
       onSuccess();
     },
@@ -119,7 +120,6 @@ Account.prototype._fetchAccountURL = function (onSuccess, onError) {
 Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
   'use strict';
   var that = this;
-  console.log('_fetchAccountAtParameter');
 
   $.post({
     url: this.htmlModeURL(),
@@ -127,7 +127,6 @@ Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
       var m = xhr.responseText.match(/\at=([^"]+)/);
       if (m && m.length > 0) {
         that.at = m[1];
-        console.log('Account \'at\' = ' + that.at);
         onSuccess();
       } else {
         onError();
@@ -137,115 +136,112 @@ Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
   });
 };
 
-Account.prototype.update = function () {
+Account.prototype._processLabelQueue = function () {
   'use strict';
-  var onError = this.publish.bind(this, 'feedParseFailed', this),
-      that = this,
-      q = [];
-
-  this.labels.each(function (label) {
-    q.push(label);
-    console.log('Label: \'' + label + '\'');
-  });
-
-  processQueue();
-
-  function processQueue() {
-    if (q.length) {
-      that.parseFeed(q.pop(), processQueue, onError);
-    } else {
-      // Finished parsing
-      that.conversations.each(function (conversation, id) {
-        if (!conversation.hasLabels()) {
-          that.publish('conversationDeleted', conversation);
-          delete that.conversations[id];
-        } else {
-          conversation.updateIfDirty();
-        }
-      });
-      that.publish('feedParsed');
-    }
+  if (this._labelQueue.length) {
+    this.parseFeed(this._labelQueue.pop(),
+        this._processLabelQueue.bind(this),
+        this.publish.bind(this, 'feedParseFailed', this));
+  } else {
+    // Finished parsing
+    this.conversations.each(function (conversation, id) {
+      if (!conversation.hasLabels()) {
+        this.publish('conversationDeleted', conversation);
+        delete this.conversations[id];
+      } else {
+        conversation.updateIfDirty();
+      }
+    }, this);
+    this.publish('feedParsed');
   }
 };
 
-Account.prototype.parseFeed = function (label, onSuccess, onError) {
+Account.prototype.update = function () {
+  'use strict';
+  if (this.status !== Account.STATUS_FEED_PARSING) {
+    this.status = Account.STATUS_FEED_PARSING;
+    this._labelQueue = this.labels.slice(0);
+    this._processLabelQueue();
+  }
+};
+
+Account.prototype._onFeed = function (label, onSuccess, onError, xhr) {
   'use strict';
   var onConversationUpdated = this.publish.bind(this, 'conversationUpdated');
   var onConversationUpdateFailed =
     this.publish.bind(this, 'conversationUpdateFailed');
-  var that = this;
 
-  console.log('Parsing feed for \'' + label + '\'');
+  var xmlDoc = xhr.responseXML;
+  var fullCountNode = xmlDoc.querySelector('fullcount');
 
+  if (fullCountNode) {
+    var modifiedNode = xmlDoc.querySelector('modified');
+    if (modifiedNode) {
+      var modified = new Date(modifiedNode.textContent);
+      var lastUpdated = this.lastUpdated[label] || new Date(0);
+      if (modified <= lastUpdated) {
+        // Feed is unmodified
+        onSuccess();
+        return;
+      }
+      this.lastUpdated[label] = modified;
+    }
+
+    var titleNode = xmlDoc.querySelector('title');
+
+    if (titleNode) {
+      this.name = /\S*@\S*/.exec(titleNode.textContent)[0];
+
+      var entryNodes = xmlDoc.querySelectorAll('entry');
+
+      if (entryNodes) {
+        var msgIDs = {};
+        entryNodes.each(function (entryNode, idx) {
+          var newConversation = new Conversation(this, entryNode, idx); 
+          var msgID = newConversation.id;
+          msgIDs[msgID] = '';
+
+          if (msgID in this.conversations) {
+            // Update existing conversation
+            var conversation = this.conversations[msgID];
+            if (conversation.modified != newConversation.modified) {
+              conversation.fromFeed(entryNode);
+              conversation.markDirty();
+            } else {
+              conversation.addLabel(label);
+            }
+          } else {
+            // New conversation
+            newConversation.addLabel(label);
+            newConversation.subscribe('updated', onConversationUpdated,
+              this);
+            newConversation.subscribe('updateFailed',
+              onConversationUpdateFailed, this);
+            this.conversations[msgID] = newConversation;
+            this.publish('conversationAdded', newConversation);
+          }
+        }, this);
+
+        this.conversations.each(function (conversation, id) {
+          if (!(id in msgIDs)) {
+            // Conversation is not in this label anymore
+            conversation.removeLabel(label);
+          }
+        });
+      }
+
+      onSuccess();
+      return;
+    }
+  }
+  onError();
+};
+
+Account.prototype.parseFeed = function (label, onSuccess, onError) {
+  'use strict';
   $.get({
     url: this.feedURL(label),
-    onSuccess: function (xhr) {
-      var xmlDoc = xhr.responseXML;
-      var fullCountNode = xmlDoc.querySelector('fullcount');
-
-      if (fullCountNode) {
-        var modifiedNode = xmlDoc.querySelector('modified');
-        if (modifiedNode) {
-          var modified = new Date(modifiedNode.textContent);
-          var lastUpdated = that.lastUpdated[label] || new Date(0);
-          if (modified <= lastUpdated) {
-            // Feed is unmodified
-            console.log('Feed for ' + label + ' not modified');
-            onSuccess();
-            return;
-          }
-          that.lastUpdated[label] = modified;
-        }
-
-        var titleNode = xmlDoc.querySelector('title');
-
-        if (titleNode) {
-          that.name = /\S*@\S*/.exec(titleNode.textContent)[0];
-
-          var entryNodes = xmlDoc.querySelectorAll('entry');
-
-          if (entryNodes) {
-            var msgIDs = {};
-            entryNodes.each(function (entryNode, idx) {
-              var newConversation = new Conversation(that, entryNode, idx); 
-              var msgID = newConversation.id;
-              msgIDs[msgID] = '';
-
-              if (msgID in that.conversations) {
-                // Update existing conversation
-                var conversation = that.conversations[msgID];
-                if (conversation.modified != newConversation.modified) {
-                  conversation.fromFeed(entryNode);
-                  conversation.markDirty();
-                } else {
-                  conversation.addLabel(label);
-                }
-              } else {
-                // New conversation
-                newConversation.addLabel(label);
-                newConversation.subscribe('updated', onConversationUpdated,
-                  this);
-                newConversation.subscribe('updateFailed',
-                  onConversationUpdateFailed, this);
-                that.conversations[msgID] = newConversation;
-                that.publish('conversationAdded', newConversation);
-              }
-            });
-
-            that.conversations.each(function (conversation, id) {
-              if (!(id in msgIDs)) {
-                // Conversation is not in this label anymore
-                conversation.removeLabel(label);
-              }
-            });
-          }
-
-          onSuccess();
-          return;
-        }
-      }
-      onError();
-    },
+    onSuccess: this._onFeed.bind(this, label, onSuccess, onError),
     onError: onError 
   });
 };

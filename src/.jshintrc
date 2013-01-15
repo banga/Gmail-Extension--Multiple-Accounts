@@ -16,6 +16,7 @@
     "ConversationView",
     "Email",
     "EmailView",
+    "LoadingAnimation",
     "Main",
     "MainView",
     "Throbber",

@@ -3,6 +3,15 @@
  */
 Object.prototype.each = function (func, thisObj) {
   'use strict';
+
+  if (!thisObj) {
+    var src = func.toString().replace(/\/\/.*/g, '');
+    if (src.match(/\bthis\b/)) {
+      console.error('Possible incorrect use of `this`:');
+      console.log(func.toString());
+    }
+  }
+
   thisObj = thisObj || this;
   if ('length' in this) {
     for (var i = 0; i < this.length; ++i) {
@@ -230,46 +239,49 @@ var $ = (function (document) {
   /********
    * AJAX *
    *******/
+  var requestFailureCount = 0,
+      maximumDelay = 60000;
   U.ajax = function (args) {
-    var xhr;
+    var delay = Math.random() * (Math.pow(2, requestFailureCount) - 1);
+    delay = Math.min(delay, maximumDelay);
+    setTimeout(U._ajax.bind(U, args), delay);
+  };
 
-    try {
-      xhr = new XMLHttpRequest();
+  U._ajax = function (args) {
+    var xhr = new XMLHttpRequest();
 
-      xhr.onreadystatechange = function () {
-        if (this.readyState == 4) {
-          if (this.status == 200) {
-            if (args.onSuccess) {
-              args.onSuccess(this);
-            }
-          } else {
-            if (args.onError) {
-              args.onError(this);
-            }
+    xhr.onreadystatechange = function () {
+      if (this.readyState == 4) {
+        if (this.status == 200) {
+          requestFailureCount = 0;
+          if (args.onSuccess) {
+            args.onSuccess(this);
+          }
+        } else {
+          ++requestFailureCount;
+          if (args.onError) {
+            args.onError(this);
           }
         }
-      };
-
-      xhr.onerror = function (e) {
-        console.error(e);
-        if (args.onError)
-          args.onError(this, e);
-      };
-      
-      xhr.open(args.method || 'GET', args.url, true);
-
-      if (args.headers) {
-        args.headers.each(function (header, key) {
-          xhr.setRequestHeader(key, header);
-        });
       }
+    };
 
-      xhr.send(args.payload);
-    } catch (e) {
+    xhr.onerror = function (e) {
+      ++requestFailureCount;
       console.error(e);
       if (args.onError)
-        args.onError();
+        args.onError(this, e);
+    };
+
+    xhr.open(args.method || 'GET', encodeURI(args.url), true);
+
+    if (args.headers) {
+      args.headers.each(function (header, key) {
+        xhr.setRequestHeader(key, header);
+      });
     }
+
+    xhr.send(args.payload);
 
     return xhr;
   };
@@ -315,30 +327,22 @@ var $ = (function (document) {
 
     cls.prototype.unsubscribe = function (args) {
       // args - subscriber, callback, eventName
-      if (args.eventName) {
-        var listeners = this._listeners[args.eventName];
-        for (var idx = 0; idx < listeners.length; ++idx) {
-          var listener = listeners[idx];
-          if ((listener.subscriber === args.subscriber) ||
-              listener.callback === args.callback)
-            break;
-        }
+      var this_ = this,
+          subscriber = args.subscriber,
+          callback = args.callback,
+          names = (args.eventName ? [args.eventName] : eventNames);
 
-        if (idx == listeners.length)
-          return;
-
-        return listeners.splice(idx, 1);
-      } else {
-        var that = this;
-        eventNames.each(function (eventName) {
-          args.eventName = eventName;
-          that.unsubscribe(args);
-        });
-      }
+      names.each(function (eventName) {
+        this_._listeners[eventName] =
+          this_._listeners[eventName].filter(
+            function (listener) {
+              return (listener.subscriber !== subscriber) &&
+                (listener.callback !== callback);
+            });
+      });
+      return this;
     };
   };
 
   return U;
 } (document));
-
-console.dir($);

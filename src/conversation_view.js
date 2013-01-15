@@ -9,17 +9,12 @@ function ConversationView(conversation) {
   this.root = $.make('.conversation');
   this.root.conversation = conversation;
 
-  this.throbber = new Throbber(20, 'rgba(0,0,0,0.2)');
+  this.throbber = new Throbber(20, 'rgba(0,0,0,0.2)', $);
   this.throbber.root.classList.add('contents');
 
   this.update();
   this.conversation.subscribe('updated', this.update, this);
 }
-
-ConversationView.prototype.onDetach = function () {
-  'use strict';
-  this.conversation.unsubscribe({subscriber: this});
-};
 
 ConversationView.prototype.makeReplyControls = function () {
   'use strict';
@@ -106,7 +101,6 @@ ConversationView.makeToolbarButton = function (text, onclick, iconX, iconY) {
 
 ConversationView.prototype.onActionSuccess = function () {
   'use strict';
-  console.log('Success. Removing...', this);
   this.conversation.account.removeConversation(this.conversation.id);
 };
 
@@ -129,10 +123,8 @@ ConversationView.prototype.archive = function () {
   //analytics.mailArchive();
   'use strict';
   this.markBusy('Archiving...');
-  this.conversation.archive(function () {
-    this.conversation.markAsRead(this.onActionSuccess.bind(this),
+  this.conversation.archive(this.markAsRead.bind(this),
       this.onActionFailure.bind(this));
-  }, this.onActionFailure.bind(this));
 };
 
 ConversationView.prototype.markAsSpam = function () {
@@ -177,7 +169,6 @@ ConversationView.prototype.makeLabels = function () {
   this.conversation.labels.each(function (_, label) {
     if (label) {
       labelsElem.append($.make('span.label').text(label));
-      console.log('LABEL = ' + label);
     }
   });
   return labelsElem;
@@ -188,7 +179,7 @@ ConversationView.prototype.makeEmailList = function () {
   var emailListElem = $.make('.conversation-body');
   var count = this.conversation.emails.length;
   this.conversation.emails.each(function (email, idx) {
-    var emailElem = new EmailView(email, idx, count).root;
+    var emailElem = new EmailView(email, idx, count, $).root;
     emailElem.attr('id', 'email-' + idx);
     emailListElem.append(emailElem);
   });
@@ -204,7 +195,7 @@ ConversationView.prototype.update = function () {
   this.selector = $.make('input.selector', {'type': 'checkbox'})
     .on('click', function () {
       this.parentElement.classList.toggle('conversation-selected');
-      MainView.updateMultibarVisibility();
+      MainView.instance.updateMultibarVisibility();
     });
 
   this.contents = $.make(
@@ -245,7 +236,7 @@ ConversationView.prototype.select = function () {
   'use strict';
   this.selector.checked = true;
   this.root.classList.add('conversation-selected');
-  MainView.updateMultibarVisibility();
+  MainView.instance.updateMultibarVisibility();
 };
 
 ConversationView.prototype.markBusy = function (msg) {
@@ -260,4 +251,11 @@ ConversationView.prototype.markNotBusy = function () {
   this.root.classList.remove('conversation-busy');
   this.throbber.stop();
   this.contents.style.removeProperty('display');
+};
+
+ConversationView.prototype.onDetach = function () {
+  'use strict';
+  this.conversation.unsubscribe({subscriber: this});
+  delete this.root.conversation;
+  this.root = null;
 };

@@ -1,26 +1,27 @@
-var backgroundPage = chrome.extension.getBackgroundPage();
-var main = backgroundPage.main;
-var view;
-
-function importModules() {
+(function () {
   'use strict';
-  [ 'Account', 'Conversation', 'Email', 'Main' ].each(
-      function (moduleName) {
-        window[moduleName] = backgroundPage[moduleName];
-      });
-}
+  var backgroundPage = chrome.extension.getBackgroundPage();
+  var main = backgroundPage.main;
 
-function init() {
-  'use strict';
-  importModules();
+  //function importModules() {
+    //[ 'Account', 'Conversation', 'Email', 'Main' ].each(
+      //function (moduleName) {
+        //window[moduleName] = backgroundPage[moduleName];
+      //});
+  //}
 
-  var port = chrome.extension.connect();
-  port.postMessage('Popup loaded');
-  
-  view = new MainView(main);
-  $('inboxes').append(view.root);
+  function init() {
+    //importModules();
+    chrome.extension.connect();
 
-  main.update();
-}
+    setTimeout(function () {
+      main.detachView();
+      var view = new MainView(main);
+      $('inboxes').append(view.root);
+    }, 0);
 
-document.addEventListener('DOMContentLoaded', init);
+    setTimeout(main.update.bind(main), 2000);
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+}) ();

@@ -26,6 +26,7 @@ function AccountView(account) {
 AccountView.prototype.onDetach = function () {
   'use strict';
   this.account.unsubscribe({subscriber: this});
+  this.root = null;
 };
 
 AccountView.prototype.init = function () {
@@ -50,13 +51,12 @@ AccountView.prototype.addConversation = function (conversation) {
   }
 
   this.conversationList.insertBefore(
-      new ConversationView(conversation).root, child);
+      new ConversationView(conversation, $).root, child);
   this.updateHeader();
 };
 
 AccountView.prototype.deleteConversation = function (conversation) {
   'use strict';
-  console.log('Removing conversation element');
   this.conversationList.removeChild(conversation.view.root);
   this.updateHeader();
 };
