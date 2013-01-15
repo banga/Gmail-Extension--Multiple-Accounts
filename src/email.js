@@ -35,8 +35,9 @@ function Email(table, account) {
   }
 
   this.body = Email.cleanBody(cells[3], account.url);
-  div = $.make('div').html(this.body, account.url);
-  this.summary = $.HTMLDecode(div.innerText.trim().substr(0, 100));
+  div = $.make('div').html(this.body);
+  this.summary = div.innerText.replace(/\s+/g, ' ').replace(/^\s+/g, '')
+    .substr(0, 200);
 }
 
 Email.cleanBody = function (body, mailURL) {

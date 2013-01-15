@@ -60,27 +60,49 @@ Conversation.prototype.fromFeed = function (entryNode) {
   this.emails = [];
 };
 
+Conversation.guessUnread = function (summary, emails) {
+  'use strict';
+  var length, maxLength = 0, maxIdx = 0;
+  emails.each(function (email, idx) {
+    for (length = 0; length < summary.length; ++length) {
+      if (summary[length] != email.summary[length])
+        break;
+    }
+    if (length > maxLength) {
+      maxLength = length;
+      maxIdx = idx;
+    }
+  });
+  return maxIdx;
+};
+
 Conversation.prototype.update = function () {
   'use strict';
   console.assert(this.id);
-  var that = this;
+  var this_ = this;
   var onSuccess = function () {
-    that.isDirty = false;
-    that.publish('updated', that);
+    this_.isDirty = false;
+    this_.publish('updated', this_);
   };
   var onError = this.publish.bind(this, 'updateFailed', this);
 
   return $.post({
-    url: that.account.htmlModeURL() + '?&v=pt&th=' + that.id,
+    url: this_.account.htmlModeURL() + '?&v=pt&th=' + this_.id,
     onSuccess: function (xhr) {
       var div = $.make('div').html(xhr.responseText);
       var messageTables = div.querySelectorAll('.message');
 
       if (messageTables) {
-        that.emails = [];
+        this_.emails = [];
         for (var i = 0; i < messageTables.length; ++i) {
-          that.emails.push(new Email(messageTables[i], that.account));
+          this_.emails[i] = new Email(messageTables[i], this_.account);
         }
+
+        var unreadIdx = Conversation.guessUnread(this_.summary, this_.emails);
+        for (i = 0; i < this_.emails.length; ++i) {
+          this_.emails[i].collapsed = (i < unreadIdx);
+        }
+
         onSuccess();
       } else {
         onError();
