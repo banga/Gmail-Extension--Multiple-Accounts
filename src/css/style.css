@@ -250,10 +250,9 @@ body {
   text-align: center;
   line-height: 40px;
 }
-.throbber-title {
+.conversation .throbber-title {
   display: inline;
-  color: #555;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  color: #999;
 }
 .throbber canvas {
   position: relative;
@@ -265,42 +264,43 @@ pre {
 }
 .topbar {
   position: fixed;
-  top: 5px;
-  padding: 10px;
+  top: -5px;
+  padding: 8px 10px;
+  padding-top: 12px;
   cursor: pointer;
   color: #747474;
   font-size: 0.7em;
   font-family: 'Arial', sans-serif;
   border-radius: 4px;
-  border: 1px solid #92B5E2;
-  background: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.72) 0, rgba(218, 233, 235, 0.21) 100%);
-  box-shadow: inset 0px 1px 0px rgba(255, 255, 255, 0.3), inset 0px -1px 0px rgba(0, 0, 0, 0.2), 0px 0px 5px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgb(201, 201, 201);
+  background: -webkit-linear-gradient(top, rgb(248, 248, 248) 0, rgb(224, 224, 224) 100%);
+  box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.15);
 }
 #multibar {
   left: 14em; 
+  top: -45px;
   z-index: 100;
-  opacity: 0;
-  display: none;
   -webkit-transition: all 0.2s;
 }
 .multibar-button {
   display: inline;
   cursor: pointer;
   color: #3C3C3C;
-  font-size: 0.7em;
+  font-size: 11px;
   font-family: 'Arial', sans-serif;
   background: whiteSmoke;
   padding: 6px;
   margin-right: 5px;
-  border: 1px solid #9E9E9E;
-  border-radius: 4px;
-  box-shadow: inset -1px -1px 1px rgba(0, 0, 0, 0.1), inset 1px 1px 1px rgba(255, 255, 255, 0.5);
+  border: 1px solid rgb(185, 185, 185);
+  border-radius: 3px;
+  box-shadow: inset 0px 1px 1px rgba(255, 255, 255, 0.9), 0px 1px 0px rgba(255, 255, 255, 0.6);
   -webkit-transition: all 0.2s ease-in-out;
-  text-shadow: 0px 2px #F7F7F7;
-  background-image: -webkit-linear-gradient(bottom, #EBEBEB 12%, #FCFCFC 88%);
+  text-shadow: 0px 1px rgb(247, 247, 247);
+  background-image: -webkit-linear-gradient(top, rgb(241, 241, 241) 12%, rgb(219, 219, 219) 88%);
 }
 .multibar-button:hover {
-  background-image: -webkit-linear-gradient(bottom, #E8E8E8 12%, #F8F8F8 88%);
+  background: -webkit-linear-gradient(top, rgb(230, 230, 230) 12%, rgb(202, 202, 202) 88%);
+  text-shadow: 0px 1px 1px rgba(236, 236, 236, 0.4);
 }
 .multibar-button:active, .multibar-button:focus {
   color: #8D8D8D;

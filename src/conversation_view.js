@@ -6,7 +6,7 @@ function ConversationView(conversation) {
   this.root = $.make('.conversation');
   this.root.conversation = conversation;
 
-  this.throbber = new Throbber(20, '#CCC');
+  this.throbber = new Throbber(20, 'rgba(0,0,0,0.2)');
   this.throbber.root.classList.add('contents');
 
   this.update();

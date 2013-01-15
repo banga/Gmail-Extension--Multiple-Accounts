@@ -19,6 +19,8 @@ function init() {
   
   view = new MainView(main);
   $('inboxes').append(view.root);
+
+  main.update();
 }
 
 document.addEventListener('DOMContentLoaded', init);

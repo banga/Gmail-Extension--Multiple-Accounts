@@ -54,7 +54,7 @@ MainView.makeMultibar = function () {
     .append(MainView.makeMultibarButton('Mark as read',
           ConversationView.prototype.markAsRead))
     .append(MainView.makeMultibarButton('Archive',
-          ConversationView.prototype.Archive, -84, -21))
+          ConversationView.prototype.archive, -84, -21))
     .append(MainView.makeMultibarButton('Spam',
           ConversationView.prototype.markAsSpam, -42, -42))
     .append(MainView.makeMultibarButton('Delete',
@@ -77,6 +77,8 @@ MainView.makeMultibar = function () {
 
 MainView.updateMultibarVisibility = function () {
   'use strict';
+  if (!document) return;
+
   if (document.querySelectorAll('.conversation-selected').length) {
     MainView.showMultibar();
   } else {
@@ -86,11 +88,13 @@ MainView.updateMultibarVisibility = function () {
 
 MainView.showMultibar = function () {
   'use strict';
-  MainView.multibarElem.style.display = 'block';
-  MainView.multibarElem.style.opacity = 1;
+  //MainView.multibarElem.style.display = 'block';
+  //MainView.multibarElem.style.opacity = 1;
+  MainView.multibarElem.style.top = '-5px';
 };
 
 MainView.hideMultibar = function () {
   'use strict';
-  MainView.multibarElem.style.opacity = 0;
+  //MainView.multibarElem.style.opacity = 0;
+  MainView.multibarElem.style.top = '-45px';
 };
