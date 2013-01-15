@@ -21,7 +21,6 @@
     "Throbber",
     "analytics",
     "chrome",
-    "cache",
-    "gmail"
+    "webkitNotifications"
   ]
 }

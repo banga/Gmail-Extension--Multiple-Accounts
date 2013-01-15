@@ -123,7 +123,11 @@
     window.main = main;
 
     main.accounts.each(function (account) {
-      account.subscribe('conversationAdded', animateIfCountChanged);
+      account.subscribe('conversationAdded', function (conversation) {
+        animateIfCountChanged();
+        webkitNotifications.createNotification('images/icon_48.png',
+          conversation.subject, conversation.summary).show();
+      });
       account.subscribe('conversationDeleted', animateIfCountChanged);
     });
 

@@ -6,7 +6,8 @@ function ConversationView(conversation) {
   this.root = $.make('.conversation');
   this.root.conversation = conversation;
 
-  this.throbber = new Throbber(20, '#EEE');
+  this.throbber = new Throbber(20, '#CCC');
+  this.throbber.root.classList.add('contents');
 
   this.update();
   this.conversation.subscribe('updated', this.update, this);
@@ -94,21 +95,56 @@ ConversationView.makeToolbarButton = function (text, onclick, iconX, iconY) {
   return button;
 };
 
+ConversationView.prototype.onActionSuccess = function () {
+  'use strict';
+  console.log('Success. Removing...', this);
+  this.conversation.account.removeConversation(this.conversation.id);
+};
+
+ConversationView.prototype.onActionFailure = function () {
+  'use strict';
+  console.error('Gmail action failed');
+  this.throbber.update('There was an error. Updating...');
+  this.conversaton.update();
+};
+
+ConversationView.prototype.markAsRead = function () {
+  //analytics.mailMarkAsRead();
+  'use strict';
+  this.markBusy('Marking as read...');
+  this.conversation.markAsRead(this.onActionSuccess.bind(this),
+      this.onActionFailure.bind(this));
+};
+
+ConversationView.prototype.archive = function () {
+  //analytics.mailArchive();
+  'use strict';
+  this.markBusy('Archiving...');
+  this.conversation.archive(function () {
+    this.conversation.markAsRead(this.onActionSuccess.bind(this),
+      this.onActionFailure.bind(this));
+  }, this.onActionFailure.bind(this));
+};
+
+ConversationView.prototype.markAsSpam = function () {
+  //analytics.mailMarkAsSpam();
+  'use strict';
+  this.markBusy('Marking as Spam...');
+  this.conversation.markAsSpam(this.onActionSuccess.bind(this),
+      this.onActionFailure.bind(this));
+};
+
+ConversationView.prototype.trash = function () {
+  //analytics.trash();
+  'use strict';
+  this.markBusy('Deleting...');
+  this.conversation.trash(this.onActionSuccess.bind(this),
+      this.onActionFailure.bind(this));
+};
+
 ConversationView.prototype.makeToolbar = function () {
   'use strict';
   var this_ = this;
-
-  var onSuccess = function () {
-    console.log('Success. Removing...', this_);
-    this_.throbber.stop();
-    this_.conversation.account.removeConversation(this_.conversation.id);
-  };
-
-  var onError = function () {
-    console.error('Gmail action failed');
-    this_.throbber.update('There was an error. Updating...');
-    this_.conversaton.update();
-  };
 
   return $.make('.conversation-tools')
     .append(ConversationView.makeToolbarButton('Open in Gmail...',
@@ -117,29 +153,13 @@ ConversationView.prototype.makeToolbar = function () {
             this_.conversation.openInGmail();
           }, -63, -63))
     .append(ConversationView.makeToolbarButton('Mark as read',
-          function () {
-            //analytics.mailMarkAsRead();
-            this_.throbber.start('Marking as read...');
-            this_.conversation.markAsRead(onSuccess, onError);
-          }))
-    .append(ConversationView.makeToolbarButton('Archive', function () {
-            //analytics.mailArchive();
-            this_.throbber.start('Archiving...');
-            this_.conversation.archive(function () {
-                this_.conversation.markAsRead(onSuccess, onError);
-              }, onError);
-          }, -84, -21))
-    .append(ConversationView.makeToolbarButton('Spam', function () {
-            //analytics.mailMarkAsSpam();
-            this_.throbber.start('Marking as spam...');
-            this_.conversation.markAsSpam(onSuccess, onError);
-          }, -42, -42))
-    .append(ConversationView.makeToolbarButton('Delete', function () {
-            //analytics.mailDelete();
-            this_.throbber.start('Deleting...');
-            this_.conversation.trash(onSuccess, onError);
-          }, -63, -42))
-    .append(this.throbber.root);
+          this.markAsRead.bind(this)))
+    .append(ConversationView.makeToolbarButton('Archive',
+          this.archive.bind(this), -84, -21))
+    .append(ConversationView.makeToolbarButton('Spam',
+          this.markAsSpam.bind(this), -42, -42))
+    .append(ConversationView.makeToolbarButton('Delete',
+          this.trash.bind(this), -63, -42));
 };
 
 ConversationView.prototype.makeLabels = function () {
@@ -169,9 +189,17 @@ ConversationView.prototype.makeEmailList = function () {
 
 ConversationView.prototype.update = function () {
   'use strict';
+  var this_ = this;
+
   this.root.html('');
 
-  var contents = $.make('.contents-collapsed')
+  this.selector = $.make('input.selector', {'type': 'checkbox'})
+    .on('click', function () {
+      this.parentElement.classList.toggle('conversation-selected');
+      MainView.updateMultibarVisibility();
+    });
+
+  this.contents = $.make('.contents-collapsed')
     .append($.make('.subject').text(this.conversation.subject))
     .append($.make('.author').text(this.conversation.author))
     .append($.make('.summary').text(this.conversation.summary))
@@ -180,16 +208,30 @@ ConversationView.prototype.update = function () {
     .append(this.makeReplyControls())
     .append(this.makeToolbar());
 
-  contents.on('click', function () {
-    contents.classList.toggle('contents');
-    contents.classList.toggle('contents-collapsed');
+  this.contents.on('click', function (e) {
+    if (e.shiftKey || e.ctrlKey) {
+      this_.selector.click();
+    } else {
+      this_.contents.classList.toggle('contents');
+      this_.contents.classList.toggle('contents-collapsed');
+    }
   });
 
-  this.root
-    .append(
-        $.make('input.selector', {'type': 'checkbox'})
-        .on('click', function () {
-          contents.classList.toggle('contents-selected');
-        }))
-    .append(contents);
+  this.root.append(this.selector)
+    .append(this.contents)
+    .append(this.throbber.root);
+};
+
+ConversationView.prototype.markBusy = function (msg) {
+  'use strict';
+  this.root.classList.add('conversation-busy');
+  this.contents.style.display = 'none';
+  this.throbber.start(msg);
+};
+
+ConversationView.prototype.markNotBusy = function () {
+  'use strict';
+  this.root.classList.remove('conversation-busy');
+  this.throbber.stop();
+  this.contents.style.removeProperty('display');
 };
