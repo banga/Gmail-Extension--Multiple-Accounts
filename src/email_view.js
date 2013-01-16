@@ -1,75 +1,77 @@
-function EmailView(email, idx, count) {
+(function (global) {
   'use strict';
-  this.email = email;
-  email.attachView(this);
 
-  if (email.collapsed === undefined) {
-    email.collapsed = (idx < (count - 1));
+  function EmailView(email, idx, count) {
+    this.email = email;
+    email.attachView(this);
+
+    if (email.collapsed === undefined) {
+      email.collapsed = (idx < (count - 1));
+    }
+    this.root = $.make(email.collapsed ? '.email-hidden' : '.email');
+    this.render();
   }
-  this.root = $.make(email.collapsed ? '.email-hidden' : '.email');
-  this.render();
-}
 
-EmailView.prototype.onDetach = function () {
-  'use strict';
-  this.root = null;
-};
+  EmailView.prototype.onDetach = function () {
+    this.root = null;
+  };
 
-EmailView.prototype.onHeaderClick = function () {
-  'use strict';
-  var email = this.root;
-  var emailContents = this.root.lastElementChild;
+  EmailView.prototype.onHeaderClick = function () {
+    var email = this.root;
+    var emailContents = this.root.lastElementChild;
 
-  this.email.collapsed = !this.email.collapsed;
+    this.email.collapsed = !this.email.collapsed;
 
-  if (this.root.className == 'email') {
-    emailContents.style.height = '0px';
-    email.className = 'email-hidden';
-  } else {
-    emailContents.style.height =
-      emailContents.firstElementChild.clientHeight + 'px';
+    if (this.root.className == 'email') {
+      emailContents.style.height = '0px';
+      email.className = 'email-hidden';
+    } else {
+      emailContents.style.height =
+        emailContents.firstElementChild.clientHeight + 'px';
 
-    var transitionListener = function () {
-      emailContents.removeEventListener('webkitTransitionEnd',
+      var transitionListener = function () {
+        emailContents.removeEventListener('webkitTransitionEnd',
+            transitionListener);
+        email.className = 'email';
+      };
+      emailContents.addEventListener('webkitTransitionEnd',
           transitionListener);
-      email.className = 'email';
-    };
-    emailContents.addEventListener('webkitTransitionEnd',
-        transitionListener);
-  }
-};
+    }
+  };
 
-EmailView.prototype.render = function () {
-  'use strict';
-  var fromElem = $.make('a.contact-name', {email: this.email.from.email});
-  fromElem.textContent = this.email.from.name;
+  EmailView.prototype.render = function () {
+    var fromElem = $.make('a.contact-name', {email: this.email.from.email});
+    fromElem.textContent = this.email.from.name;
 
-  var toElem = $.make('.email-to');
-  this.email.to.each(function (contactList) {
-    var listElem = $.make('span.contact-list', {prefix: contactList.prefix});
-    contactList.items.each(function (item, idx) {
-      var contact = $.make('a.contact-name', {email: item.email});
-      contact.textContent = item.name +
-        (idx < (contactList.items.length - 1) ? ', ' : '');
-      listElem.append(contact);
+    var toElem = $.make('.email-to');
+    this.email.to.each(function (contactList) {
+      var listElem = $.make('span.contact-list', {prefix: contactList.prefix});
+      contactList.items.each(function (item, idx) {
+        var contact = $.make('a.contact-name', {email: item.email});
+        contact.textContent = item.name +
+          (idx < (contactList.items.length - 1) ? ', ' : '');
+        listElem.append(contact);
+      });
+      toElem.append(listElem);
     });
-    toElem.append(listElem);
-  });
 
-  this.root.html('');
+    this.root.html('');
 
-  this.root
-    .append($.make('.email-header')
-        .on('click', this.onHeaderClick.bind(this))
-        .append($.make('.email-from').append(fromElem))
-        .append($.make('.email-summary').html(this.email.summary))
-        .append($.make('.email-date', {'title': this.email.date})
-          .text($.getHumanDate(this.email.date))))
-    .append($.make('.email-contents')
-        .append($.make('div')
-          .append(toElem)
-          .append($.make('.email-body').html(this.email.body))))
-    .on('click', function (e) {
-      e.cancelBubble = true;
-    });
-};
+    this.root
+      .append($.make('.email-header')
+          .on('click', this.onHeaderClick.bind(this))
+          .append($.make('.email-from').append(fromElem))
+          .append($.make('.email-summary').html(this.email.summary))
+          .append($.make('.email-date', {'title': this.email.date})
+            .text($.getHumanDate(this.email.date))))
+      .append($.make('.email-contents')
+          .append($.make('div')
+            .append(toElem)
+            .append($.make('.email-body').html(this.email.body))))
+      .on('click', function (e) {
+        e.cancelBubble = true;
+      });
+  };
+
+  global.EmailView = EmailView;
+}) (window);

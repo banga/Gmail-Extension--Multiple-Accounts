@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Notification</title>
+  <link rel="stylesheet" type="text/css" href="css/notification.css" />
+</head>
+<body>
+  <div>
+    <div id='throbber'></div>
+    <div id='subject'> </div>
+    <div id='summary'> </div>
+    <div id='author'> </div>
+    <div id='toolbar'>
+      <div class='btn' id='openInGmail' title='Open in Gmail'>
+        <div class='icon icon-open'></div>
+      </div>
+      <div class='btn' id='markAsRead' title='Mark as Read'>✔</div>
+      <div class='btn' id='archive' title='Archive'>
+        <div class='icon icon-archive'></div>
+      </div>
+      <div class='btn' id='markAsSpam' title='Mark as Spam'>
+        <div class='icon icon-spam'></div>
+      </div>
+      <div class='btn' id='trash' title='Delete'>
+        <div class='icon icon-trash'></div>
+      </div>
+    </div>
+  </div>
+  <script src='util.js'></script>
+  <script src='throbber.js'></script>
+  <script src='notification.js'></script>
+</body>
+</html>

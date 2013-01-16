@@ -19,6 +19,7 @@
     "LoadingAnimation",
     "Main",
     "MainView",
+    "Notifier",
     "Throbber",
     "analytics",
     "chrome",

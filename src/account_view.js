@@ -1,62 +1,62 @@
-function AccountView(account) {
+(function (global) {
   'use strict';
-  this.account = account;
-  this.account.attachView(this);
-  this.root = $.make('.account');
 
-  this.header = $.make('.account-header')
-    .append($.make('.account-icon'))
-    .append(
-        $.make('.account-link')
-        .on('click', this.account.openInGmail.bind(this.account))
-        .text('Loading...'));
+  function AccountView(account) {
+    this.account = account;
+    this.account.attachView(this);
+    this.root = $.make('.account');
 
-  this.conversationList = $.make('.conversation-list');
-  this.root.append(this.header).append(this.conversationList);
+    this.header = $.make('.account-header')
+      .append($.make('.account-icon'))
+      .append(
+          $.make('.account-link')
+          .on('click', this.account.openInGmail.bind(this.account))
+          .text('Loading...'));
 
-  this.init();
-  this.account.conversations.each(this.addConversation.bind(this));
+    this.conversationList = $.make('.conversation-list');
+    this.root.append(this.header).append(this.conversationList);
 
-  this.account.subscribe('feedParsed', this.init, this);
-  this.account.subscribe('conversationAdded', this.addConversation, this);
-  this.account.subscribe('conversationDeleted',
-      this.deleteConversation, this);
-}
+    this.init();
+    this.account.conversations.each(this.addConversation.bind(this));
 
-AccountView.prototype.onDetach = function () {
-  'use strict';
-  this.account.unsubscribe({subscriber: this});
-  this.root = null;
-};
-
-AccountView.prototype.init = function () {
-  'use strict';
-  this.updateHeader();
-};
-
-AccountView.prototype.updateHeader = function () {
-  'use strict';
-  if (this.account.name) {
-    this.header.lastElementChild.text(
-        this.account.name + ' (' + this.account.unreadCount + ')');
-  }
-};
-
-AccountView.prototype.addConversation = function (conversation) {
-  'use strict';
-  var modified = new Date(conversation.modified),
-      child = this.conversationList.firstElementChild;
-  while (child && modified <= new Date(child.conversation.modified)) {
-    child = child.nextElementSibling;
+    this.account.subscribe('feedParsed', this.init, this);
+    this.account.subscribe('conversationAdded', this.addConversation, this);
+    this.account.subscribe('conversationDeleted',
+        this.deleteConversation, this);
   }
 
-  this.conversationList.insertBefore(
-      new ConversationView(conversation, $).root, child);
-  this.updateHeader();
-};
+  AccountView.prototype.onDetach = function () {
+    this.account.unsubscribe({subscriber: this});
+    this.root = null;
+  };
 
-AccountView.prototype.deleteConversation = function (conversation) {
-  'use strict';
-  this.conversationList.removeChild(conversation.view.root);
-  this.updateHeader();
-};
+  AccountView.prototype.init = function () {
+    this.updateHeader();
+  };
+
+  AccountView.prototype.updateHeader = function () {
+    if (this.account.name) {
+      this.header.lastElementChild.text(
+          this.account.name + ' (' + this.account.unreadCount + ')');
+    }
+  };
+
+  AccountView.prototype.addConversation = function (conversation) {
+    var modified = new Date(conversation.modified),
+        child = this.conversationList.firstElementChild;
+    while (child && modified <= new Date(child.conversation.modified)) {
+      child = child.nextElementSibling;
+    }
+
+    this.conversationList.insertBefore(
+        new ConversationView(conversation, $).root, child);
+    this.updateHeader();
+  };
+
+  AccountView.prototype.deleteConversation = function (conversation) {
+    this.conversationList.removeChild(conversation.view.root);
+    this.updateHeader();
+  };
+
+  global.AccountView = AccountView;
+}) (window);

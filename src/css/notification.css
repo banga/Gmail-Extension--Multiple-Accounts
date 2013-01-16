@@ -1,0 +1,81 @@
+body {
+  /*width: 280px;*/
+  margin: 2px;
+  padding: 0px;
+  font-family: 'Arial', sans-serif;
+  font-size: 13px;
+  word-break: break-all;
+  max-width: 300px;
+}
+#throbber {
+  position: fixed;
+  top: 0px;
+  right: 2px;
+  background: #EEE;
+  border: 1px solid #EEE;
+  border-radius: 2px;
+}
+.throbber-title {
+  display: inline;
+  color: #999;
+  margin-left: 6px;
+}
+#subject {
+  font-weight: bold;
+}
+#author {
+  float: right;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+#summary {
+  clear: both;
+  display: block;
+  padding: 4px 0px;
+  height: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#toolbar {
+  clear: both;
+  padding-top: 5px;
+  text-align: center;
+}
+.btn {
+  opacity: 0.5;
+  display: inline;
+  color: #3C3C3C;
+  padding: 6px;
+  margin-right: 5px;
+}
+.btn:hover {
+  opacity: 1;
+}
+#markAsRead {
+  cursor: default;
+  vertical-align: middle;
+  font-size: 15px;
+}
+.icon {
+  display: inline-block;
+  opacity: 0.5;
+  width: 21px;
+  height: 20px;
+  background-image: url("../images/mail_icons.png");
+  background-repeat: no-repeat no-repeat;
+  margin: -1px 0px -1px 0;
+  vertical-align: middle;
+}
+.icon-open {
+  background-position: -63px -63px;
+}
+.icon-archive {
+  background-position: -84px -21px;
+}
+.icon-spam {
+  background-position: -42px -42px;
+}
+.icon-trash {
+  background-position: -63px -42px;
+}

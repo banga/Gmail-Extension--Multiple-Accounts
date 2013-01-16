@@ -1,4 +1,6 @@
-var main;
+var main,
+    notifier;
+
 var bg = (function () {
   'use strict';
   var totalUnread = 0,
@@ -72,11 +74,6 @@ var bg = (function () {
     var addAccountListeners = function (account) {
       account.subscribe('conversationAdded', animateIfCountChanged, bg);
       account.subscribe('conversationDeleted', animateIfCountChanged, bg);
-
-      account.subscribe('conversationAdded', function (conversation) {
-        webkitNotifications.createNotification('images/icon_48.png',
-          conversation.subject, conversation.summary).show();
-      }, bg);
     };
 
     main.accounts.each(addAccountListeners);
@@ -88,13 +85,15 @@ var bg = (function () {
 
     main.subscribe('accountRemoved', function (account) {
       animateIfCountChanged();
-      account.unsubscribe(null);
+      account.unsubscribe(bg);
     }, bg);
 
     main.subscribe('accountFeedsParsed', function () {
       loadingAnimation.stop();
       animateIfCountChanged();
     }, bg);
+
+    notifier = new Notifier(main);
 
     setInterval(main.update.bind(main), 60000);
   }
@@ -172,5 +171,5 @@ var bg = (function () {
 
   document.addEventListener('DOMContentLoaded', init, false);
 
-  return { };
+  return {};
 }) ();

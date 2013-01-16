@@ -1,6 +1,5 @@
 (function (global) {
   'use strict';
-  global.LoadingAnimation = LoadingAnimation;
 
   function LoadingAnimation() {
     this.timerId_ = 0;
@@ -40,4 +39,6 @@
     window.clearInterval(this.timerId_);
     this.timerId_ = 0;
   };
+
+  global.LoadingAnimation = LoadingAnimation;
 }) (window);

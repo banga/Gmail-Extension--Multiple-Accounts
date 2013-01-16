@@ -1,261 +1,248 @@
-function ConversationView(conversation) {
+(function (global) {
   'use strict';
-  this.conversation = conversation;
-  this.conversation.attachView(this);
-  if (this.conversation.collapsed === undefined) {
-    this.conversation.collapsed = true;
+
+  function ConversationView(conversation) {
+    this.conversation = conversation;
+    this.conversation.attachView(this);
+    if (this.conversation.collapsed === undefined) {
+      this.conversation.collapsed = true;
+    }
+
+    this.root = $.make('.conversation');
+    this.root.conversation = conversation;
+
+    this.throbber = new Throbber(20, 'rgba(0,0,0,0.2)', $);
+    this.throbber.root.classList.add('contents');
+
+    this.update();
+    this.conversation.subscribe('updated', this.update, this);
   }
 
-  this.root = $.make('.conversation');
-  this.root.conversation = conversation;
+  ConversationView.prototype.makeReplyControls = function () {
+    var this_ = this;
+    var div = $.make('.conversation-reply');
+    var replyBody = $.make('textarea.conversation-reply-body', {
+        'rows': '1',
+        'cols': '80',
+        'placeholder': 'Reply here',
+        'wrap': 'virtual'
+      });
+    div.append(replyBody);
 
-  this.throbber = new Throbber(20, 'rgba(0,0,0,0.2)', $);
-  this.throbber.root.classList.add('contents');
+    replyBody.oninput = function () {
+      if (!this._replyStarted) {
+        this._replyStarted = true;
+        //analytics.replyStart();
+      }
 
-  this.update();
-  this.conversation.subscribe('updated', this.update, this);
-}
+      if (this.scrollHeight > this.clientHeight) {
+        this.style.height = this.scrollHeight + 'px';
+      }
 
-ConversationView.prototype.makeReplyControls = function () {
-  'use strict';
-  var this_ = this;
-  var div = $.make('.conversation-reply');
-  var replyBody = $.make('textarea.conversation-reply-body', {
-      'rows': '1',
-      'cols': '80',
-      'placeholder': 'Reply here',
-      'wrap': 'virtual'
+      if (this.value.trim().length) {
+        replyButton.removeAttribute('disabled');
+        replyControls.classList.remove('dim');
+        this.style.paddingBottom = '2em';
+      } else {
+        replyButton.setAttribute('disabled', true);
+        replyControls.classList.add('dim');
+        this.style.height = 'auto';
+        this.style.paddingBottom = '8px';
+      }
+    };
+
+    var replyAllCheckbox = $.make('input.reply-all', {'type': 'checkbox'});
+
+    var replyControls = $.make('.reply-controls.dim')
+      .append($.make('label').append(replyAllCheckbox).append('Reply All'));
+
+    var replyButton = $.make('input', {
+      'type': 'button',
+      'disabled': 'disabled',
+      'value': 'Send'
     });
-  div.append(replyBody);
 
-  replyBody.oninput = function () {
-    if (!this._replyStarted) {
-      this._replyStarted = true;
-      //analytics.replyStart();
-    }
+    replyButton.on('click', function () {
+      var checked = replyAllCheckbox.checked;
+      //analytics.replySend(checked ? 'ReplyAll' : 'Reply', replyBody.value.length);
+      this_.markBusy('Sending...');
+      this_.conversation.reply(replyBody.value, checked,
+        function () {
+          this_.markBusy('Sent! Updating...');
+          this_.conversation.update();
+        },
+        this_.onActionFailure.bind(this));
+    });
 
-    if (this.scrollHeight > this.clientHeight) {
-      this.style.height = this.scrollHeight + 'px';
-    }
+    replyControls.append(replyButton);
+    div.append(replyControls)
+      .on('click', function (e) {
+        e.cancelBubble = true;
+      });
 
-    if (this.value.trim().length) {
-      replyButton.removeAttribute('disabled');
-      replyControls.classList.remove('dim');
-      this.style.paddingBottom = '2em';
-    } else {
-      replyButton.setAttribute('disabled', true);
-      replyControls.classList.add('dim');
-      this.style.height = 'auto';
-      this.style.paddingBottom = '8px';
-    }
+    return div;
   };
 
-  var replyAllCheckbox = $.make('input.reply-all', {'type': 'checkbox'});
 
-  var replyControls = $.make('.reply-controls.dim')
-    .append($.make('label').append(replyAllCheckbox).append('Reply All'));
+  ConversationView.prototype.makeToolbarButton = function (
+      text, busyMessage, onclick, iconX, iconY) {
+    var button = $.make('.conversation-tools-button');
+    if (iconX !== undefined) {
+      button.append($.make('span.tool-icon', null, {
+        'background-position': iconX + 'px ' + iconY + 'px'
+      }));
+    }
+    button.append(text)
+      .on('click', function (e) {
+        e.cancelBubble = true;
+        this.markBusy(busyMessage);
+        onclick.call(this);
+      }.bind(this));
+    return button;
+  };
 
-  var replyButton = $.make('input', {
-    'type': 'button',
-    'disabled': 'disabled',
-    'value': 'Send'
-  });
+  ConversationView.prototype.onActionSuccess = function () {
+    this.conversation.account.removeConversation(this.conversation.id);
+  };
 
-  replyButton.on('click', function () {
-    var checked = replyAllCheckbox.checked;
-    //analytics.replySend(checked ? 'ReplyAll' : 'Reply', replyBody.value.length);
-    this_.markBusy('Sending...');
-    this_.conversation.reply(replyBody.value, checked,
-      function () {
-        this_.markBusy('Sent! Updating...');
-        this_.conversation.update();
-      },
-      this_.onActionFailure.bind(this));
-  });
+  ConversationView.prototype.onActionFailure = function () {
+    this.throbber.update('There was an error. Updating...');
+    this.conversaton.update();
+  };
 
-  replyControls.append(replyButton);
-  div.append(replyControls)
-    .on('click', function (e) {
-      e.cancelBubble = true;
+  ConversationView.prototype.markAsRead = function () {
+    //analytics.mailMarkAsRead();
+    this.conversation.markAsRead(this.onActionSuccess.bind(this),
+        this.onActionFailure.bind(this));
+  };
+
+  ConversationView.prototype.archive = function () {
+    //analytics.mailArchive();
+    this.conversation.archive(this.markAsRead.bind(this),
+        this.onActionFailure.bind(this));
+  };
+
+  ConversationView.prototype.markAsSpam = function () {
+    //analytics.mailMarkAsSpam();
+    this.conversation.markAsSpam(this.onActionSuccess.bind(this),
+        this.onActionFailure.bind(this));
+  };
+
+  ConversationView.prototype.trash = function () {
+    //analytics.trash();
+    this.conversation.trash(this.onActionSuccess.bind(this),
+        this.onActionFailure.bind(this));
+  };
+
+  ConversationView.prototype.makeToolbar = function () {
+    var this_ = this;
+
+    return $.make('.conversation-tools')
+      .append(this.makeToolbarButton('Open in Gmail...', 'Opening...',
+            function () { 
+              //analytics.mailOpen();
+              this_.conversation.openInGmail();
+            }, -63, -63))
+      .append(this.makeToolbarButton('Mark as read', 'Marking as read...',
+            this.markAsRead))
+      .append(this.makeToolbarButton('Archive', 'Archiving...',
+            this.archive, -84, -21))
+      .append(this.makeToolbarButton('Spam', 'Marking as Spam...',
+            this.markAsSpam, -42, -42))
+      .append(this.makeToolbarButton('Delete', 'Deleting...',
+            this.trash, -63, -42));
+  };
+
+  ConversationView.prototype.makeLabels = function () {
+    var labelsElem = $.make('.labels');
+    this.conversation.labels.each(function (_, label) {
+      if (label) {
+        labelsElem.append($.make('span.label').text(label));
+      }
+    });
+    return labelsElem;
+  };
+
+  ConversationView.prototype.makeEmailList = function () {
+    var emailListElem = $.make('.conversation-body');
+    var count = this.conversation.emails.length;
+    this.conversation.emails.each(function (email, idx) {
+      var emailElem = new EmailView(email, idx, count, $).root;
+      emailElem.attr('id', 'email-' + idx);
+      emailListElem.append(emailElem);
+    });
+    return emailListElem;
+  };
+
+  ConversationView.prototype.update = function () {
+    var this_ = this;
+
+    this.root.html('');
+
+    this.selector = $.make('input.selector', {'type': 'checkbox'})
+      .on('click', function () {
+        this.parentElement.classList.toggle('conversation-selected');
+        MainView.instance.updateMultibarVisibility();
+      });
+
+    this.contents = $.make(
+        this.conversation.collapsed ? '.contents-collapsed' : '.contents')
+      .append($.make('.subject').text(this.conversation.subject))
+      .append($.make('.author').text(this.conversation.author))
+      .append($.make('.summary').text(this.conversation.summary))
+      .append(this.makeLabels())
+      .append(this.makeEmailList())
+      .append(this.makeReplyControls())
+      .append(this.makeToolbar());
+
+    this.contents.on('click', function (e) {
+      if (e.shiftKey || e.ctrlKey) {
+        this_.selector.click();
+      } else {
+        this_.contents.classList.toggle('contents');
+        this_.contents.classList.toggle('contents-collapsed');
+        this_.conversation.collapsed = !this_.conversation.collapsed;
+      }
     });
 
-  return div;
-};
+    this.root.append(this.selector)
+      .append(this.contents)
+      .append(this.throbber.root);
 
-
-ConversationView.makeToolbarButton = function (text, onclick, iconX, iconY) {
-  'use strict';
-  var button = $.make('.conversation-tools-button');
-  if (iconX !== undefined) {
-    button.append($.make('span.tool-icon', null, {
-      'background-position': iconX + 'px ' + iconY + 'px'
-    }));
-  }
-  button.append(text);
-  button.on('click', function (e) {
-    e.cancelBubble = true;
-    onclick();
-  });
-  return button;
-};
-
-ConversationView.prototype.onActionSuccess = function () {
-  'use strict';
-  this.conversation.account.removeConversation(this.conversation.id);
-};
-
-ConversationView.prototype.onActionFailure = function () {
-  'use strict';
-  console.error('Gmail action failed');
-  this.throbber.update('There was an error. Updating...');
-  this.conversaton.update();
-};
-
-ConversationView.prototype.markAsRead = function () {
-  //analytics.mailMarkAsRead();
-  'use strict';
-  this.markBusy('Marking as read...');
-  this.conversation.markAsRead(this.onActionSuccess.bind(this),
-      this.onActionFailure.bind(this));
-};
-
-ConversationView.prototype.archive = function () {
-  //analytics.mailArchive();
-  'use strict';
-  this.markBusy('Archiving...');
-  this.conversation.archive(this.markAsRead.bind(this),
-      this.onActionFailure.bind(this));
-};
-
-ConversationView.prototype.markAsSpam = function () {
-  //analytics.mailMarkAsSpam();
-  'use strict';
-  this.markBusy('Marking as Spam...');
-  this.conversation.markAsSpam(this.onActionSuccess.bind(this),
-      this.onActionFailure.bind(this));
-};
-
-ConversationView.prototype.trash = function () {
-  //analytics.trash();
-  'use strict';
-  this.markBusy('Deleting...');
-  this.conversation.trash(this.onActionSuccess.bind(this),
-      this.onActionFailure.bind(this));
-};
-
-ConversationView.prototype.makeToolbar = function () {
-  'use strict';
-  var this_ = this;
-
-  return $.make('.conversation-tools')
-    .append(ConversationView.makeToolbarButton('Open in Gmail...',
-          function () { 
-            //analytics.mailOpen();
-            this_.conversation.openInGmail();
-          }, -63, -63))
-    .append(ConversationView.makeToolbarButton('Mark as read',
-          this.markAsRead.bind(this)))
-    .append(ConversationView.makeToolbarButton('Archive',
-          this.archive.bind(this), -84, -21))
-    .append(ConversationView.makeToolbarButton('Spam',
-          this.markAsSpam.bind(this), -42, -42))
-    .append(ConversationView.makeToolbarButton('Delete',
-          this.trash.bind(this), -63, -42));
-};
-
-ConversationView.prototype.makeLabels = function () {
-  'use strict';
-  var labelsElem = $.make('.labels');
-  this.conversation.labels.each(function (_, label) {
-    if (label) {
-      labelsElem.append($.make('span.label').text(label));
-    }
-  });
-  return labelsElem;
-};
-
-ConversationView.prototype.makeEmailList = function () {
-  'use strict';
-  var emailListElem = $.make('.conversation-body');
-  var count = this.conversation.emails.length;
-  this.conversation.emails.each(function (email, idx) {
-    var emailElem = new EmailView(email, idx, count, $).root;
-    emailElem.attr('id', 'email-' + idx);
-    emailListElem.append(emailElem);
-  });
-  return emailListElem;
-};
-
-ConversationView.prototype.update = function () {
-  'use strict';
-  var this_ = this;
-
-  this.root.html('');
-
-  this.selector = $.make('input.selector', {'type': 'checkbox'})
-    .on('click', function () {
-      this.parentElement.classList.toggle('conversation-selected');
-      MainView.instance.updateMultibarVisibility();
+    this.root.on('mousemove', function (e) {
+      if (e.which == 1 &&
+        this_.contents.classList.contains('contents-collapsed')) {
+        this_.select();
+      }
     });
 
-  this.contents = $.make(
-      this.conversation.collapsed ? '.contents-collapsed' : '.contents')
-    .append($.make('.subject').text(this.conversation.subject))
-    .append($.make('.author').text(this.conversation.author))
-    .append($.make('.summary').text(this.conversation.summary))
-    .append(this.makeLabels())
-    .append(this.makeEmailList())
-    .append(this.makeReplyControls())
-    .append(this.makeToolbar());
+    this.markNotBusy();
+  };
 
-  this.contents.on('click', function (e) {
-    if (e.shiftKey || e.ctrlKey) {
-      this_.selector.click();
-    } else {
-      this_.contents.classList.toggle('contents');
-      this_.contents.classList.toggle('contents-collapsed');
-      this_.conversation.collapsed = !this_.conversation.collapsed;
-    }
-  });
+  ConversationView.prototype.select = function () {
+    this.selector.checked = true;
+    this.root.classList.add('conversation-selected');
+    MainView.instance.updateMultibarVisibility();
+  };
 
-  this.root.append(this.selector)
-    .append(this.contents)
-    .append(this.throbber.root);
+  ConversationView.prototype.markBusy = function (msg) {
+    this.root.classList.add('conversation-busy');
+    this.contents.style.display = 'none';
+    this.throbber.start(msg);
+    this.throbber.root.scrollIntoViewIfNeeded(); 
+  };
 
-  this.root.on('mousemove', function (e) {
-    if (e.which == 1 &&
-      this_.contents.classList.contains('contents-collapsed')) {
-      this_.select();
-    }
-  });
+  ConversationView.prototype.markNotBusy = function () {
+    this.root.classList.remove('conversation-busy');
+    this.throbber.stop();
+    this.contents.style.removeProperty('display');
+  };
 
-  this.markNotBusy();
-};
+  ConversationView.prototype.onDetach = function () {
+    this.conversation.unsubscribe({subscriber: this});
+    delete this.root.conversation;
+    this.root = null;
+  };
 
-ConversationView.prototype.select = function () {
-  'use strict';
-  this.selector.checked = true;
-  this.root.classList.add('conversation-selected');
-  MainView.instance.updateMultibarVisibility();
-};
-
-ConversationView.prototype.markBusy = function (msg) {
-  'use strict';
-  this.root.classList.add('conversation-busy');
-  this.contents.style.display = 'none';
-  this.throbber.start(msg);
-};
-
-ConversationView.prototype.markNotBusy = function () {
-  'use strict';
-  this.root.classList.remove('conversation-busy');
-  this.throbber.stop();
-  this.contents.style.removeProperty('display');
-};
-
-ConversationView.prototype.onDetach = function () {
-  'use strict';
-  this.conversation.unsubscribe({subscriber: this});
-  delete this.root.conversation;
-  this.root = null;
-};
+  global.ConversationView = ConversationView;
+}) (window);
