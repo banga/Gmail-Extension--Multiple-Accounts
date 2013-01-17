@@ -12,30 +12,42 @@
     this.url = args.url ||
       (Account.GMAIL_URL + this.domain + '/u/' + this.number + '/');
 
-    this.status = Account.STATUS_INIT;
+    this.status = Account.STATUS_NONE;
+    this.feedStatus = Account.FEED_STATUS_NONE;
     this.lastUpdated = {};
     this.conversations = {};
     this.unreadCount = 0;
 
     this._labelQueue = [];
 
-    this.init();
-    this.subscribe('init', this.update, this);
-    this.subscribe('initFailed', this.init, this);
+    this.subscribe('init', function () {
+      log.info('Account initialized:', this.url);
+      this.status = Account.STATUS_INITIALIZED;
+      this.update();
+    }, this);
+
+    this.subscribe('initFailed', function () {
+      log.info('Account initialization failed:', this.url);
+      this.status = Account.STATUS_INITIALIZATION_FAILED;
+    }, this);
 
     this.subscribe('feedParsed', function () {
-      this.status = Account.STATUS_FEED_PARSED;
+      log.info('Account feed parsed:', this.url);
+      this.feedStatus = Account.FEED_STATUS_PARSED;
     }, this);
 
     this.subscribe('feedParseFailed', function () {
-      this.status = Account.STATUS_FEED_PARSE_FAILED;
+      log.info('Account feed parsing failed:', this.url);
+      this.feedStatus = Account.FEED_STATUS_PARSE_FAILED;
     }, this);
 
-    this.subscribe('conversationAdded', function () {
+    this.subscribe('conversationAdded', function (conversation) {
+      log.info('Conversation added:', conversation.subject);
       ++this.unreadCount;
     }, this);
 
-    this.subscribe('conversationDeleted', function () {
+    this.subscribe('conversationDeleted', function (conversation) {
+      log.info('Conversation deleted:', conversation.subject);
       --this.unreadCount;
     }, this);
   }
@@ -52,10 +64,14 @@
     ]);
 
   Account.GMAIL_URL = 'https://mail.google.com/';
-  Account.STATUS_INIT = 0;
-  Account.STATUS_FEED_PARSING = 1;
-  Account.STATUS_FEED_PARSED = 2;
-  Account.STATUS_FEED_PARSE_FAILED = 3;
+  Account.STATUS_NONE = 1;
+  Account.STATUS_INITIALIZING = 2;
+  Account.STATUS_INITIALIZED = 3;
+  Account.STATUS_INITIALIZATION_FAILED = 4;
+  Account.FEED_STATUS_NONE = 1;
+  Account.FEED_STATUS_PARSING = 2;
+  Account.FEED_STATUS_PARSED = 3;
+  Account.FEED_STATUS_PARSE_FAILED = 4;
 
   Account.prototype.toJSON = function () {
     return {
@@ -78,7 +94,8 @@
   };
 
   Account.prototype.htmlModeURL = function () {
-    return this.url + 'h/' + Math.ceil(Math.random() * 1.5e17).toString(26) + '/';
+    return this.url + 'h/' +
+      Math.ceil(Math.random() * 1.5e17).toString(26) + '/';
   };
 
   Account.prototype.feedURL = function (label) {
@@ -86,6 +103,10 @@
   };
 
   Account.prototype.init = function () {
+    if (this.status == Account.STATUS_INITIALIZING) {
+      return;
+    }
+    this.status = Account.STATUS_INITIALIZING;
     var that = this;
     var onSuccess = this.publish.bind(this, 'init', this);
     var onError = this.publish.bind(this, 'initFailed', this);
@@ -132,7 +153,8 @@
 
   Account.prototype._processLabelQueue = function () {
     if (this._labelQueue.length) {
-      this.parseFeed(this._labelQueue.pop(),
+      this._parseFeed(
+          this._labelQueue.pop(),
           this._processLabelQueue.bind(this),
           this.publish.bind(this, 'feedParseFailed', this));
     } else {
@@ -150,8 +172,17 @@
   };
 
   Account.prototype.update = function () {
-    if (this.status !== Account.STATUS_FEED_PARSING) {
-      this.status = Account.STATUS_FEED_PARSING;
+    if (this.status === Account.STATUS_INITIALIZATING) {
+      return;
+    }
+
+    if (this.status === Account.STATUS_INITIALIZATION_FAILED) {
+      this.init();
+      return;
+    }
+
+    if (this.feedStatus !== Account.FEED_STATUS_PARSING) {
+      this.feedStatus = Account.FEED_STATUS_PARSING;
       this._labelQueue = this.labels.slice(0);
       this._processLabelQueue();
     }
@@ -228,7 +259,7 @@
     onError();
   };
 
-  Account.prototype.parseFeed = function (label, onSuccess, onError) {
+  Account.prototype._parseFeed = function (label, onSuccess, onError) {
     $.get({
       url: this.feedURL(label),
       onSuccess: this._onFeed.bind(this, label, onSuccess, onError),

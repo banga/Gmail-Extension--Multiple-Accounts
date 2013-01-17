@@ -32,16 +32,22 @@
   };
 
   Notifier.prototype.onConversationAdded = function (conversation) {
+    var id = conversation.id;
+    if (id in this.notifications &&
+        this.notifications[id].modified === conversation.modified) {
+      return;
+    }
+
+    this.notifications[id] = {
+      conversation: conversation,
+      modified: conversation.modified
+    };
+
     var delta = new Date().getTime() -
       new Date(conversation.modified).getTime();
 
-    var notificationID = conversation.id;
-    this.notifications[notificationID] = {
-      conversation: conversation
-    };
-
     if (delta <= this.settings.delta) {
-      this.showNotification(notificationID);
+      this.showNotification(id);
     }
   };
 

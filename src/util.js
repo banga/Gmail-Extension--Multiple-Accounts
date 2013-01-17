@@ -4,13 +4,13 @@
 Object.prototype.each = function (func, thisObj) {
   'use strict';
 
-  if (!thisObj) {
-    var src = func.toString().replace(/\/\/.*/g, '');
-    if (src.match(/\bthis\b/)) {
-      console.error('Possible incorrect use of `this`:');
-      console.log(func.toString());
-    }
-  }
+  //if (!thisObj) {
+    //var src = func.toString().replace(/\/\/.*/g, '');
+    //if (src.match(/\bthis\b/)) {
+      //log.error('Possible incorrect use of `this`:');
+      //log.info(func.toString());
+    //}
+  //}
 
   thisObj = thisObj || this;
   if ('length' in this) {
@@ -50,7 +50,7 @@ Element.prototype.on = function (type, listener, capture) {
   if (this.nodeType == 1) {
     this.addEventListener(type, listener, capture);
   } else {
-    console.warn('Not adding listener to ', this, this.nodeType);
+    log.error('Not adding listener to ', this, this.nodeType);
   }
   return this;
 };
@@ -268,7 +268,7 @@ var $ = (function (document) {
 
     xhr.onerror = function (e) {
       ++requestFailureCount;
-      console.error(e);
+      log.error(e);
       if (args.onError)
         args.onError(this, e);
     };
@@ -309,6 +309,10 @@ var $ = (function (document) {
 
     cls.prototype.publish = function (eventName, args) {
       makeStorageIfNeeded(this);
+      if (!(eventName in this._listeners)) {
+        log.error(eventName + ' not declared in event names');
+        return;
+      }
       this._listeners[eventName].each(function (listener) {
         listener.callback.call(listener.subscriber, args);
       });

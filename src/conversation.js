@@ -6,12 +6,28 @@
     this.fromFeed(entryNode);
     this.labels = {};
     this.isDirty = true;
+    this.status = Conversation.STATUS_NONE;
+
+    this.subscribe('updated', function () {
+      this.status = Conversation.STATUS_UPDATE_SUCCEDED;
+      log.info('Conversation updated: "' + this.subject + '"');
+    }, this);
+
+    this.subscribe('updateFailed', function () {
+      this.status = Conversation.STATUS_UPDATE_FAILED;
+      log.info('Conversation update failed: "' + this.subject + '"');
+    }, this);
   }
 
   $.addEventHandling(Conversation, [
       'updated',
       'updateFailed'
     ]);
+
+  Conversation.STATUS_NONE = 1;
+  Conversation.STATUS_UPDATING = 2;
+  Conversation.STATUS_UPDATE_FAILED = 3;
+  Conversation.STATUS_UPDATE_SUCCEDED = 4;
 
   Conversation.prototype.addLabel = function (label) {
     this.labels[label] = '';
@@ -52,7 +68,7 @@
 
     var msgID = this.link.match(/message_id=([\w]*)/);
     this.id = msgID[1];
-    console.assert(this.id);
+    log.assert(this.id);
 
     this.emails = [];
   };
@@ -73,7 +89,13 @@
   };
 
   Conversation.prototype.update = function () {
-    console.assert(this.id);
+    if (this.status == Conversation.STATUS_UPDATING)
+      return;
+
+    log.info('Conversation updating:', '"' + this.subject + '"');
+    this.status = Conversation.STATUS_UPDATING;
+
+    log.assert(this.id);
     var this_ = this;
     var onSuccess = function () {
       this_.isDirty = false;
@@ -82,7 +104,7 @@
     var onError = this.publish.bind(this, 'updateFailed', this);
 
     return $.post({
-      url: this_.account.htmlModeURL() + '?&v=pt&th=' + this_.id,
+      url: this.account.htmlModeURL() + '?&v=pt&th=' + this.id,
       onSuccess: function (xhr) {
         var div = $.make('div').html(xhr.responseText);
         var messageTables = div.querySelectorAll('.message');
@@ -109,6 +131,7 @@
 
   Conversation.prototype.markDirty = function () {
     this.isDirty = true;
+    log.info('Conversation ' + this.subject + ' marked dirty');
   };
 
   Conversation.prototype.updateIfDirty = function () {
@@ -135,7 +158,10 @@
     payload.append('at', this.account.at);
     payload.append('act', action);
 
-    return $.post({
+    log.info('Conversation ' + this.subject +
+        ' doing gmail action: ' + action);
+
+    $.post({
       url: url,
       onSuccess: onSuccess,
       onError: onError,

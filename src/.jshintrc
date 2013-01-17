@@ -1,6 +1,5 @@
 {
   "browser": true,
-  "devel": true,
   "forin": true,
   "indent": 2,
   "quotmark": "single",
@@ -17,12 +16,14 @@
     "Email",
     "EmailView",
     "LoadingAnimation",
+    "Log",
     "Main",
     "MainView",
     "Notifier",
     "Throbber",
     "analytics",
     "chrome",
+    "log",
     "webkitNotifications"
   ]
 }

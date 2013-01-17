@@ -2,14 +2,14 @@
   'use strict';
 
   function Email(table, account) {
-    console.assert(table);
-    console.assert(account);
+    log.assert(table);
+    log.assert(account);
 
     var tb = table.querySelector('tbody'),
         cells = tb.querySelectorAll('td'),
         i;
 
-    var from = $.extractContacts(cells[0].text());
+    var from = Email.extractContacts(cells[0].text());
     this.from = {
       name: from.items[0][0],
       email: from.items[0][1]
@@ -20,7 +20,7 @@
     this.to = [];
     var div = cells[2].firstElementChild.firstElementChild;
     while (div) {
-      var contacts = $.extractContacts(div.innerText.replace(/\n/g, ''));
+      var contacts = Email.extractContacts(div.innerText.replace(/\n/g, ''));
       var contactList = {
         prefix: contacts.prefix,
         items: []
@@ -40,7 +40,30 @@
     div = $.make('div').html(this.body);
     this.summary = div.innerText.replace(/\s+/g, ' ').replace(/^\s+/g, '')
       .substr(0, 200);
+
+    log.info('Email created: "' + this.summary.substr(0, 50) + '"');
   }
+
+  Email.extractContacts = function (str) {
+    // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
+    var contacts = {};
+    var match = /([^:]*):(.*)/.exec(str);
+    if (match) {
+      contacts.prefix = match[1];
+      str = match[2];
+    }
+
+    var reContact = /([^<>]*)(<[^>]*>)?/;
+    var items = str.split(',');
+    for (var i = 0; i < items.length; ++i) {
+      match = reContact.exec(items[i]);
+      var name = match[1].trim();
+      items[i] = [ name, match[2] || name ];
+    }
+
+    contacts.items = items;
+    return contacts;
+  };
 
   Email.cleanBody = function (body, mailURL) {
     return body.html()

@@ -1,5 +1,6 @@
 var main,
-    notifier;
+    notifier,
+    log = new Log('background');
 
 var bg = (function () {
   'use strict';
@@ -47,6 +48,8 @@ var bg = (function () {
 
   function loadAccounts() {
     var accountInfo;
+
+    log.info('loadAccounts');
 
     if (localStorage.accountInfo) {
       accountInfo = JSON.parse(localStorage.accountInfo);
@@ -109,7 +112,7 @@ var bg = (function () {
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
     loadingAnimation.start();
 
-    setTimeout(loadAccounts, 0);
+    loadAccounts();
   }
 
   function animateIfCountChanged() {
@@ -171,5 +174,7 @@ var bg = (function () {
 
   document.addEventListener('DOMContentLoaded', init, false);
 
-  return {};
+  return {
+    loadAccounts: loadAccounts
+  };
 }) ();

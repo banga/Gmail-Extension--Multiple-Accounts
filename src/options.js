@@ -8,12 +8,12 @@
     function discoverAccount(accountNumber) {
       fetchAccountInfo(accountNumber,
         function (number, title) {
-          console.log(number, title);
+          log.log(number, title);
           addAccount(number, title);
           discoverAccount(number + 1);
         },
         function (number) {
-          console.log('Found ' + number + ' accounts');
+          log.log('Found ' + number + ' accounts');
           $('discovering-message').style.display = 'none';
         });
     }
@@ -92,7 +92,6 @@
     if (account.labels.indexOf(label) == -1) {
       account.labels.push(label);
     }
-    console.dir(account);
   }
 
   function removeLabel(number, label) {
@@ -102,7 +101,6 @@
     if (idx != -1) {
       account.labels.splice(idx, 1);
     }
-    console.dir(account);
   }
 
   function addLabelSelectionElement(accountElem, label, name, accountNumber) {
@@ -117,7 +115,6 @@
 
     if (accountInfo.accounts[accountNumber] &&
         accountInfo.accounts[accountNumber].labels.indexOf(label) != -1) {
-      console.log('Checked: ' + label);
       checkbox.setAttribute('checked');
     }
   }
@@ -204,7 +201,7 @@
             addAccount(number, title);
             closeSignInWindow();
           }, function () {
-            console.error('Couldn\'t parse feed for ' + info.url);
+            log.error('Couldn\'t parse feed for ' + info.url);
           });
       }
     });

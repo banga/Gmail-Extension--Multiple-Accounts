@@ -173,6 +173,7 @@ body {
 .subject {
   float: left;
   font-weight: bold;
+  margin-right: 5px;
 }
 .author {
   margin-left: 10px;
@@ -188,14 +189,21 @@ body {
   min-height: 20px;
 }
 .labels {
-  clear: both;
+  float: left;
 }
 .label {
+  cursor: default;
+  color: rgb(83, 144, 201);
   font-size: 11px;
-  color: #EEE;
-  background: #AAA;
-  border-radius: 2px;
-  padding: 1px;
+  font-family: 'Arial', sans-serif;
+  background: whiteSmoke;
+  padding: 2px 4px;
+  margin-right: 5px;
+  border: 1px solid rgb(185, 185, 185);
+  border-radius: 3px;
+  box-shadow: inset 0px 1px 1px rgba(255, 255, 255, 0.9), 0px 1px 0px rgba(255, 255, 255, 0.6);
+  text-shadow: 0px 1px rgb(245, 245, 245);
+  background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.19) 12%, rgba(168, 168, 168, 0.19) 88%);
 }
 .conversation-tools {
   color: #555;
@@ -368,14 +376,19 @@ pre {
   display: none;
 }
 .email-to {
-  font-size: 0.8em;
+  max-height: 85px;
+  overflow: auto;
+  margin-left: 13px;
+  font-size: 12px;
+  line-height: 12px;
   color: #888;
-  margin-left: 1em;
+  padding: 2px 0px 3px 0px;
 }
 .contact-list:before {
   content: attr(prefix) ":";
   font-weight: bold;
   margin-right: 2px;
+  color: #333;
 }
 .contact-list {
   margin-right: 10px;
@@ -383,6 +396,7 @@ pre {
 .contact-name {
   cursor: pointer;
   position: relative;
+  margin: 0px 2px;
 }
 .contact-name:hover {
   color: #555;
@@ -390,7 +404,7 @@ pre {
 .contact-name:hover:after {
   content: attr(email);
   position: absolute;
-  top: 1.1em;
+  top: 0;
   left: 0;
   padding: 1px 8px;
   border: 1px solid #DDD;

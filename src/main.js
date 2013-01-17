@@ -9,23 +9,32 @@
   $.addEventHandling(Main, [
       'accountAdded',
       'accountRemoved',
+      'accountInitFailed',
       'accountFeedsParsed',
       'accountFeedsParseFailed'
     ]);
 
   Main.prototype.addAccount = function (accountObj) {
     var account = new Account(accountObj);
-    this.accounts.push(account);
-    this.publish('accountAdded', account);
+
+    account.subscribe('initFailed', function () {
+      this.publish('accountInitFailed', account);
+      setTimeout(account.init.bind(account), 10000);
+    }, this);
 
     account.subscribe('feedParsed', this.checkStatus, this);
     account.subscribe('feedParseFailed', function () {
       this.publish('accountFeedsParseFailed', account);
     }, this);
+
+    this.accounts.push(account);
+    this.publish('accountAdded', account);
+
+    account.init();
   };
 
   Main.prototype.removeAccount = function (idx) {
-    console.assert(idx >= 0 && idx < this.accounts.length);
+    log.assert(idx >= 0 && idx < this.accounts.length);
 
     var account = this.accounts.splice(idx, 1)[0];
     this.publish('accountRemoved', account);
@@ -34,7 +43,7 @@
 
   Main.prototype.checkStatus = function () {
     var allParsed = this.accounts.every(function (account) {
-      return account.status == Account.STATUS_FEED_PARSED;
+      return account.feedStatus === Account.FEED_STATUS_PARSED;
     });
 
     if (allParsed) {

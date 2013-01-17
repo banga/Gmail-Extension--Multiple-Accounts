@@ -32,8 +32,8 @@
     };
 
     document.getElementById('openInGmail').onclick = function () {
-      notification.conversation.openInGmail();
       notification.notification.cancel();
+      notification.conversation.openInGmail();
     };
 
     ['markAsRead', 'archive', 'markAsSpam', 'trash'].some(
