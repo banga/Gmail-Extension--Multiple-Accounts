@@ -2,18 +2,19 @@
   'use strict';
   var accountInfo = {version: 2, accounts: []},
       signInWindowID = 0,
-      signInTabID = 0;
+      signInTabID = 0,
+      log = new Log('options');
 
   function discoverAccounts() {
     function discoverAccount(accountNumber) {
       fetchAccountInfo(accountNumber,
         function (number, title) {
-          log.log(number, title);
+          log.info(number, title);
           addAccount(number, title);
           discoverAccount(number + 1);
         },
         function (number) {
-          log.log('Found ' + number + ' accounts');
+          log.info('Found ' + number + ' accounts');
           $('discovering-message').style.display = 'none';
         });
     }
@@ -108,15 +109,17 @@
       .attr('type', 'checkbox')
       .attr('value', label);
 
+    var account = accountInfo.accounts[accountNumber];
+    if (account && account.labels &&
+        account.labels.indexOf(label) != -1) {
+      log.info('Label:', label, 'Account:', accountNumber);
+      checkbox.attr('checked', '');
+    }
+
     accountElem.append(
         $.make('.label-select')
         .append(checkbox)
         .append(name));
-
-    if (accountInfo.accounts[accountNumber] &&
-        accountInfo.accounts[accountNumber].labels.indexOf(label) != -1) {
-      checkbox.setAttribute('checked');
-    }
   }
 
   function addAccountElement(number, title, labels) {
@@ -168,7 +171,7 @@
 
   function save() {
     localStorage.accountInfo = JSON.stringify(accountInfo);
-    chrome.extension.getBackgroundPage().loadAccounts();
+    chrome.extension.getBackgroundPage().bg.loadAccounts();
   }
 
   function init() {

@@ -15,7 +15,7 @@
     this._write(msg);
   };
 
-  var getStackTrace = function () {
+  Log.getStackTrace = function () {
     try {
       doesnotexist.a = 2;
     } catch (e) {
@@ -24,17 +24,48 @@
   };
 
   Log.prototype.trace = function () {
-    this._write(getStackTrace());
+    this._write(Log.getStackTrace());
   };
 
   Log.prototype.error = function (msg) {
-    this._write('Error: ' + msg + '\n' + getStackTrace());
+    this._write('Error: ' + msg + '\n' + Log.getStackTrace());
   };
 
   Log.prototype.assert = function (condition, msg) {
     if (!condition) {
       this.error('(Assertion failed) ' + msg);
     }
+  };
+
+  Log.indent = function (str) {
+    return str.replace(/\n$/, '').replace(/^/mg, '  ');
+  };
+
+  Log.examine = function (obj, level) {
+    if (typeof obj !== 'object') {
+      if (typeof obj === 'string') {
+        return '"' + obj + '"\n';
+      }
+      return obj.toString() + '\n';
+    }
+
+    var str = obj.constructor.name + '\n'; 
+    level = level || 0;
+
+    var contents = '';
+    if (level <= 4) {
+      obj.each(function (value, key) {
+        contents += key + ': ' + Log.examine(value, level + 1);
+      });
+    }
+    if (contents.length)
+      str += Log.indent(contents) + '\n';
+    return str;
+  };
+
+  Log.prototype.dir = function (obj) {
+    console.dir(obj);
+    this._write(Log.examine(obj));
   };
 
   if (chrome.runtime.id === 'kdcblpjgmdimneclgllpmhlibdlbecpi') {

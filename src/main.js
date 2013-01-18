@@ -15,6 +15,19 @@
     ]);
 
   Main.prototype.addAccount = function (accountObj) {
+    accountObj.domain = accountObj.domain || 'mail';
+    accountObj.number = accountObj.number || 0;
+
+    var duplicate = this.accounts.some(function (account) {
+      return accountObj.domain == account.domain &&
+        accountObj.number == account.number;
+    });
+
+    if (duplicate) {
+      log.error('Duplicate account');
+      return;
+    }
+
     var account = new Account(accountObj);
 
     account.subscribe('initFailed', function () {

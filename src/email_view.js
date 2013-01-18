@@ -12,6 +12,8 @@
     this.render();
   }
 
+  EmailView.MAX_CONTACTS_SHOWN = 10;
+
   EmailView.prototype.onDetach = function () {
     this.root = null;
   };
@@ -40,19 +42,43 @@
   };
 
   EmailView.prototype.render = function () {
-    var fromElem = $.make('a.contact-name', {email: this.email.from.email});
-    fromElem.textContent = this.email.from.name;
+    var fromElem = $.make('span.contact-name', {
+      email: this.email.from.email,
+      name: this.email.from.name
+    }).text(this.email.from.name);
 
     var toElem = $.make('.email-to');
     this.email.to.each(function (contactList) {
-      var listElem = $.make('span.contact-list', {prefix: contactList.prefix});
-      contactList.items.each(function (item, idx) {
-        var contact = $.make('a.contact-name', {email: item.email});
-        contact.textContent = item.name +
-          (idx < (contactList.items.length - 1) ? ', ' : '');
-        listElem.append(contact);
+      var items = contactList.items,
+          listElem = $.make('span.contact-list', {prefix: contactList.prefix}),
+          hiddenListElem = $.make('span', null, {display: 'none'}),
+          showCount = Math.min(items.length, EmailView.MAX_CONTACTS_SHOWN);
+
+      items.each(function (item, idx) {
+        var contact = $.make('span.contact-name', {
+          email: item.email,
+          name: item.name
+        }).text(item.shortName + (idx < (items.length - 1) ? ', ' : ''));
+
+        if (idx < showCount) {
+          listElem.append(contact);
+        } else {
+          hiddenListElem.append(contact);
+        }
       });
+
+      listElem.append(hiddenListElem);
       toElem.append(listElem);
+
+      if (contactList.items.length > EmailView.MAX_CONTACTS_SHOWN) {
+        var moreElem = $.make('span.contact-list-more')
+          .text('(' + (items.length - showCount) + ' more)')
+          .on('click', function () {
+            moreElem.style.display = 'none';
+            hiddenListElem.style.display = 'inline';
+          });
+        toElem.append(moreElem);
+      }
     });
 
     this.root.html('');

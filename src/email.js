@@ -6,33 +6,15 @@
     log.assert(account);
 
     var tb = table.querySelector('tbody'),
-        cells = tb.querySelectorAll('td'),
-        i;
+        cells = tb.querySelectorAll('td');
 
-    var from = Email.extractContacts(cells[0].text());
-    this.from = {
-      name: from.items[0][0],
-      email: from.items[0][1]
-    };
-
+    this.from = Email.extractContact(cells[0].text());
     this.date = cells[1].innerText.replace(/\n/g, '');
 
     this.to = [];
     var div = cells[2].firstElementChild.firstElementChild;
     while (div) {
-      var contacts = Email.extractContacts(div.innerText.replace(/\n/g, ''));
-      var contactList = {
-        prefix: contacts.prefix,
-        items: []
-      };
-      var items = contacts.items;
-      for (i = 0; i < items.length; ++i) {
-        contactList.items.push({
-          name: items[i][0],
-          email: items[i][1]
-        });
-      }
-      this.to.push(contactList);
+      this.to.push(Email.extractContacts(div.innerText.replace(/\n/g, '')));
       div = div.nextElementSibling;
     }
 
@@ -44,25 +26,41 @@
     log.info('Email created: "' + this.summary.substr(0, 50) + '"');
   }
 
+  Email.extractContact = function (str) {
+    str = str.trim();
+    var r1 = /((?:^"[^"]*")|(?:^[^<>]*))/,
+        match = r1.exec(str),
+        item = { };
+    item.name = match[1].trim().replace(/^"|"$/g, '');
+    item.shortName = Email.extractShortName(item.name);
+    item.email = str.substr(match[1].length + 1) || item.name;
+    item.email = item.email.replace(/^<|>$/g, '');
+    return item;
+  };
+
   Email.extractContacts = function (str) {
-    // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
-    var contacts = {};
-    var match = /([^:]*):(.*)/.exec(str);
-    if (match) {
-      contacts.prefix = match[1];
-      str = match[2];
+    var contacts = { prefix: '', items: [] }, idx = str.indexOf(':');
+    if (idx >= 0) {
+      contacts.prefix = str.substr(0, idx);
+      str = str.substr(idx + 1);
     }
 
-    var reContact = /([^<>]*)(<[^>]*>)?/;
-    var items = str.split(',');
-    for (var i = 0; i < items.length; ++i) {
-      match = reContact.exec(items[i]);
-      var name = match[1].trim();
-      items[i] = [ name, match[2] || name ];
+    var prev = 0, inQuotes = false, count = 0, items = [];
+    str += ',';
+    for (var i = 0; i < str.length; ++i) {
+      if (str[i] === '"') {
+        inQuotes = !inQuotes;
+      } else if (str[i] === ',' && !inQuotes) {
+        items[count++] = Email.extractContact(str.slice(prev, i));
+        prev = i + 1;
+      }
     }
-
     contacts.items = items;
     return contacts;
+  };
+
+  Email.extractShortName = function (name) {
+    return name.substr(name.indexOf(',') + 1).trim().split(' ')[0];
   };
 
   Email.cleanBody = function (body, mailURL) {

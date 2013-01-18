@@ -188,9 +188,9 @@
     this.contents = $.make(
         this.conversation.collapsed ? '.contents-collapsed' : '.contents')
       .append($.make('.subject').text(this.conversation.subject))
+      .append(this.makeLabels())
       .append($.make('.author').text(this.conversation.author))
       .append($.make('.summary').text(this.conversation.summary))
-      .append(this.makeLabels())
       .append(this.makeEmailList())
       .append(this.makeReplyControls())
       .append(this.makeToolbar());

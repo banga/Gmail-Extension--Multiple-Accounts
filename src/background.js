@@ -1,6 +1,9 @@
 var main,
     notifier,
-    log = new Log('background');
+    log = new Log('background'),
+    _test = function () {
+      chrome.tabs.create({ url: 'test.html' });
+    };
 
 var bg = (function () {
   'use strict';

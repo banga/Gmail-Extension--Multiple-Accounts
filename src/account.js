@@ -99,7 +99,7 @@
   };
 
   Account.prototype.feedURL = function (label) {
-    return this.url + 'feed/atom/' + label;
+    return this.url + 'feed/atom/' + label.replace('/', ' ');
   };
 
   Account.prototype.init = function () {
@@ -229,9 +229,8 @@
               if (conversation.modified != newConversation.modified) {
                 conversation.fromFeed(entryNode);
                 conversation.markDirty();
-              } else {
-                conversation.addLabel(label);
               }
+              conversation.addLabel(label);
             } else {
               // New conversation
               newConversation.addLabel(label);
@@ -260,6 +259,8 @@
   };
 
   Account.prototype._parseFeed = function (label, onSuccess, onError) {
+    log.info('Parsing feed ', this.feedURL(label));
+
     $.get({
       url: this.feedURL(label),
       onSuccess: this._onFeed.bind(this, label, onSuccess, onError),

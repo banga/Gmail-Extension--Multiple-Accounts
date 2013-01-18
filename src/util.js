@@ -1,100 +1,90 @@
-/*
- * Object extensions
- */
-Object.prototype.each = function (func, thisObj) {
+(function (document, global) {
   'use strict';
-
-  //if (!thisObj) {
-    //var src = func.toString().replace(/\/\/.*/g, '');
-    //if (src.match(/\bthis\b/)) {
-      //log.error('Possible incorrect use of `this`:');
-      //log.info(func.toString());
+  /*
+   * Object extensions
+   */
+  Object.prototype.each = function (func, thisObj) {
+    //if (!thisObj) {
+      //var src = func.toString().replace(/\/\/.*/g, '');
+      //if (src.match(/\bthis\b/)) {
+        //log.error('Possible incorrect use of `this`:');
+        //log.info(func.toString());
+      //}
     //}
-  //}
 
-  thisObj = thisObj || this;
-  if ('length' in this) {
-    for (var i = 0; i < this.length; ++i) {
-      if (func.call(thisObj, this[i], i, this[i]) === false)
-        break;
-    }
-  } else {
-    for (var attr in this) {
-      if (this.hasOwnProperty(attr)) {
-        if (func.call(thisObj, this[attr], attr, this[attr]) === false)
+    thisObj = thisObj || this;
+    if ('length' in this) {
+      for (var i = 0; i < this.length; ++i) {
+        if (func.call(thisObj, this[i], i, this[i]) === false)
           break;
       }
+    } else {
+      for (var attr in this) {
+        if (this.hasOwnProperty(attr)) {
+          if (func.call(thisObj, this[attr], attr, this[attr]) === false)
+            break;
+        }
+      }
     }
-  }
-  return this;
-};
+    return this;
+  };
 
 
-/*
- * DOM element extensions
- */
-/*global Element:true*/
-Element.prototype.append = function (value) {
-  'use strict';
-  if (typeof value == 'string') {
-    this.innerHTML += value;
-  } else {
-    this.appendChild(value);
-  }
+  /*
+   * DOM element extensions
+   */
+  /*global Element:true*/
+  Element.prototype.append = function (value) {
+    if (typeof value == 'string') {
+      this.innerHTML += value;
+    } else {
+      this.appendChild(value);
+    }
 
-  return this;
-};
+    return this;
+  };
 
-Element.prototype.on = function (type, listener, capture) {
-  'use strict';
-  if (this.nodeType == 1) {
-    this.addEventListener(type, listener, capture);
-  } else {
-    log.error('Not adding listener to ', this, this.nodeType);
-  }
-  return this;
-};
+  Element.prototype.on = function (type, listener, capture) {
+    if (this.nodeType == 1) {
+      this.addEventListener(type, listener, capture);
+    } else {
+      log.error('Not adding listener to ', this, this.nodeType);
+    }
+    return this;
+  };
 
-Element.prototype.html = function (str) {
-  'use strict';
+  Element.prototype.html = function (str) {
+    if (str === undefined)
+      return this.innerHTML;
 
-  if (str === undefined)
-    return this.innerHTML;
+    if (this.nodeType == 1)
+      this.innerHTML = str;
 
-  if (this.nodeType == 1)
-    this.innerHTML = str;
+    return this;
+  };
 
-  return this;
-};
+  Element.prototype.text = function (str) {
+    if (str === undefined)
+      return this.innerText;
 
-Element.prototype.text = function (str) {
-  'use strict';
+    if (this.nodeType == 1)
+      this.innerText = str;
 
-  if (str === undefined)
-    return this.innerText;
+    return this;
+  };
 
-  if (this.nodeType == 1)
-    this.innerText = str;
+  Element.prototype.attr = function (name, value) {
+    if (value === undefined)
+      return this.getAttribute(name);
 
-  return this;
-};
+    this.setAttribute(name, value);
 
-Element.prototype.attr = function (name, value) {
-  'use strict';
-
-  if (value === undefined)
-    return this.getAttribute(name);
-
-  this.setAttribute(name, value);
-
-  return this;
-};
+    return this;
+  };
 
 /*
  * Utility object
  */
-var $ = (function (document) {
-  'use strict';
 
   /********************
    * DOM manipulation *
@@ -159,29 +149,6 @@ var $ = (function (document) {
     var div = this.make('div');
     div.innerHTML = str;
     return div.innerText;
-  };
-
-  U.extractContacts = function (str) {
-    // "To:Shrey Banga <banga.shrey@gmail.com>, Shrey <banga@cs.unc.edu>"
-    var contacts = {};
-    var match = /([^:]*):(.*)/.exec(str);
-    if (match) {
-      contacts.prefix = match[1];
-      str = match[2];
-    }
-
-    var reContact = /([^<>]*)(<[^>]*>)?,?/g;
-    contacts.items = [];
-    match = reContact.exec(str);
-    while (match.index < str.length) {
-      contacts.items.push([
-          match[1].trim(),
-          match[2] || match[1].trim()
-        ]);
-      match = reContact.exec(str);
-    }
-
-    return contacts;
   };
 
   U.getHumanDate = function (date) {
@@ -293,7 +260,6 @@ var $ = (function (document) {
     return U.ajax(args);
   };
 
-
   /*****************
    * Event pub-sub *
    ****************/
@@ -348,5 +314,5 @@ var $ = (function (document) {
     };
   };
 
-  return U;
-} (document));
+  global.$ = U;
+} (document, window));

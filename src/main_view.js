@@ -9,13 +9,16 @@
 
     this.root = $.make('#main');
 
-    this.main.accounts.each(this.addAccount.bind(this));
-
     this.main.subscribe('accountAdded', this.addAccount, this);
     this.main.subscribe('accountRemoved', this.removeAccount, this);
 
-    this.makeMultibar();
+    setTimeout(this.init.bind(this), 0);
   }
+
+  MainView.prototype.init = function () {
+    this.main.accounts.each(this.addAccount.bind(this));
+    this.makeMultibar();
+  };
 
   MainView.prototype.onDetach = function () {
     var this_ = this;
@@ -76,7 +79,7 @@
   MainView.prototype.updateMultibarVisibility = function () {
     if (!document) return;
 
-    if (document.querySelectorAll('.conversation-selected').length) {
+    if (document.querySelector('.conversation-selected')) {
       this.showMultibar();
     } else {
       this.hideMultibar();
