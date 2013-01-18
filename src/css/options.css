@@ -1,0 +1,164 @@
+body {
+  background-image: url('../images/grain.png');
+  font-family: sans-serif;
+}
+:focus {
+  outline: none;
+}
+form {
+  padding: 0;
+  margin: 0;
+}
+#header {
+  color: #AAA;
+}
+#accounts-box {
+  width: 400px;
+  height: 80%;
+  margin: auto;
+  font-size: 18px;
+}
+#accounts-box-header > .title {
+  display: inline;
+  font-size: 32px;
+  font-weight: bold;
+  padding: 10px;
+}
+#accounts-box-header > .throbber {
+  float: right;
+  margin: 8px 10px 0px 0px;
+}
+.throbber-title {
+  display: inline;
+  font-size: 13px;
+  color: #69C;
+  margin-left: 5px;
+  top: -2px;
+  position: relative;
+  text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+}
+#accounts-list {
+  border: 1px solid #DDD;
+  border-radius: 4px;
+  box-shadow: 0 0 4px rgba(0,0,0,0.1);
+}
+.account-row-container {
+  cursor: pointer;
+  border-top: 1px solid #CCC;
+  background: white;
+  color: #08C;
+  text-shadow: 0 1px 0 white;
+  -webkit-user-select: none;
+}
+.account-row-container:first-child {
+  border: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
+.account-row-container:hover {
+  background: #F5F5F5;
+  color: #555;
+}
+.account-row-container:last-child {
+  border: 1px solid #000;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  color: #FFF;
+  text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
+  background-image: linear-gradient(to bottom, rgb(71, 189, 248), rgb(4, 118, 207));
+  border-color: rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.1) rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+.account-row-container:last-child:hover {
+  background-image: linear-gradient(to bottom, #0Ac, #06c);
+  color: #FFF;
+}
+.account-row-container:last-child:active {
+  background-image: linear-gradient(to bottom, #04c, #08c);
+  color: #FFF;
+}
+.account-row {
+  padding-left: 10px;
+  line-height: 40px;
+  height: 40px;
+}
+.account-row-selected {
+  background: #08C;
+  color: white;
+  border-color: #08C;
+}
+.account-row > .title {
+  float: left;
+  max-width: 345px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.account-row > .icon-chevron-down {
+  float: right;
+  margin: 10px;
+}
+.labels-list {
+  background: #F0F8FF;
+  font-size: 14px;
+  line-height: 28px;
+  height: 0px;
+  box-shadow:
+    inset 0px 4px 10px -5px rgba(0,0,0,0.1),
+    inset 0px -4px 10px -5px rgba(0,0,0,0.1);
+  -webkit-transition: 0.5s height ease;
+    overflow: hidden;
+}
+.labels-list > ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.labels-list li:first-child {
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+.labels-list li {
+  padding-left: 20px;
+  border-top: 1px solid #DEF;
+  color: rgb(112, 173, 204);
+  text-shadow: 1px 1px 0 white;
+}
+#suggestions {
+  display: none;
+  position: absolute;
+  max-height: 140px;
+  overflow: hidden;
+  background: white;
+  border: 1px solid #CCC;
+  border-radius: 8px;
+  margin-left: 10px;
+  font-size: 11px;
+  line-height: 16px;
+  margin: -5px 0px 0px 12px;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  width: 290px;
+  color: rgb(92, 92, 92);
+  text-shadow: none;
+  box-shadow: 0 10px 10px -5px rgba(0,0,0,0.1);
+  background-image: linear-gradient(to bottom, rgb(255, 255, 255), rgb(255, 250, 250));
+}
+.suggestion {
+  border-top: 1px solid #EEE;
+  padding: 1px 4px;
+}
+.suggestion > i {
+  float: right;
+  color: #999;
+}
+.suggestion:focus,
+.suggestion:active,
+.suggestion:hover {
+  background: rgb(255, 246, 223);
+}
+.botright {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+}

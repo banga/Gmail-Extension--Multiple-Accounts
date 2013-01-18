@@ -1,147 +1,139 @@
+var log = new Log('options');
+var main = new Main();
+
 (function () {
   'use strict';
-  var accountInfo = {version: 2, accounts: []},
-      signInWindowID = 0,
+  var signInWindowID = 0,
       signInTabID = 0,
-      log = new Log('options');
+      throbber = new Throbber(16, '#69C'),
+      suggestionsElem = $('suggestions');
 
-  function discoverAccounts() {
-    function discoverAccount(accountNumber) {
-      fetchAccountInfo(accountNumber,
-        function (number, title) {
-          log.info(number, title);
-          addAccount(number, title);
-          discoverAccount(number + 1);
-        },
-        function (number) {
-          log.info('Found ' + number + ' accounts');
-          $('discovering-message').style.display = 'none';
-        });
+  function addLabelRow(listElem, label) {
+    var li = $.make('li').text(label);
+    if (label in Main.PREDEFINED_LABELS) {
+      li.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
     }
-    discoverAccount(0);
+    listElem.append(li);
   }
 
-  function fetchAccountInfo(accountNumber, onSuccess, onError) {
-    var url = 'https://mail.google.com/mail/u/' +
-      accountNumber + '/feed/atom/';
-    $.get({
-      url: url,
-      onSuccess: function (xhr) {
-        var title = xhr.responseXML.querySelector('title').textContent;
-        title = /\S*@\S*/.exec(title)[0];
-        onSuccess(accountNumber, title);
-      },
-      onError: function () {
-        onError(accountNumber);
+  function labelMatcher(query, label) {
+    return label.toLowerCase().indexOf(query) >= 0;
+  }
+
+  function getLabelSuggestions(account, query) {
+    var matcher = labelMatcher.bind(null, query),
+        matches = Object.keys(Main.PREDEFINED_LABELS).filter(matcher)
+      .concat(account.allLabels.filter(matcher));
+    return matches.filter(function (match) {
+      return !account.hasLabel(match);
+    });
+  }
+
+  function showLabelSuggestions(account, query, li) {
+    var matches = getLabelSuggestions(account, query);
+    suggestionsElem.html('');
+
+    if (matches.length === 0) {
+      suggestionsElem.style.display = 'none';
+      return;
+    }
+
+    suggestionsElem.style.display = 'block';
+    li.append(suggestionsElem);
+
+    matches.each(function (match) {
+      var addLabel = function () {
+        var list = $('labels-' + account.number);
+        account.addLabel(match);
+        addLabelRow(list.firstElementChild, match);
+        list.style.height = list.firstElementChild.clientHeight + 'px';
+
+        var nbr = this.nextElementSibling || this.previousElementSibling ||
+          suggestionsElem.previousElementSibling;
+        nbr.focus();
+        this.parentElement.removeChild(this);
+      };
+
+      var suggestion = $.make('.suggestion', {tabindex: 0}).text(match)
+        .on('focus', function () {
+          suggestionsElem.style.display = 'block';
+        })
+        .on('keydown', function (e) {
+          if (e.which == 40 && this.nextElementSibling) {
+            this.nextElementSibling.focus();
+          } else if (e.which == 38 && this.previousElementSibling) {
+            this.previousElementSibling.focus();
+          } else if (e.which == 13) {
+            addLabel.call(this);
+          }
+        })
+        .on('click', addLabel);
+
+      if (match in Main.PREDEFINED_LABELS) {
+        suggestion.append($.make('i').text(Main.PREDEFINED_LABELS[match]));
       }
+
+      suggestionsElem.append(suggestion);
     });
   }
 
-  function fetchAccountLabels(accountNumber, onSuccess, onError) {
-    var url = 'https://mail.google.com/mail/u/' +
-      accountNumber + '/h/';
-    $.get({
-      url: url,
-      onSuccess: function (xhr) {
-        var doc = document.createElement('document');
-        doc.innerHTML = xhr.responseText;
-        var labelContainer = doc.querySelector('td.lb');
-        if (labelContainer) {
-          var labelElems = labelContainer.querySelectorAll('a');
-          var labels = [];
-          labelElems.each(function (elem) {
-            var href = elem.getAttribute('href');
-            if (href) {
-              var match = /&l=(\S*)/.exec(href);
-              if (match) {
-                var label = window.unescape(match[1]).replace(/\+/g, ' ');
-                labels.push(label);
-              }
-            }
-          });
-          onSuccess(accountNumber, labels);
-        }
-      },
-      onError: onError
+  function hideLabelSuggestions() {
+    suggestionsElem.style.display = 'none';
+  }
+
+  function addLabelSearchElement(listElem, account) {
+    var input = $.make('input', {
+      type: 'search',
+      size: 60,
+      placeholder: 'Type here to add labels',
+      incremental: ''
     });
-  }
+    var li = $.make('li').append(input);
+    listElem.append(li);
 
-  function addAccount(number, title) {
-    var newAccount = accountInfo.accounts.every(
-        function (account) {
-          return (account.number !== number);
-        });
+    var suggest = function () {
+      showLabelSuggestions(account, input.value.toLowerCase(), li);
+    };
 
-    if (newAccount) {
-      accountInfo.accounts.push({
-        domain: 'mail',
-        number: number,
-        labels: []
-      });
-
-      fetchAccountLabels(number, function (number, labels) {
-        addAccountElement(number, title, labels);
-      }, function () {
-        addAccountElement(number, title);
-      });
-    }
-  }
-
-  function addLabel(number, label) {
-    var account = accountInfo.accounts[number];
-    account.labels = account.labels || [''];
-    if (account.labels.indexOf(label) == -1) {
-      account.labels.push(label);
-    }
-  }
-
-  function removeLabel(number, label) {
-    var account = accountInfo.accounts[number];
-    account.labels = account.labels || [''];
-    var idx = account.labels.indexOf(label);
-    if (idx != -1) {
-      account.labels.splice(idx, 1);
-    }
-  }
-
-  function addLabelSelectionElement(accountElem, label, name, accountNumber) {
-    var checkbox = $.make('input')
-      .attr('type', 'checkbox')
-      .attr('value', label);
-
-    var account = accountInfo.accounts[accountNumber];
-    if (account && account.labels &&
-        account.labels.indexOf(label) != -1) {
-      log.info('Label:', label, 'Account:', accountNumber);
-      checkbox.attr('checked', '');
-    }
-
-    accountElem.append(
-        $.make('.label-select')
-        .append(checkbox)
-        .append(name));
-  }
-
-  function addAccountElement(number, title, labels) {
-    var accountElem = $.make('#account-' + number)
-      .append($.make('.title').text(title))
-      .on('change', function (e) { 
-        if (e.target.checked) {
-          addLabel(number, e.target.value);
-        } else {
-          removeLabel(number, e.target.value);
+    input
+      .on('search', suggest)
+      .on('focus', suggest)
+      .on('keydown', function (e) {
+        if (e.which == 40) {
+          suggestionsElem.firstElementChild.focus();
         }
-      });
+      })
+      .on('blur', hideLabelSuggestions);
+  }
 
-    addLabelSelectionElement(accountElem, '', 'Inbox', number);
+  function addAccountElement(account) {
+    var accountElem = $.make('.account-row#account-' + account.number)
+      .append($.make('.title').text(account.name))
+      .append($.make('.icon-chevron-down'))
+      .on('click', toggleLabelsList.bind(null, account.number));
 
-    if (labels) {
-      labels.each(function (label) {
-        addLabelSelectionElement(accountElem, label, label, number);
-      });
+    var listElem = $.make('ul');
+    addLabelSearchElement(listElem, account);
+    account.labels.each(addLabelRow.bind(null, listElem));
+
+    var labelsElem = $.make('.labels-list#labels-' + account.number)
+      .append(listElem);
+
+    var accountList = $('accounts-list');
+    accountList.insertBefore(
+      $.make('.account-row-container')
+        .append(accountElem)
+        .append(labelsElem),
+        accountList.firstChild);
+  }
+
+  function toggleLabelsList(number) {
+    var list = $('labels-' + number);
+    if (list.style.height) {
+      list.style.removeProperty('height');
+    } else {
+      list.style.height = list.firstElementChild.clientHeight + 'px';
     }
-
-    $('accounts-list').append(accountElem);
   }
 
   function showSignInWindow() {
@@ -170,42 +162,34 @@
   }
 
   function save() {
-    localStorage.accountInfo = JSON.stringify(accountInfo);
+    localStorage.accountInfo = JSON.stringify(main.toJSON());
     chrome.extension.getBackgroundPage().bg.loadAccounts();
   }
 
   function init() {
-    if (localStorage.accountInfo) {
-      accountInfo = JSON.parse(localStorage.accountInfo);
-    }
-
-    accountInfo.accounts.each(function (account) {
-      fetchAccountInfo(account.number, function (number, title) {
-        fetchAccountLabels(number, function (number, labels) {
-          addAccountElement(number, title, labels);
-        }, function () {
-          addAccountElement(number, title);
-        });
-      }, function () {
-      });
+    main.subscribe('accountAdded', function (account) {
+      account.subscribe('feedParsed', addAccountElement);
     });
 
-    discoverAccounts();
+    if (localStorage.accountInfo) {
+      log.info('Loading accounts from local storage');
+      main.fromJSON(JSON.parse(localStorage.accountInfo));
+    }
+
+    log.info('Discovering accounts');
+    $('accounts-box-header').append(throbber.root);
+    throbber.start('Discovering...');
+    main.discoverAccounts(throbber.stop.bind(throbber));
 
     $('add-account').on('click', showSignInWindow);
-    $('save').on('click', save);
 
     chrome.tabs.onUpdated.addListener(function (tabID, info) {
       if (tabID == signInTabID && info.url &&
-        info.url.indexOf(Account.GMAIL_URL) === 0) {
+          info.url.indexOf(Account.GMAIL_URL) === 0) {
         var match = /mail\/u\/([0-9]+)/.exec(info.url);
-        fetchAccountInfo(parseInt(match[1], 10),
-          function (number, title) {
-            addAccount(number, title);
-            closeSignInWindow();
-          }, function () {
-            log.error('Couldn\'t parse feed for ' + info.url);
-          });
+        throbber.start('Loading account info...');
+        main.addAccount({number: parseInt(match[1], 10)});
+        closeSignInWindow();
       }
     });
 
@@ -218,7 +202,5 @@
 
 
   init();
-
-  window.accountInfo = accountInfo;
-
 }) ();
+

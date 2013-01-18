@@ -107,16 +107,16 @@
       return;
     }
     this.status = Account.STATUS_INITIALIZING;
-    var that = this;
+    var this_ = this;
     var onSuccess = this.publish.bind(this, 'init', this);
     var onError = this.publish.bind(this, 'initFailed', this);
     this._fetchAccountURL(function () {
-      that._fetchAccountAtParameter(onSuccess, onError);
+      this_._fetchAccountAtParameter(onSuccess, onError);
     }, onError);
   };
 
   Account.prototype._fetchAccountURL = function (onSuccess, onError) {
-    var that = this;
+    var this_ = this;
 
     $.post({
       url: this.url,
@@ -125,7 +125,7 @@
         var doc = $.make('document').html(xhr.response);
         var meta = doc.querySelector('meta[name="application-url"]');
         if (meta) {
-          that.url = meta.getAttribute('content') + '/';
+          this_.url = meta.getAttribute('content') + '/';
         }
         onSuccess();
       },
@@ -133,15 +133,36 @@
     });
   };
 
+  Account.extractLabels = function (xhr) {
+    var doc = $.make('document').html(xhr.responseText),
+        labelContainer = doc.querySelector('td.lb'),
+        labels = [];
+    if (labelContainer) {
+      var labelElems = labelContainer.querySelectorAll('a');
+      labelElems.each(function (elem) {
+        var href = elem.getAttribute('href');
+        if (href) {
+          var match = /&l=(\S*)/.exec(href);
+          if (match) {
+            var label = window.unescape(match[1]).replace(/\+/g, ' ');
+            labels.push(label);
+          }
+        }
+      });
+    }
+    return labels;
+  };
+
   Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
-    var that = this;
+    var this_ = this;
 
     $.post({
       url: this.htmlModeURL(),
       onSuccess: function (xhr) {
+        this_.allLabels = Account.extractLabels(xhr);
         var m = xhr.responseText.match(/\at=([^"]+)/);
         if (m && m.length > 0) {
-          that.at = m[1];
+          this_.at = m[1];
           onSuccess();
         } else {
           onError();
@@ -167,7 +188,7 @@
           conversation.updateIfDirty();
         }
       }, this);
-      this.publish('feedParsed');
+      this.publish('feedParsed', this);
     }
   };
 
@@ -305,6 +326,23 @@
         chrome.tabs.create({url: this_.url});
       }
     });
+  };
+
+  Account.prototype.addLabel = function (label) {
+    if (this.labels.indexOf(label) == -1) {
+      this.labels.push(label);
+    }
+  };
+
+  Account.prototype.removeLabel = function (label) {
+    var idx = this.labels.indexOf(label);
+    if (idx != -1) {
+      this.labels.splice(idx, 1);
+    }
+  };
+
+  Account.prototype.hasLabel = function (label) {
+    return this.labels.indexOf(label) != -1;
   };
 
   global.Account = Account;

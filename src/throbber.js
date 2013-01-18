@@ -41,7 +41,7 @@
     this.context.clearRect(-this.size / 2, -this.size / 2, this.size, this.size);
     this.context.rotate(this.theta);
     this.context.beginPath();
-    this.context.arc(0, 0, 6, 0, Math.PI / 1.5, false);
+    this.context.arc(0, 0, (this.size - 3) / 2, 0, Math.PI / 1.5, false);
     this.context.stroke();
     this.context.restore();
     this.theta += Math.PI / 50;

@@ -1,9 +1,8 @@
 (function (global) {
   'use strict';
 
-  function Main(accountInfo) {
+  function Main() {
     this.accounts = [];
-    accountInfo.accounts.each(this.addAccount.bind(this));
   }
 
   $.addEventHandling(Main, [
@@ -13,6 +12,37 @@
       'accountFeedsParsed',
       'accountFeedsParseFailed'
     ]);
+
+  Main.PREDEFINED_LABELS = {
+    '': 'Inbox',
+    'Unread': 'All unread emails',
+    'Starred': 'Starred emails',
+    'Archived': 'Archived emails'
+  };
+
+  Main.prototype.fromJSON = function (accountInfo) {
+    if (accountInfo) {
+      accountInfo.accounts.each(this.addAccount.bind(this));
+    }
+  };
+
+  Main.prototype.toJSON = function () {
+    log.error('TODO: toJSON');
+  };
+
+  Main.prototype.discoverAccounts = function (onFinish) {
+    var this_ = this;
+    var discoverNext = function (accountNumber) {
+      var account = new Account({ number: accountNumber });
+      account.subscribe('init', function () {
+        this_.addAccount(account);
+        discoverNext(accountNumber + 1);
+      });
+      account.subscribe('initFailed', onFinish);
+      account.init();
+    };
+    discoverNext(0);
+  };
 
   Main.prototype.addAccount = function (accountObj) {
     accountObj.domain = accountObj.domain || 'mail';

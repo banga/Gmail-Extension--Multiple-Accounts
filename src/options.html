@@ -2,66 +2,36 @@
 <html>
   <head>
     <title>Google Mail Checker - Options</title>
-    <style>
-      body {
-        font-family:helvetica, arial, sans-serif;
-        font-size:80%;
-        margin:10px;
-      }
-
-      #header {
-        padding-bottom:1.5em;
-        padding-top:1.5em;
-      }
-
-      #header h1 {
-        font-size: 156%;
-        display:inline;
-        padding-bottom:43px;
-        padding-left:75px;
-        padding-top:40px;
-        background:url(images/icon_128.png) no-repeat;
-        background-size:67px;
-        background-position:1px 18px;
-      }
-
-      .section-header {
-        background:#ebeff9;
-        border-top:1px solid #b5c7de;
-        font-size:99%;
-        padding:3px 0 2px 5px;
-        font-weight:bold;
-        margin-bottom:1em;
-        margin-top:4em;
-        clear: both;
-      }
-
-      .section-header.first {
-        margin-top:1em;
-      }
-
-      #footer {
-        clear: both;
-        margin-top:4em;
-      }
-    </style>
+    <link rel='stylesheet' type='text/css' href='css/options.css'/>
+    <link rel='stylesheet' type='text/css' href='css/font-awesome.min.css'/>
   </head>
   <body>
 
-    <div id="header"><h1>Google Multi-Account Mail Checker Options</h1></div>
+    <div id='accounts-box'>
+      <div id='accounts-box-header'>
+        <div class='title'>Accounts</div>
+      </div>
+      <form action='#' id='main-form'>
+        <div id="accounts-list">
+          <div class="account-row-container">
+            <div class="account-row" id="add-account">
+              Sign in to another account 
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div id='suggestions'></div>
 
-    <form action='#' id='main-form'>
-      <div class="section-header first">Accounts</div>
-      <p>You are signed-in to the following accounts:</p>
-      <div id="discovering-message">Discovering accounts...</div>
-      <div id="accounts-list"></div>
-      <input type='button' id='add-account' value='Add Account'/>
-      <input type='button' id='save' value='Save'/>
-    </form>
+    <img src='images/icon_48.png' alt='' class='botright'/>
 
     <script src="log.js"></script>
     <script src="util.js"></script>
+    <script src="email.js"></script>
+    <script src="conversation.js"></script>
     <script src="account.js"></script>
+    <script src="main.js"></script>
+    <script src="throbber.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

@@ -75,14 +75,12 @@ var bg = (function () {
       localStorage.accountInfo = JSON.stringify(accountInfo);
     }
 
-    main = new Main(accountInfo);
+    main = new Main();
 
     var addAccountListeners = function (account) {
       account.subscribe('conversationAdded', animateIfCountChanged, bg);
       account.subscribe('conversationDeleted', animateIfCountChanged, bg);
     };
-
-    main.accounts.each(addAccountListeners);
 
     main.subscribe('accountAdded', function (account) {
       loadingAnimation.start();
@@ -101,6 +99,7 @@ var bg = (function () {
 
     notifier = new Notifier(main);
 
+    main.fromJSON(accountInfo);
     setInterval(main.update.bind(main), 60000);
   }
 
