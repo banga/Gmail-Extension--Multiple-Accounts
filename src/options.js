@@ -24,6 +24,8 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
   }
 
   function compareMatches(m1, m2) {
+    if (m1.score === m2.score)
+      return m1.label.toLowerCase() > m2.label.toLowerCase() ? 1 : -1;
     return m1.score - m2.score;
   }
 
