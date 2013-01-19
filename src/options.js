@@ -154,6 +154,7 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
 
   function addAccountElement(account) {
     var accountElem = $.make('.account-row#account-' + account.number)
+      .append($.make('.icon-envelope'))
       .append($.make('.title').text(account.name))
       .append($.make('.icon-chevron-down'))
       .on('click', toggleLabelsList.bind(null, account.number));

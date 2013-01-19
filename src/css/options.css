@@ -21,8 +21,9 @@ form {
 }
 #accounts-box-header > .title {
   display: inline;
-  font-size: 32px;
+  font-size: 42px;
   padding: 10px;
+  color: #08c;
 }
 #accounts-box-header > .throbber {
   float: right;
@@ -92,7 +93,10 @@ form {
   max-width: 345px;
   white-space: nowrap;
   text-overflow: ellipsis;
-  overflow: hidden;
+}
+.account-row > .icon-envelope {
+float: left;
+margin: 11px 10px 0 0;
 }
 .account-row > .icon-chevron-down {
   float: right;
@@ -149,7 +153,6 @@ li > .icon-minus-sign:hover {
   position: absolute;
   max-height: 140px;
   overflow: hidden;
-  background: white;
   border: 1px solid #CCC;
   border-radius: 4px;
   margin-left: 10px;
@@ -181,7 +184,7 @@ li > .icon-minus-sign:hover {
   background: rgb(255, 246, 223);
 }
 .suggestion:hover {
-  background: rgb(250, 255, 240);
+  background: rgb(242, 255, 216);
 }
 .botright {
   position: fixed;
