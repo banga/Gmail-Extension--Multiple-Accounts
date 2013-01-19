@@ -40,6 +40,10 @@
       this.labels = {};
       localStorage[Config.LABELS_AT] = '{}';
     }
+
+    this.accounts.each(function (account) {
+      this.publish('accountAdded', account);
+    }, this);
   };
 
   Config.prototype.save = function () {
@@ -81,18 +85,21 @@
   };
 
   Config.prototype.addAccount = function (domain, number) {
-    var accountID = this.makeAccountID(domain, number);
+    var accountID = this.makeAccountID(domain, number),
+        account = {domain: domain, number: number};
     this.makeSpaceForAccount(accountID);
-    this.accounts[accountID] = { domain: domain, number: number };
-    this.publish('accountAdded', domain, number);
+    this.accounts[accountID] = account;
+    this.publish('accountAdded', account);
     this.save();
   };
 
   Config.prototype.removeAccount = function (domain, number) {
     var accountID = this.makeAccountID(domain, number);
-    this.publish('accountRemoved', domain, number);
-    delete this.accounts[accountID];
-    this.save();
+    if (accountID in this.accounts) {
+      this.publish('accountRemoved', this.accounts[accountID]);
+      delete this.accounts[accountID];
+      this.save();
+    }
   };
 
   global.Config = Config;

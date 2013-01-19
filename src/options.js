@@ -1,5 +1,5 @@
 var backgroundPage = chrome.extension.getBackgroundPage(),
-    log = new Log('options', Log.PRIORITY_MEDIUM),
+    log = backgroundPage.log,
     main = new Main(),
     config = backgroundPage.config;
 
@@ -32,6 +32,7 @@ var Options = (function () {
   }
 
   function getLabelSuggestions(account, query) {
+    if (query.length === 0) return [];
     var matcher = labelMatcher.bind(null, account, query),
         labels = account.allLabels.concat(Object.keys(Config.SPECIAL_LABELS)),
         matches = labels.map(matcher).filter(
@@ -46,26 +47,7 @@ var Options = (function () {
     updateLabelsListHeight();
   }
 
-  function removeSuggestionElem(li) {
-    li.parentElement.removeChild(li);
-    activeSearchElem.focus();
-  }
-
-  var onSuggestionKeyDown = function (account, label, e) {
-    if (e.which == 40 && this.nextElementSibling) {
-      this.nextElementSibling.focus();
-    } else if (e.which == 38) {
-      (this.previousElementSibling ||
-       suggestionsElem.previousElementSibling).focus();
-    } else if (e.which == 27) {
-      suggestionsElem.previousElementSibling.focus();
-    } else if (e.which == 13) {
-      addLabel(account, label);
-      removeSuggestionElem(this);
-    }
-  };
-
-  function addSuggestion(account, query, match) {
+  function addSuggestionElem(account, query, match) {
     var label = match.label,
         labelText = (label.length ? label : 'Inbox'),
         start = match.score,
@@ -92,6 +74,27 @@ var Options = (function () {
     suggestionsElem.append(suggestion);
   }
 
+  function removeSuggestionElem(li) {
+    (li.previousElementSibling || li.nextElementSibling ||
+     activeSearchElem).focus();
+    li.parentElement.removeChild(li);
+  }
+
+  var onSuggestionKeyDown = function (account, label, e) {
+    e.preventDefault();
+    if (e.which == 40) {
+      (this.nextElementSibling || activeSearchElem).focus();
+    } else if (e.which == 38) {
+      (this.previousElementSibling || activeSearchElem).focus();
+    } else if (e.which == 27) {
+      this.blur();
+    } else if (e.which == 13) {
+      addLabel(account, label);
+      removeSuggestionElem(this);
+    }
+    return false;
+  };
+
   function showLabelSuggestions(account, query, li) {
     suggestionsElem.html('');
     activeSearchElem = li.firstElementChild;
@@ -107,7 +110,7 @@ var Options = (function () {
       (activeSearchElem.offsetTop + activeSearchElem.offsetHeight) + 'px';
     suggestionsElem.style.left = activeSearchElem.offsetLeft + 'px';
 
-    matches.each(addSuggestion.bind(null, account, query));
+    matches.each(addSuggestionElem.bind(null, account, query));
   }
 
   function hideLabelSuggestions() {
@@ -134,7 +137,9 @@ var Options = (function () {
       .on('focus', suggest)
       .on('keydown', function (e) {
         if (e.which == 40) {
-          suggestionsElem.firstElementChild.focus();
+          if (suggestionsElem.firstElementChild)
+            suggestionsElem.firstElementChild.focus();
+          e.preventDefault();
         }
       })
       .on('blur', hideLabelSuggestions);
@@ -161,12 +166,12 @@ var Options = (function () {
 
   function addAccountElement(account) {
     if ($('account-' + account.number)) return;
-
+    var toggle = toggleLabelsList.bind(null, account.number);
     var accountElem = $.make('.account-row#account-' + account.number)
       .append($.make('.icon-envelope'))
       .append($.make('.title').text(account.name))
       .append($.make('.icon-chevron-down'))
-      .on('click', toggleLabelsList.bind(null, account.number));
+      .on('click', toggle);
 
     var listElem = $.make('ul');
     addLabelSearchElement(listElem, account);
@@ -175,12 +180,17 @@ var Options = (function () {
     var labelsElem = $.make('.labels-list#labels-' + account.number)
       .append(listElem);
 
-    var accountList = $('accounts-list');
-    accountList.insertBefore(
-      $.make('.account-row-container')
+    var container =
+      $.make('.account-row-container', {tabindex: 0})
         .append(accountElem)
         .append(labelsElem),
-      accountList.lastElementChild);
+      accountList = $('accounts-list');
+    accountList.insertBefore(container, accountList.lastElementChild);
+    container.on('keyup', function (e) {
+      if (e.which == 13 && e.target == container) {
+        toggle();
+      }
+    });
   }
 
   function hideLabelsList() {

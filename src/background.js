@@ -47,7 +47,6 @@ var bg = (function () {
   }
 
   function loadAccounts() {
-    config.load();
     main = new Main();
 
     var addAccountListeners = function (account) {
@@ -70,6 +69,8 @@ var bg = (function () {
 
     //notifier = new Notifier(main);
 
+    config.subscribe('accountAdded', main.addAccount.bind(main), bg);
+    config.load();
     main.discoverAccounts(log.info.bind(log, 'Accounts discovered:'));
     setInterval(main.update.bind(main), 60000);
   }
