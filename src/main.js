@@ -15,31 +15,29 @@
       'allFeedsParsed'
     ]);
 
-  Main.PREDEFINED_LABELS = {
-    '': 'Emails in your inbox (Default)',
-    'Important': 'Emails marked as Important',
-    'Starred': 'Emails you have starred',
-    'Archived': 'Emails you have archived',
-    'Chat': 'Chat conversations',
-    'Unread': 'All unread emails'
-  };
-
-  Main.prototype.fromJSON = function (accountInfo) {
-    if (accountInfo) {
-      accountInfo.accounts.each(function (accountObj) {
-        this.addAccount(accountObj);
-      }, this);
-    }
-  };
-
   Main.prototype.toJSON = function () {
-    log.error('TODO: toJSON');
+    var json = {
+      version: 2,
+      accounts: [],
+      labels: {}
+    };
+
+    this.accounts.each(function (account) {
+      var accJSON = account.toJSON();
+      json.accounts.push({
+        domain: accJSON.domain,
+        number: accJSON.number
+      });
+      json.labels[accJSON.name] = accJSON.labels;
+    });
+
+    return json;
   };
 
   Main.prototype.discoverAccounts = function (onFinish) {
     var this_ = this;
     var discoverNext = function (accountNumber) {
-      log.warn('Discovering ', accountNumber);
+      log.info('Discovering ', accountNumber);
       var account = this_._createAccount({ number: accountNumber });
       while (account === null) {
         ++accountNumber;
@@ -50,7 +48,8 @@
       }, this_);
       account.subscribe('initFailed', function () {
         this_.removeAccount(accountNumber);
-        onFinish();
+        onFinish(accountNumber);
+        this_.checkStatus();
       }, this_);
       this_.addAccount(account);
     };

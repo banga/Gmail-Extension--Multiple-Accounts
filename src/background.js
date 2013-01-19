@@ -1,21 +1,17 @@
 var main,
-    notifier,
     log = new Log('background', Log.PRIORITY_MEDIUM),
-    _test = function () {
-      chrome.tabs.create({ url: 'test.html' });
-    };
+    config = new Config();
 
 var bg = (function () {
   'use strict';
-  var totalUnread = 0,
-      animationFrames = 36,
+  var animationFrames = 36,
       animationSpeed = 10, // ms
       animating = false,
       canvas,
       canvasContext,
       loggedInImage,
       rotation = 0,
-      loadingAnimation = new LoadingAnimation();
+      totalUnreadCount;
 
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
     var url = changeInfo.url;
@@ -51,28 +47,7 @@ var bg = (function () {
   }
 
   function loadAccounts() {
-    var accountInfo, shouldDiscover = false;
-
-    log.info('loadAccounts');
-
-    if (localStorage.accountInfo) {
-      accountInfo = JSON.parse(localStorage.accountInfo);
-      if (accountInfo.version != '2') {
-        // Update account info to new style (array of Accounts)
-        var oldAccountInfo = accountInfo;
-        accountInfo = {version: 2, accounts: []};
-        oldAccountInfo.each(function (accounts, domain) {
-          accounts.each(function (account, number) {
-            accountInfo.accounts.push({domain: domain, number: number});
-          });
-        });
-        localStorage.accountInfo = JSON.stringify(accountInfo); 
-        shouldDiscover = true;
-      }
-    } else {
-      shouldDiscover = true;
-    }
-
+    config.load();
     main = new Main();
 
     var addAccountListeners = function (account) {
@@ -81,7 +56,6 @@ var bg = (function () {
     };
 
     main.subscribe('accountAdded', function (account) {
-      loadingAnimation.start();
       addAccountListeners(account);
     }, bg);
 
@@ -90,47 +64,38 @@ var bg = (function () {
       account.unsubscribe(bg);
     }, bg);
 
-    main.subscribe('allFeedsParsed', function () {
-      loadingAnimation.stop();
+    main.subscribe('accountFeedParsed', function () {
       animateIfCountChanged();
     }, bg);
 
-    notifier = new Notifier(main);
+    //notifier = new Notifier(main);
 
-    if (shouldDiscover) {
-      chrome.tabs.create({url: 'options.html'});
-      main.discoverAccounts(function () {
-        localStorage.accountInfo = JSON.stringify(main.toJSON());
-      });
-    } else {
-      main.fromJSON(accountInfo);
-    }
+    main.discoverAccounts(log.info.bind(log, 'Accounts discovered:'));
     setInterval(main.update.bind(main), 60000);
   }
 
   function init() {
-    checkIfUpdated();
-
     canvas = document.getElementById('canvas');
     loggedInImage = document.getElementById('logged_in');
     canvasContext = canvas.getContext('2d');
 
     chrome.browserAction.setBadgeBackgroundColor({color: [20, 120, 255, 255]});
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
-    loadingAnimation.start();
 
     loadAccounts();
   }
 
   function animateIfCountChanged() {
-    var count = countUnread();
-    if (count !== totalUnread) {
-      totalUnread = count;
-      if (!animating) {
-        animating = true;
-        animateFlip();
+    var count = '' + countUnread();
+    chrome.browserAction.getBadgeText({}, function (text) {
+      if (count !== text) {
+        totalUnreadCount = count;
+        if (!animating) {
+          animating = true;
+          animateFlip();
+        }
       }
-    }
+    });
   }
 
   function countUnread() {
@@ -151,8 +116,7 @@ var bg = (function () {
       animating = false;
       rotation = 0;
       drawIconAtRotation();
-      chrome.browserAction.setBadgeText(
-          { text: totalUnread ? (totalUnread + '') : '' });
+      chrome.browserAction.setBadgeText({text: totalUnreadCount});
       chrome.browserAction.setBadgeBackgroundColor(
           {color: [20, 120, 255, 255]});
     }

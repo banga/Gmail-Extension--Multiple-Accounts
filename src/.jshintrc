@@ -11,11 +11,11 @@
     "$",
     "Account",
     "AccountView",
+    "Config",
     "Conversation",
     "ConversationView",
     "Email",
     "EmailView",
-    "LoadingAnimation",
     "Log",
     "Main",
     "MainView",
@@ -23,6 +23,7 @@
     "Throbber",
     "analytics",
     "chrome",
+    "config",
     "log",
     "webkitNotifications"
   ]

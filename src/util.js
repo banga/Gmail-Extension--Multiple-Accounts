@@ -215,7 +215,8 @@
   };
 
   U._ajax = function (args) {
-    var xhr = new XMLHttpRequest();
+    var xhr = new XMLHttpRequest(),
+        timeout = args.timeout || 2 * 60 * 1000;
 
     xhr.onreadystatechange = function () {
       if (this.readyState == 4) {
@@ -249,6 +250,10 @@
     }
 
     xhr.send(args.payload);
+
+    setTimeout(function () {
+      xhr.abort();
+    }, timeout);
 
     return xhr;
   };
@@ -286,6 +291,7 @@
 
     cls.prototype.subscribe = function (eventName, callback, subscriber) {
       subscriber = subscriber || null;
+      if (subscriber === null) log.error('Null subscriber');
 
       makeStorageIfNeeded(this);
       this._listeners[eventName].push({

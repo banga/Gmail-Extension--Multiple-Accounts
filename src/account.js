@@ -8,9 +8,7 @@
   function Account(args) {
     this.domain = args.domain || 'mail';
     this.number = args.number || 0;
-    this.labels = args.labels || [''];
-    this.url = args.url ||
-      (Account.GMAIL_URL + this.domain + '/u/' + this.number + '/');
+    this.url = Account.GMAIL_URL + this.domain + '/u/' + this.number + '/';
 
     this.status = Account.STATUS_NONE;
     this.feedStatus = Account.FEED_STATUS_NONE;
@@ -23,6 +21,7 @@
     this.subscribe('init', function () {
       log.info('Account initialized:', this.url);
       this.status = Account.STATUS_INITIALIZED;
+      this.loadLabels();
       this.update();
     }, this);
 
@@ -49,6 +48,20 @@
     this.subscribe('conversationDeleted', function (conversation) {
       log.info('Conversation deleted:', conversation.subject);
       --this.unreadCount;
+    }, this);
+
+    config.subscribe('labelAdded', function (args) {
+      if (this.name === args.accountName) {
+        this.addLabel(args.label);
+        this.update();
+      }
+    }, this);
+
+    config.subscribe('labelRemoved', function (args) {
+      if (this.name === args.accountName) {
+        this.removeLabel(args.label);
+        this.update();
+      }
     }, this);
   }
 
@@ -77,8 +90,8 @@
     return {
       domain: this.domain,
       number: this.number,
-      labels: this.labels,
-      url:    this.url
+      name:   this.name,
+      labels: this.labels
     };
   };
 
@@ -212,11 +225,11 @@
   };
 
   Account.prototype.update = function () {
-    if (this.status === Account.STATUS_INITIALIZATING) {
+    switch (this.status) {
+    case Account.STATUS_INITIALIZATING: 
       return;
-    }
 
-    if (this.status === Account.STATUS_INITIALIZATION_FAILED) {
+    case Account.STATUS_INITIALIZATION_FAILED:
       this.init();
       return;
     }
@@ -229,20 +242,18 @@
   };
 
   Account.prototype._onFeed = function (label, onSuccess, onError, xhr) {
-    var onConversationUpdated = this.publish.bind(this, 'conversationUpdated');
-    var onConversationUpdateFailed =
-      this.publish.bind(this, 'conversationUpdateFailed');
-
-    var xmlDoc = xhr.responseXML;
-    var fullCountNode = xmlDoc.querySelector('fullcount');
+    var onConversationUpdated = this.publish.bind(this, 'conversationUpdated'),
+        onConversationUpdateFailed =
+            this.publish.bind(this, 'conversationUpdateFailed'),
+        xmlDoc = xhr.responseXML,
+        fullCountNode = xmlDoc.querySelector('fullcount');
 
     if (fullCountNode) {
       var modifiedNode = xmlDoc.querySelector('modified');
       if (modifiedNode) {
-        var modified = new Date(modifiedNode.textContent);
-        var lastUpdated = this.lastUpdated[label] || new Date(0);
+        var modified = new Date(modifiedNode.textContent),
+            lastUpdated = this.lastUpdated[label] || new Date(0);
         if (modified <= lastUpdated) {
-          // Feed is unmodified
           onSuccess();
           return;
         }
@@ -356,12 +367,20 @@
   Account.prototype.removeLabel = function (label) {
     var idx = this.labels.indexOf(label);
     if (idx != -1) {
+      this.conversations.each(function (conversation) {
+        conversation.removeLabel(label);
+      });
       this.labels.splice(idx, 1);
+      delete this.lastUpdated[label];
     }
   };
 
   Account.prototype.hasLabel = function (label) {
     return this.labels.indexOf(label) != -1;
+  };
+
+  Account.prototype.loadLabels = function () {
+    this.labels = config.getLabels(this.name);
   };
 
   global.Account = Account;

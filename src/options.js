@@ -1,7 +1,9 @@
-var log = new Log('options', Log.PRIORITY_MEDIUM),
-    main = new Main();
+var backgroundPage = chrome.extension.getBackgroundPage(),
+    log = new Log('options', Log.PRIORITY_MEDIUM),
+    main = new Main(),
+    config = backgroundPage.config;
 
-(function () {
+var Options = (function () {
   'use strict';
   var signInWindowID = 0,
       signInTabID = 0,
@@ -31,7 +33,7 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
 
   function getLabelSuggestions(account, query) {
     var matcher = labelMatcher.bind(null, account, query),
-        labels = account.allLabels.concat(Object.keys(Main.PREDEFINED_LABELS)),
+        labels = account.allLabels.concat(Object.keys(Config.SPECIAL_LABELS)),
         matches = labels.map(matcher).filter(
             function (match) { return match.score >= 0; });
     return matches.sort(compareMatches);
@@ -39,7 +41,7 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
 
   function addLabel(account, label) {
     var list = $('labels-' + account.number);
-    account.addLabel(label);
+    config.addLabel(account.name, label);
     addLabelRow(list.firstElementChild, account, label);
     updateLabelsListHeight();
   }
@@ -84,8 +86,8 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
           });
     suggestion.on('keydown',
         onSuggestionKeyDown.bind(suggestion, account, label));
-    if (label in Main.PREDEFINED_LABELS) {
-      suggestion.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
+    if (label in Config.SPECIAL_LABELS) {
+      suggestion.append($.make('i').text(Config.SPECIAL_LABELS[label]));
     }
     suggestionsElem.append(suggestion);
   }
@@ -138,23 +140,28 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
       .on('blur', hideLabelSuggestions);
   }
 
+  function removeLabel(listElem, li, accountName, label) {
+    config.removeLabel(accountName, label);
+    listElem.removeChild(li);
+    updateLabelsListHeight();
+  }
+
   function addLabelRow(listElem, account, label) {
     var li = $.make('li')
-      .append($.make('.icon-minus-sign')
-        .on('click', function () {
-          account.removeLabel(label);
-          listElem.removeChild(this.parentElement);
-          updateLabelsListHeight();
-        }))
+      .append($.make('.icon-minus-sign'))
       .append($.make('.label-name').text(label ? label : 'Inbox'));
+    li.firstElementChild.on('click',
+        removeLabel.bind(null, listElem, li, account.name, label));
 
-    if (label in Main.PREDEFINED_LABELS) {
-      li.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
+    if (label in Config.SPECIAL_LABELS) {
+      li.append($.make('i').text(Config.SPECIAL_LABELS[label]));
     }
     listElem.insertBefore(li, listElem.firstElementChild.nextElementSibling);
   }
 
   function addAccountElement(account) {
+    if ($('account-' + account.number)) return;
+
     var accountElem = $.make('.account-row#account-' + account.number)
       .append($.make('.icon-envelope'))
       .append($.make('.title').text(account.name))
@@ -231,24 +238,18 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
     });
   }
 
-  function save() {
-    localStorage.accountInfo = JSON.stringify(main.toJSON());
-    chrome.extension.getBackgroundPage().bg.loadAccounts();
-  }
-
   function init() {
+    main.subscribe('accountAdded', function (account) {
+      config.addAccount(account.domain, account.number);
+    }, Options);
+
     main.subscribe('accountFeedParsed', function (account) {
       addAccountElement(account);
       if (!isDiscovering) throbber.stop();
       if (activeLabelsListNumber == -1) {
         toggleLabelsList(account.number);
       }
-    });
-
-    if (localStorage.accountInfo) {
-      log.info('Loading accounts from local storage');
-      main.fromJSON(JSON.parse(localStorage.accountInfo));
-    }
+    }, Options);
 
     log.info('Discovering accounts');
     $('accounts-box-header').append(throbber.root);
@@ -281,7 +282,11 @@ var log = new Log('options', Log.PRIORITY_MEDIUM),
     });
   }
 
-
-  init();
+  return {
+    init: init
+  };
 }) ();
+
+document.addEventListener('DOMContentLoaded', Options.init());
+
 

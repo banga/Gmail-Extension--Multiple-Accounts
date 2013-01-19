@@ -20,7 +20,7 @@
 
   Throbber.prototype.start = function (msg) {
     if (!this.timer) {
-      this.timer = window.setInterval(this._draw.bind(this), 10);
+      this.timer = setInterval(this._draw.bind(this), 10);
     }
     this.titleElem.html(msg);
     this.root.style.removeProperty('display');
@@ -31,7 +31,7 @@
   };
 
   Throbber.prototype.stop = function () {
-    window.clearInterval(this.timer);
+    clearInterval(this.timer);
     this.timer = 0;
     this.root.style.display = 'none';
   };
