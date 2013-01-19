@@ -16,21 +16,17 @@
     ]);
 
   Main.prototype.toJSON = function () {
-    var json = {
-      version: 2,
-      accounts: [],
-      labels: {}
-    };
-
+    var json = { accounts: [] };
     this.accounts.each(function (account) {
-      var accJSON = account.toJSON();
-      json.accounts.push({
-        domain: accJSON.domain,
-        number: accJSON.number
+      json.accounts.push({ 
+        domain: account.domain,
+        name:   account.name,
+        number: account.number,
+        labels: account.labels,
+        status: account.status,
+        feedStatus: account.feedStatus
       });
-      json.labels[accJSON.name] = accJSON.labels;
     });
-
     return json;
   };
 
@@ -38,10 +34,10 @@
     var this_ = this;
     var discoverNext = function (accountNumber) {
       log.info('Discovering ', accountNumber);
-      var account = this_._createAccount({ number: accountNumber });
+      var account = this_.createAccount({ number: accountNumber });
       while (account === null) {
         ++accountNumber;
-        account = this_._createAccount({ number: accountNumber });
+        account = this_.createAccount({ number: accountNumber });
       }
       account.subscribe('init', function () {
         discoverNext(accountNumber + 1);
@@ -56,27 +52,30 @@
     discoverNext(0);
   };
 
-  Main.prototype._createAccount = function (accountObj) {
+  Main.prototype.isDuplicateAccount = function (accountObj) {
+    return this.accounts.some(function (account) {
+      return accountObj.domain == account.domain &&
+      accountObj.number == account.number;
+    });
+  };
+
+  Main.prototype.createAccount = function (accountObj) {
     accountObj.domain = accountObj.domain || 'mail';
     accountObj.number = accountObj.number || 0;
 
-    var isDuplicate = this.accounts.some(function (account) {
-      return accountObj.domain == account.domain &&
-        accountObj.number == account.number;
-    });
-
-    if (isDuplicate) {
-      log.warn('Duplicate account');
+    if (this.isDuplicateAccount(accountObj)) {
+      log.warn('Duplicate account:', accountObj.domain, accountObj.number);
       return null;
     }
 
-    return new Account(accountObj);
+    if (!(accountObj instanceof Account))
+      return new Account(accountObj);
+
+    return accountObj;
   };
 
   Main.prototype.addAccount = function (accountObj) {
-    var account = (accountObj instanceof Account) ?
-      accountObj : this._createAccount(accountObj);
-
+    var account = this.createAccount(accountObj);
     if (!account) return;
 
     account.subscribe('init',

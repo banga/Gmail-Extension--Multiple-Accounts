@@ -16,11 +16,20 @@ var bg = (function () {
   chrome.tabs.onUpdated.addListener(function (tabId, changeInfo) {
     var url = changeInfo.url;
     if (url && Account.isGmailURL(url)) {
+      var newAccount = true;
       main.accounts.each(function (account) {
         if (account.isAccountURL(url)) {
           account.update();
+          newAccount = false;
         }
       });
+      if (newAccount) {
+        var match = /mail\.google\.com\/([^\/]*)\/u\/([0-9]+)/.exec(url),
+            domain = match[1], number = parseInt(match[2], 10); 
+        if (domain == 'mail') {
+          config.addAccount(new Account({ domain: 'mail', number: number}));
+        }
+      }
     }
   });
 
@@ -71,6 +80,8 @@ var bg = (function () {
 
     config.subscribe('accountAdded', main.addAccount.bind(main), bg);
     config.load();
+
+    main.subscribe('accountInit', config.addAccount.bind(config), bg);
     main.discoverAccounts(log.info.bind(log, 'Accounts discovered:'));
     setInterval(main.update.bind(main), 60000);
   }

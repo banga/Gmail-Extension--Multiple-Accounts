@@ -75,28 +75,26 @@
     return Object.keys(this.labels[accountName]);
   };
 
-  Config.prototype.makeAccountID = function (domain, number) {
-    return domain + '-' + number;
+  Config.prototype.makeAccountID = function (account) {
+    return account.domain + '/u/' + account.number;
   };
 
-  Config.prototype.makeSpaceForAccount = function (accountID) {
-    if (!(accountID in this.accounts))
-      this.accounts[accountID] = {};
+  Config.prototype.addAccount = function (account) {
+    var accountID = this.makeAccountID(account);
+    if (!(accountID in this.accounts)) {
+      this.accounts[accountID] = {
+        domain: account.domain,
+        number: account.number
+      };
+      this.publish('accountAdded', account);
+      this.save();
+    }
   };
 
-  Config.prototype.addAccount = function (domain, number) {
-    var accountID = this.makeAccountID(domain, number),
-        account = {domain: domain, number: number};
-    this.makeSpaceForAccount(accountID);
-    this.accounts[accountID] = account;
-    this.publish('accountAdded', account);
-    this.save();
-  };
-
-  Config.prototype.removeAccount = function (domain, number) {
-    var accountID = this.makeAccountID(domain, number);
+  Config.prototype.removeAccount = function (account) {
+    var accountID = this.makeAccountID(account);
     if (accountID in this.accounts) {
-      this.publish('accountRemoved', this.accounts[accountID]);
+      this.publish('accountRemoved', account);
       delete this.accounts[accountID];
       this.save();
     }

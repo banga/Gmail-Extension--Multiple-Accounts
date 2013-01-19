@@ -86,15 +86,6 @@
   Account.FEED_STATUS_PARSED = 3;
   Account.FEED_STATUS_PARSE_FAILED = 4;
 
-  Account.prototype.toJSON = function () {
-    return {
-      domain: this.domain,
-      number: this.number,
-      name:   this.name,
-      labels: this.labels
-    };
-  };
-
   Account.isGmailURL = function (url) {
     return (url.indexOf(Account.GMAIL_URL) === 0);
   };

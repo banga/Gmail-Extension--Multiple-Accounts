@@ -1,6 +1,6 @@
 var backgroundPage = chrome.extension.getBackgroundPage(),
     log = backgroundPage.log,
-    main = new Main(),
+    main = backgroundPage.main,
     config = backgroundPage.config;
 
 var Options = (function () {
@@ -86,6 +86,9 @@ var Options = (function () {
       (this.nextElementSibling || activeSearchElem).focus();
     } else if (e.which == 38) {
       (this.previousElementSibling || activeSearchElem).focus();
+    } else if (e.which == 8) {
+      activeSearchElem.value = activeSearchElem.value.slice(0, -1);
+      activeSearchElem.focus();
     } else if (e.which == 27) {
       this.blur();
     } else if (e.which == 13) {
@@ -193,6 +196,11 @@ var Options = (function () {
     });
   }
 
+  function addAccount(account) {
+    if (account.status === Account.STATUS_INITIALIZED)
+      addAccountElement(account);
+  }
+
   function hideLabelsList() {
     if (activeLabelsListNumber != -1) {
       $('labels-' + activeLabelsListNumber).style.removeProperty('height');
@@ -249,24 +257,24 @@ var Options = (function () {
   }
 
   function init() {
-    main.subscribe('accountAdded', function (account) {
-      config.addAccount(account.domain, account.number);
-    }, Options);
+    main.accounts.each(addAccount);
 
-    main.subscribe('accountFeedParsed', function (account) {
-      addAccountElement(account);
-      if (!isDiscovering) throbber.stop();
-      if (activeLabelsListNumber == -1) {
-        toggleLabelsList(account.number);
-      }
-    }, Options);
+    addEventListener('unload', function () {
+      log.info('Options window closing');
+      main.unsubscribe({subscriber: Options});
+    });
+    main.subscribe('accountInit', addAccount, Options);
 
     log.info('Discovering accounts');
+
     $('accounts-box-header').append(throbber.root);
     throbber.start('Discovering...');
     main.discoverAccounts(function () {
       throbber.stop();
       isDiscovering = false;
+      if (activeLabelsListNumber == -1 && main.accounts.length) {
+        toggleLabelsList(main.accounts[0].number);
+      }
     });
 
     $('add-account').on('click', showSignInWindow);
