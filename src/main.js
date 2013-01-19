@@ -8,21 +8,27 @@
   $.addEventHandling(Main, [
       'accountAdded',
       'accountRemoved',
+      'accountInit',
       'accountInitFailed',
-      'accountFeedsParsed',
-      'accountFeedsParseFailed'
+      'accountFeedParsed',
+      'accountFeedParseFailed',
+      'allFeedsParsed'
     ]);
 
   Main.PREDEFINED_LABELS = {
-    '': 'Inbox',
-    'Unread': 'All unread emails',
-    'Starred': 'Starred emails',
-    'Archived': 'Archived emails'
+    '': 'Emails in your inbox (Default)',
+    'Important': 'Emails marked as Important',
+    'Starred': 'Emails you have starred',
+    'Archived': 'Emails you have archived',
+    'Chat': 'Chat conversations',
+    'Unread': 'All unread emails'
   };
 
   Main.prototype.fromJSON = function (accountInfo) {
     if (accountInfo) {
-      accountInfo.accounts.each(this.addAccount.bind(this));
+      accountInfo.accounts.each(function (accountObj) {
+        this.addAccount(accountObj);
+      }, this);
     }
   };
 
@@ -33,41 +39,60 @@
   Main.prototype.discoverAccounts = function (onFinish) {
     var this_ = this;
     var discoverNext = function (accountNumber) {
-      var account = new Account({ number: accountNumber });
+      log.warn('Discovering ', accountNumber);
+      var account = this_._createAccount({ number: accountNumber });
+      while (account === null) {
+        ++accountNumber;
+        account = this_._createAccount({ number: accountNumber });
+      }
       account.subscribe('init', function () {
-        this_.addAccount(account);
         discoverNext(accountNumber + 1);
-      });
-      account.subscribe('initFailed', onFinish);
-      account.init();
+      }, this_);
+      account.subscribe('initFailed', function () {
+        this_.removeAccount(accountNumber);
+        onFinish();
+      }, this_);
+      this_.addAccount(account);
     };
     discoverNext(0);
   };
 
-  Main.prototype.addAccount = function (accountObj) {
+  Main.prototype._createAccount = function (accountObj) {
     accountObj.domain = accountObj.domain || 'mail';
     accountObj.number = accountObj.number || 0;
 
-    var duplicate = this.accounts.some(function (account) {
+    var isDuplicate = this.accounts.some(function (account) {
       return accountObj.domain == account.domain &&
         accountObj.number == account.number;
     });
 
-    if (duplicate) {
-      log.error('Duplicate account');
-      return;
+    if (isDuplicate) {
+      log.warn('Duplicate account');
+      return null;
     }
 
-    var account = new Account(accountObj);
+    return new Account(accountObj);
+  };
 
+  Main.prototype.addAccount = function (accountObj) {
+    var account = (accountObj instanceof Account) ?
+      accountObj : this._createAccount(accountObj);
+
+    if (!account) return;
+
+    account.subscribe('init',
+        this.publish.bind(this, 'accountInit', account), this);
     account.subscribe('initFailed', function () {
       this.publish('accountInitFailed', account);
       setTimeout(account.init.bind(account), 10000);
     }, this);
 
-    account.subscribe('feedParsed', this.checkStatus, this);
+    account.subscribe('feedParsed', function () {
+      this.publish('accountFeedParsed', account);
+      this.checkStatus();
+    }, this);
     account.subscribe('feedParseFailed', function () {
-      this.publish('accountFeedsParseFailed', account);
+      this.publish('accountFeedParseFailed', account);
     }, this);
 
     this.accounts.push(account);
@@ -81,6 +106,7 @@
 
     var account = this.accounts.splice(idx, 1)[0];
     this.publish('accountRemoved', account);
+    account.unsubscribe({subscriber: this});
     return account;
   };
 
@@ -90,7 +116,7 @@
     });
 
     if (allParsed) {
-      this.publish('accountFeedsParsed');
+      this.publish('allFeedsParsed');
     }
   };
 

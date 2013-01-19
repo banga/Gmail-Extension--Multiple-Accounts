@@ -1,80 +1,109 @@
-var log = new Log('options');
-var main = new Main();
+var log = new Log('options', Log.PRIORITY_MEDIUM),
+    main = new Main();
 
 (function () {
   'use strict';
   var signInWindowID = 0,
       signInTabID = 0,
       throbber = new Throbber(16, '#69C'),
-      suggestionsElem = $('suggestions');
+      suggestionsElem = $('suggestions'),
+      activeSearchElem,
+      activeLabelsListNumber = -1,
+      isDiscovering = true;
 
-  function addLabelRow(listElem, label) {
-    var li = $.make('li').text(label);
-    if (label in Main.PREDEFINED_LABELS) {
-      li.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
+  function labelMatcher(account, query, label) {
+    var score = -1;
+    if (!account.hasLabel(label)) {
+      if (label === '') {
+        score = 'inbox'.indexOf(query);
+      } else {
+        score = label.toLowerCase().indexOf(query);
+      }
     }
-    listElem.append(li);
+    return { label: label, score: score };
   }
 
-  function labelMatcher(query, label) {
-    return label.toLowerCase().indexOf(query) >= 0;
+  function compareMatches(m1, m2) {
+    return m1.score - m2.score;
   }
 
   function getLabelSuggestions(account, query) {
-    var matcher = labelMatcher.bind(null, query),
-        matches = Object.keys(Main.PREDEFINED_LABELS).filter(matcher)
-      .concat(account.allLabels.filter(matcher));
-    return matches.filter(function (match) {
-      return !account.hasLabel(match);
-    });
+    var matcher = labelMatcher.bind(null, account, query),
+        labels = account.allLabels.concat(Object.keys(Main.PREDEFINED_LABELS)),
+        matches = labels.map(matcher).filter(
+            function (match) { return match.score >= 0; });
+    return matches.sort(compareMatches);
+  }
+
+  function addLabel(account, label) {
+    var list = $('labels-' + account.number);
+    account.addLabel(label);
+    addLabelRow(list.firstElementChild, account, label);
+    updateLabelsListHeight();
+  }
+
+  function removeSuggestionElem(li) {
+    li.parentElement.removeChild(li);
+    activeSearchElem.focus();
+  }
+
+  var onSuggestionKeyDown = function (account, label, e) {
+    if (e.which == 40 && this.nextElementSibling) {
+      this.nextElementSibling.focus();
+    } else if (e.which == 38) {
+      (this.previousElementSibling ||
+       suggestionsElem.previousElementSibling).focus();
+    } else if (e.which == 27) {
+      suggestionsElem.previousElementSibling.focus();
+    } else if (e.which == 13) {
+      addLabel(account, label);
+      removeSuggestionElem(this);
+    }
+  };
+
+  function addSuggestion(account, query, match) {
+    var label = match.label,
+        labelText = (label.length ? label : 'Inbox'),
+        start = match.score,
+        end = start + query.length,
+        suggestion =
+      $.make('.suggestion', {tabindex: 0})
+        .append(
+            $.make('.suggestion-label')
+            .html(labelText.slice(0, start) + '<b>' +
+              labelText.slice(start, end) + '</b>' + labelText.slice(end)))
+        .on('focus', function () {
+              suggestionsElem.style.display = 'block';
+            })
+        .on('blur', hideLabelSuggestions)
+        .on('click', function () {
+            addLabel(account, label);
+            removeSuggestionElem(this);
+          });
+    suggestion.on('keydown',
+        onSuggestionKeyDown.bind(suggestion, account, label));
+    if (label in Main.PREDEFINED_LABELS) {
+      suggestion.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
+    }
+    suggestionsElem.append(suggestion);
   }
 
   function showLabelSuggestions(account, query, li) {
-    var matches = getLabelSuggestions(account, query);
     suggestionsElem.html('');
+    activeSearchElem = li.firstElementChild;
 
+    var matches = getLabelSuggestions(account, query);
     if (matches.length === 0) {
       suggestionsElem.style.display = 'none';
       return;
     }
 
     suggestionsElem.style.display = 'block';
-    li.append(suggestionsElem);
+    suggestionsElem.style.top =
+      (activeSearchElem.offsetTop + activeSearchElem.offsetHeight) + 'px';
+    suggestionsElem.style.left = activeSearchElem.offsetLeft + 'px';
 
-    matches.each(function (match) {
-      var addLabel = function () {
-        var list = $('labels-' + account.number);
-        account.addLabel(match);
-        addLabelRow(list.firstElementChild, match);
-        list.style.height = list.firstElementChild.clientHeight + 'px';
-
-        var nbr = this.nextElementSibling || this.previousElementSibling ||
-          suggestionsElem.previousElementSibling;
-        nbr.focus();
-        this.parentElement.removeChild(this);
-      };
-
-      var suggestion = $.make('.suggestion', {tabindex: 0}).text(match)
-        .on('focus', function () {
-          suggestionsElem.style.display = 'block';
-        })
-        .on('keydown', function (e) {
-          if (e.which == 40 && this.nextElementSibling) {
-            this.nextElementSibling.focus();
-          } else if (e.which == 38 && this.previousElementSibling) {
-            this.previousElementSibling.focus();
-          } else if (e.which == 13) {
-            addLabel.call(this);
-          }
-        })
-        .on('click', addLabel);
-
-      if (match in Main.PREDEFINED_LABELS) {
-        suggestion.append($.make('i').text(Main.PREDEFINED_LABELS[match]));
-      }
-
-      suggestionsElem.append(suggestion);
-    });
+    matches.each(addSuggestion.bind(null, account, query));
   }
 
   function hideLabelSuggestions() {
@@ -82,11 +111,12 @@ var main = new Main();
   }
 
   function addLabelSearchElement(listElem, account) {
-    var input = $.make('input', {
+    var input = $.make('input#search-' + account.number, {
       type: 'search',
-      size: 60,
+      size: 70,
       placeholder: 'Type here to add labels',
-      incremental: ''
+      incremental: '',
+      disabled: true
     });
     var li = $.make('li').append(input);
     listElem.append(li);
@@ -96,7 +126,7 @@ var main = new Main();
     };
 
     input
-      .on('search', suggest)
+      .on('keyup', suggest)
       .on('focus', suggest)
       .on('keydown', function (e) {
         if (e.which == 40) {
@@ -104,6 +134,22 @@ var main = new Main();
         }
       })
       .on('blur', hideLabelSuggestions);
+  }
+
+  function addLabelRow(listElem, account, label) {
+    var li = $.make('li')
+      .append($.make('.icon-minus-sign')
+        .on('click', function () {
+          account.removeLabel(label);
+          listElem.removeChild(this.parentElement);
+          updateLabelsListHeight();
+        }))
+      .append($.make('.label-name').text(label ? label : 'Inbox'));
+
+    if (label in Main.PREDEFINED_LABELS) {
+      li.append($.make('i').text(Main.PREDEFINED_LABELS[label]));
+    }
+    listElem.insertBefore(li, listElem.firstElementChild.nextElementSibling);
   }
 
   function addAccountElement(account) {
@@ -114,7 +160,7 @@ var main = new Main();
 
     var listElem = $.make('ul');
     addLabelSearchElement(listElem, account);
-    account.labels.each(addLabelRow.bind(null, listElem));
+    account.labels.each(addLabelRow.bind(null, listElem, account));
 
     var labelsElem = $.make('.labels-list#labels-' + account.number)
       .append(listElem);
@@ -124,15 +170,36 @@ var main = new Main();
       $.make('.account-row-container')
         .append(accountElem)
         .append(labelsElem),
-        accountList.firstChild);
+      accountList.lastElementChild);
+  }
+
+  function hideLabelsList() {
+    if (activeLabelsListNumber != -1) {
+      $('labels-' + activeLabelsListNumber).style.removeProperty('height');
+      $('search-' + activeLabelsListNumber).disabled = true;
+      activeLabelsListNumber = -1;
+    }
+  }
+
+  function showLabelsList(number) {
+    hideLabelsList();
+    activeLabelsListNumber = number;
+    updateLabelsListHeight();
+    $('search-' + number).disabled = false;
+  }
+
+  function updateLabelsListHeight() {
+    var list = $('labels-' + activeLabelsListNumber);
+    if (list) {
+      list.style.height = list.firstElementChild.clientHeight + 'px';
+    }
   }
 
   function toggleLabelsList(number) {
-    var list = $('labels-' + number);
-    if (list.style.height) {
-      list.style.removeProperty('height');
+    if (number == activeLabelsListNumber) {
+      hideLabelsList();
     } else {
-      list.style.height = list.firstElementChild.clientHeight + 'px';
+      showLabelsList(number);
     }
   }
 
@@ -167,8 +234,12 @@ var main = new Main();
   }
 
   function init() {
-    main.subscribe('accountAdded', function (account) {
-      account.subscribe('feedParsed', addAccountElement);
+    main.subscribe('accountFeedParsed', function (account) {
+      addAccountElement(account);
+      if (!isDiscovering) throbber.stop();
+      if (activeLabelsListNumber == -1) {
+        toggleLabelsList(account.number);
+      }
     });
 
     if (localStorage.accountInfo) {
@@ -179,16 +250,23 @@ var main = new Main();
     log.info('Discovering accounts');
     $('accounts-box-header').append(throbber.root);
     throbber.start('Discovering...');
-    main.discoverAccounts(throbber.stop.bind(throbber));
+    main.discoverAccounts(function () {
+      throbber.stop();
+      isDiscovering = false;
+    });
 
     $('add-account').on('click', showSignInWindow);
+
+    suggestionsElem.on('mousewheel', function (e) {
+      suggestionsElem.scrollTop -= e.wheelDeltaY;
+    });
 
     chrome.tabs.onUpdated.addListener(function (tabID, info) {
       if (tabID == signInTabID && info.url &&
           info.url.indexOf(Account.GMAIL_URL) === 0) {
         var match = /mail\/u\/([0-9]+)/.exec(info.url);
         throbber.start('Loading account info...');
-        main.addAccount({number: parseInt(match[1], 10)});
+        main.addAccount({ number: parseInt(match[1], 10) });
         closeSignInWindow();
       }
     });

@@ -1,6 +1,11 @@
 from BaseHTTPServer import BaseHTTPRequestHandler
 import cgi
 
+COLORS = ['\033[92m', '\033[93m', '\033[95m']
+
+def printf(msg, priority):
+    print COLORS[priority] + msg + '\033[0m'
+
 class Handler(BaseHTTPRequestHandler):
     def log_request(self, code='-', size='-'):
         pass
@@ -19,9 +24,7 @@ class Handler(BaseHTTPRequestHandler):
                     'CONTENT_TYPE':self.headers['Content-Type'],
                     })
 
-        for field in form.keys():
-            print form[field].value
-        return
+        printf(form['msg'].value, int(form['priority'].value))
 
     def do_OPTIONS(self):
         self.send_response(200)

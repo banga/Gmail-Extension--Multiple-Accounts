@@ -2,17 +2,26 @@
 (function (global) {
   'use strict';
 
-  function Log(session) {
+  function Log(session, minPriority) {
     this.session = session;
+    this.minPriority = minPriority || Log.PRIORITY_LOW;
     this.info('Started ' + session);
   }
 
-  Log.prototype.info = function () {
+  Log.PRIORITY_LOW = 0;
+  Log.PRIORITY_MEDIUM = 1;
+  Log.PRIORITY_HIGH = 2;
+
+  function argsToString(args) {
     var msg = '';
-    for (var i = 0; i < arguments.length; ++i) {
-      msg += arguments[i] + ' ';
+    for (var i = 0; i < args.length; ++i) {
+      msg += args[i] + ' ';
     }
-    this._write(msg);
+    return msg;
+  }
+
+  Log.prototype.info = function () {
+    this._write(argsToString(arguments), Log.PRIORITY_LOW);
   };
 
   Log.getStackTrace = function () {
@@ -24,11 +33,16 @@
   };
 
   Log.prototype.trace = function () {
-    this._write(Log.getStackTrace());
+    this._write(Log.getStackTrace(), Log.PRIORITY_LOW);
   };
 
-  Log.prototype.error = function (msg) {
-    this._write('Error: ' + msg + '\n' + Log.getStackTrace());
+  Log.prototype.warn = function () {
+    this._write('Warning: ' + argsToString(arguments), Log.PRIORITY_MEDIUM);
+  };
+
+  Log.prototype.error = function () {
+    this._write('Error: ' + argsToString(arguments) + '\n' +
+        Log.getStackTrace(), Log.PRIORITY_HIGH);
   };
 
   Log.prototype.assert = function (condition, msg) {
@@ -42,6 +56,9 @@
   };
 
   Log.examine = function (obj, level) {
+    if (obj === null) return 'null\n';
+    if (obj === undefined) return 'undefined\n';
+
     if (typeof obj !== 'object') {
       if (typeof obj === 'string') {
         return '"' + obj + '"\n';
@@ -65,19 +82,24 @@
 
   Log.prototype.dir = function (obj) {
     console.dir(obj);
-    this._write(Log.examine(obj));
+    this._write(Log.examine(obj), Log.PRIORITY_LOW);
   };
 
   if (chrome.runtime.id === 'kdcblpjgmdimneclgllpmhlibdlbecpi') {
-    Log.prototype._write = function (msg) {
+    var console_fns = [console.info, console.warn, console.error];
+
+    Log.prototype._write = function (msg, priority) {
       var prefix = '[' + this.session + '][' +
         new Date().toLocaleTimeString() + '] ';
       msg = prefix + msg;
 
-      console.log(msg);
+      if (priority >= this.minPriority) {
+        console_fns[priority].call(console, msg);
+      }
 
       var payload = new FormData();
       payload.append('msg', msg);
+      payload.append('priority', priority);
 
       $.post({
         url: 'http://localhost:8080/',

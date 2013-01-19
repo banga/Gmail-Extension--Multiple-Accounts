@@ -1,6 +1,6 @@
 var main,
     notifier,
-    log = new Log('background'),
+    log = new Log('background', Log.PRIORITY_MEDIUM),
     _test = function () {
       chrome.tabs.create({ url: 'test.html' });
     };
@@ -29,8 +29,9 @@ var bg = (function () {
   });
 
   chrome.extension.onConnect.addListener(function (port) {
+    log.info('Popup connected');
     port.onDisconnect.addListener(function () {
-      main.detachView();
+      log.info('Popup disconnected');
     });
   });
 
@@ -50,7 +51,7 @@ var bg = (function () {
   }
 
   function loadAccounts() {
-    var accountInfo;
+    var accountInfo, shouldDiscover = false;
 
     log.info('loadAccounts');
 
@@ -66,13 +67,10 @@ var bg = (function () {
           });
         });
         localStorage.accountInfo = JSON.stringify(accountInfo); 
+        shouldDiscover = true;
       }
     } else {
-      accountInfo = {
-        version: 2,
-        accounts: [{domain: 'gmail', number: 0}]
-      };
-      localStorage.accountInfo = JSON.stringify(accountInfo);
+      shouldDiscover = true;
     }
 
     main = new Main();
@@ -92,14 +90,21 @@ var bg = (function () {
       account.unsubscribe(bg);
     }, bg);
 
-    main.subscribe('accountFeedsParsed', function () {
+    main.subscribe('allFeedsParsed', function () {
       loadingAnimation.stop();
       animateIfCountChanged();
     }, bg);
 
     notifier = new Notifier(main);
 
-    main.fromJSON(accountInfo);
+    if (shouldDiscover) {
+      chrome.tabs.create({url: 'options.html'});
+      main.discoverAccounts(function () {
+        localStorage.accountInfo = JSON.stringify(main.toJSON());
+      });
+    } else {
+      main.fromJSON(accountInfo);
+    }
     setInterval(main.update.bind(main), 60000);
   }
 

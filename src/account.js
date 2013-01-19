@@ -111,7 +111,7 @@
     var onSuccess = this.publish.bind(this, 'init', this);
     var onError = this.publish.bind(this, 'initFailed', this);
     this._fetchAccountURL(function () {
-      this_._fetchAccountAtParameter(onSuccess, onError);
+      this_._fetchAccountInfo(onSuccess, onError);
     }, onError);
   };
 
@@ -133,36 +133,55 @@
     });
   };
 
-  Account.extractLabels = function (xhr) {
+  Account.extractInfo = function (xhr) {
     var doc = $.make('document').html(xhr.responseText),
+        guser = doc.querySelector('#guser'),
         labelContainer = doc.querySelector('td.lb'),
-        labels = [];
+        match_at = xhr.responseText.match(/\at=([^"]+)/),
+        info = { labels: [] };
+
+    // 'at'
+    if (match_at && match_at.length > 0) {
+      info.at = match_at[1];
+    }
+
+    // username
+    if (guser) {
+      try {
+        guser.removeChild(guser.querySelector('.hdn'));
+      } catch (e) {
+      }
+      info.name = guser.textContent.split('|')[0].trim();
+    }
+
+    // labels 
     if (labelContainer) {
       var labelElems = labelContainer.querySelectorAll('a');
       labelElems.each(function (elem) {
-        var href = elem.getAttribute('href');
+        var href = elem.getAttribute('href'), match;
         if (href) {
-          var match = /&l=(\S*)/.exec(href);
+          match = /&l=(\S*)/.exec(href);
           if (match) {
-            var label = window.unescape(match[1]).replace(/\+/g, ' ');
-            labels.push(label);
+            info.labels.push(window.unescape(match[1]).replace(/\+/g, ' '));
           }
         }
       });
     }
-    return labels;
+
+    return info;
   };
 
-  Account.prototype._fetchAccountAtParameter = function (onSuccess, onError) {
+  Account.prototype._fetchAccountInfo = function (onSuccess, onError) {
     var this_ = this;
 
     $.post({
       url: this.htmlModeURL(),
       onSuccess: function (xhr) {
-        this_.allLabels = Account.extractLabels(xhr);
-        var m = xhr.responseText.match(/\at=([^"]+)/);
-        if (m && m.length > 0) {
-          this_.at = m[1];
+        var info = Account.extractInfo(xhr, onSuccess, onError); 
+        if ('at' in info && 'name' in info && 'labels' in info) {
+          this_.name = info.name;
+          this_.allLabels = info.labels;
+          this_.at = info.at;
           onSuccess();
         } else {
           onError();
@@ -233,7 +252,7 @@
       var titleNode = xmlDoc.querySelector('title');
 
       if (titleNode) {
-        this.name = /\S*@\S*/.exec(titleNode.textContent)[0];
+        log.assert(this.name == /\S*@\S*/.exec(titleNode.textContent)[0]);
 
         var entryNodes = xmlDoc.querySelectorAll('entry');
 
