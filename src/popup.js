@@ -30,21 +30,27 @@ var log = new Log('popup');
     });
   }
 
+  function attachView() {
+    addButtonListeners();
+    main.detachView();
+    var view = new MainView(main);
+    $('inboxes').append(view.root);
+  }
+
   function init() {
     log.info('Popup started');
     global.Account = backgroundPage.Account;
 
     chrome.extension.connect();
 
-    setTimeout(function () {
-      addButtonListeners();
-      main.detachView();
-      var view = new MainView(main);
-      $('inboxes').append(view.root);
-    }, 0);
-
-    setTimeout(main.update.bind(main), 2000);
+    setTimeout(attachView, 0);
+    setTimeout(main.update.bind(main), 10000);
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  if (main.accounts.length === 0) {
+    chrome.tabs.create({ url: 'options.html'});
+    window.close();
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
 }) (window);
