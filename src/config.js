@@ -57,7 +57,7 @@
 
   Config.prototype.makeSpaceForLabels = function (accountName) {
     if (!(accountName in this.labels))
-      this.labels[accountName] = { '': '', 'Important': '' };
+      this.labels[accountName] = { '': '' };
   };
 
   Config.prototype.addLabel = function (accountName, label) {
