@@ -44,15 +44,28 @@ var bg = (function () {
     switch (details.reason) {
     case 'installed':
       //analytics.installed(version);
-      chrome.tabs.create({url: 'options.html'});
+      onUpdated();
       break;
 
     case 'updated':
       //analytics.updated(version);
-      chrome.tabs.create({url: 'options.html'});
+      onUpdated();
       break;
     }
   });
+
+  function onUpdated(oldVersion, version) {
+    Config.launchOptionsPage();
+    log.info('Updated ', oldVersion, version);
+  }
+
+  function checkIfUpdated() {
+    var version = chrome.app.getDetails().version;
+    if (localStorage.version !== version) {
+      onUpdated(localStorage.version, version);
+      localStorage.version = version;
+    }
+  }
 
   function loadAccounts() {
     main = new Main();
@@ -93,6 +106,7 @@ var bg = (function () {
     chrome.browserAction.setBadgeBackgroundColor({color: [20, 120, 255, 255]});
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
 
+    checkIfUpdated();
     loadAccounts();
   }
 
