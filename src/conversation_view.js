@@ -200,9 +200,22 @@
       if (e.shiftKey || e.ctrlKey) {
         this_.selector.click();
       } else {
+        if (this_.contents.classList.contains('contents-collapsed')) {
+          document.querySelectorAll('.conversation').each(
+            function (conversationElem) {
+              var contents = conversationElem.conversation.view.contents;
+              contents.classList.remove('contents');
+              contents.classList.add('contents-collapsed');
+              conversationElem.conversation.collapsed = true;
+            });
+        }
         this_.contents.classList.toggle('contents');
         this_.contents.classList.toggle('contents-collapsed');
         this_.conversation.collapsed = !this_.conversation.collapsed;
+        var rects = this_.contents.getClientRects();
+        if (rects.length && rects[0].top < 0) {
+          this_.contents.scrollIntoView();
+        }
       }
       e.cancelBubble = true;
       e.stopPropagation();

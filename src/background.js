@@ -141,7 +141,10 @@ var bg = (function () {
       animating = false;
       rotation = 0;
       drawIconAtRotation();
-      chrome.browserAction.setBadgeText({text: totalUnreadCount});
+      if (totalUnreadCount === '0') {
+        totalUnreadCount = '';
+      }
+      chrome.browserAction.setBadgeText({ text: totalUnreadCount });
       chrome.browserAction.setBadgeBackgroundColor(
           {color: [20, 120, 255, 255]});
     }
