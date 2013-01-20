@@ -55,8 +55,10 @@ var bg = (function () {
   });
 
   function onUpdated(oldVersion, version) {
-    Config.launchOptionsPage();
-    log.info('Updated ', oldVersion, version);
+    if (oldVersion[0] === '1') {
+      Config.launchOptionsPage();
+      log.info('Updated ', oldVersion, version);
+    }
   }
 
   function checkIfUpdated() {
