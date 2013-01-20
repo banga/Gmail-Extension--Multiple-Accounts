@@ -113,6 +113,7 @@ body {
   box-shadow: 0 1px 1px #FFF;
   cursor: pointer;
   -webkit-transition: all 0.2s ease-in-out;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
 }
 .conversation-selected > .contents,
 .conversation-selected > .contents-collapsed,
@@ -135,11 +136,18 @@ body {
 .contents-collapsed > .conversation-tools {
   display: none;
 }
+.contents-collapsed > .subject {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
 .conversation > .contents-collapsed:hover {
   color: #222;
   box-shadow: 0 1px 4px rgba(200,200,200,0.5);
   background: -webkit-linear-gradient(top, #FFF 0, #DDD 100%);
   border: 1px solid #CCC;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
 }
 .conversation > .contents-collapsed:active {
   color: #666;

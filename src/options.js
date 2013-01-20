@@ -56,8 +56,8 @@ var Options = (function () {
       $.make('.suggestion', {tabindex: 0})
         .append(
             $.make('.suggestion-label')
-            .html(labelText.slice(0, start) + '<b>' +
-              labelText.slice(start, end) + '</b>' + labelText.slice(end)))
+            .html(labelText.slice(0, start) + '<span class="match">' +
+              labelText.slice(start, end) + '</span>' + labelText.slice(end)))
         .on('focus', function () {
               suggestionsElem.style.display = 'block';
             })
@@ -66,8 +66,11 @@ var Options = (function () {
             addLabel(account, label);
             removeSuggestionElem(this);
           });
+
     suggestion.on('keydown',
         onSuggestionKeyDown.bind(suggestion, account, label));
+    suggestion.on('keypress', onSuggestionKeyPress);
+
     if (label in Config.SPECIAL_LABELS) {
       suggestion.append($.make('i').text(Config.SPECIAL_LABELS[label]));
     }
@@ -80,22 +83,39 @@ var Options = (function () {
     li.parentElement.removeChild(li);
   }
 
-  var onSuggestionKeyDown = function (account, label, e) {
+  var onSuggestionKeyPress = function (e) {
     e.preventDefault();
-    if (e.which == 40) {
+    activeSearchElem.value += String.fromCharCode(e.which);
+    activeSearchElem.focus();
+  };
+
+  var onSuggestionKeyDown = function (account, label, e) {
+    switch (e.which) {
+    case 40:
+      e.preventDefault();
       (this.nextElementSibling || activeSearchElem).focus();
-    } else if (e.which == 38) {
+      break;
+    case 38:
+      e.preventDefault();
       (this.previousElementSibling || activeSearchElem).focus();
-    } else if (e.which == 8) {
-      activeSearchElem.value = activeSearchElem.value.slice(0, -1);
+      return;
+    case 27:
+      activeSearchElem.value = '';
       activeSearchElem.focus();
-    } else if (e.which == 27) {
-      this.blur();
-    } else if (e.which == 13) {
+      break;
+    case 13:
+      e.preventDefault();
       addLabel(account, label);
       removeSuggestionElem(this);
+      break;
+    case 8:
+      e.preventDefault();
+      activeSearchElem.value = activeSearchElem.value.slice(0, -1);
+      activeSearchElem.focus();
+      break;
+    default:
+      break;
     }
-    return false;
   };
 
   function showLabelSuggestions(account, query, li) {
@@ -122,17 +142,19 @@ var Options = (function () {
 
   function addLabelSearchElement(listElem, account) {
     var input = $.make('input#search-' + account.number, {
-      type: 'search',
-      size: 70,
-      placeholder: 'Type here to add labels',
-      incremental: '',
-      disabled: true
-    });
-    var li = $.make('li').append(input);
+        type: 'search',
+        size: 70,
+        placeholder: 'Type here to add labels',
+        incremental: '',
+        disabled: true
+      }),
+        li = $.make('li').append(input);
     listElem.append(li);
 
     var suggest = function () {
       showLabelSuggestions(account, input.value.toLowerCase(), li);
+      if (suggestionsElem.firstElementChild)
+        suggestionsElem.firstElementChild.focus();
     };
 
     input

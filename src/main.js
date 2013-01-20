@@ -52,6 +52,23 @@
     discoverNext(0);
   };
 
+  // Signed out, then signed in with a different id
+  Main.prototype.onAccountChanged = function (args) {
+    var otherAccount;
+    this.accounts.each(function (account) {
+      if (account !== args.account && account.name === args.newName) {
+        otherAccount = account;
+        return false;
+      }
+    });
+    if (otherAccount) {
+      otherAccount.reload();
+      otherAccount.init();
+    }
+    args.account.reload();
+    args.account.init();
+  };
+
   Main.prototype.isDuplicateAccount = function (accountObj) {
     return this.accounts.some(function (account) {
       return accountObj.domain == account.domain &&
@@ -80,18 +97,22 @@
 
     account.subscribe('init',
         this.publish.bind(this, 'accountInit', account), this);
+
     account.subscribe('initFailed', function () {
       this.publish('accountInitFailed', account);
-      setTimeout(account.init.bind(account), 10000);
+      setTimeout(account.init.bind(account), 60000);
     }, this);
 
     account.subscribe('feedParsed', function () {
       this.publish('accountFeedParsed', account);
       this.checkStatus();
     }, this);
-    account.subscribe('feedParseFailed', function () {
-      this.publish('accountFeedParseFailed', account);
+
+    account.subscribe('feedParseFailed', function (args) {
+      this.publish('accountFeedParseFailed', args);
     }, this);
+
+    account.subscribe('changed', this.onAccountChanged, this);
 
     this.accounts.push(account);
     this.publish('accountAdded', account);

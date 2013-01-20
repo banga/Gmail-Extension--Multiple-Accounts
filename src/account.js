@@ -6,17 +6,7 @@
    * It can read from multiple feeds, each for a different label
    */ 
   function Account(args) {
-    this.domain = args.domain || 'mail';
-    this.number = args.number || 0;
-    this.url = Account.GMAIL_URL + this.domain + '/u/' + this.number + '/';
-
-    this.status = Account.STATUS_NONE;
-    this.feedStatus = Account.FEED_STATUS_NONE;
-    this.lastUpdated = {};
-    this.conversations = {};
-    this.unreadCount = 0;
-
-    this._labelQueue = [];
+    this.reload(args);
 
     this.subscribe('init', function () {
       log.info('Account initialized:', this.url);
@@ -26,8 +16,12 @@
     }, this);
 
     this.subscribe('initFailed', function () {
-      log.info('Account initialization failed:', this.url);
+      log.warn('Account initialization failed:', this.url);
       this.status = Account.STATUS_INITIALIZATION_FAILED;
+
+      this.conversations.each(function (conversation) {
+        this.removeConversation(conversation.id);
+      }, this);
     }, this);
 
     this.subscribe('feedParsed', function () {
@@ -35,9 +29,14 @@
       this.feedStatus = Account.FEED_STATUS_PARSED;
     }, this);
 
-    this.subscribe('feedParseFailed', function () {
-      log.info('Account feed parsing failed:', this.url);
+    this.subscribe('feedParseFailed', function (args) {
+      log.warn('Account feed parsing failed:', 'label = "' + args.label + '"');
       this.feedStatus = Account.FEED_STATUS_PARSE_FAILED;
+
+      this.conversations.each(function (conversation) {
+        this.removeConversation(conversation.id);
+      }, this);
+      this.init();
     }, this);
 
     this.subscribe('conversationAdded', function (conversation) {
@@ -73,7 +72,8 @@
       'conversationAdded',
       'conversationDeleted',
       'conversationUpdated',
-      'conversationUpdateFailed'
+      'conversationUpdateFailed',
+      'changed'
     ]);
 
   Account.GMAIL_URL = 'https://mail.google.com/';
@@ -85,6 +85,21 @@
   Account.FEED_STATUS_PARSING = 2;
   Account.FEED_STATUS_PARSED = 3;
   Account.FEED_STATUS_PARSE_FAILED = 4;
+
+  Account.prototype.reload = function (args) {
+    args = args || {};
+    this.domain = args.domain || this.domain || 'mail';
+    this.number = args.number || this.number || 0;
+    this.url = Account.GMAIL_URL + this.domain + '/u/' + this.number + '/';
+
+    this.status = Account.STATUS_NONE;
+    this.feedStatus = Account.FEED_STATUS_NONE;
+    this.lastUpdated = {};
+    this.conversations = {};
+    this.unreadCount = 0;
+
+    this._labelQueue = [];
+  };
 
   Account.isGmailURL = function (url) {
     return (url.indexOf(Account.GMAIL_URL) === 0);
@@ -197,10 +212,12 @@
 
   Account.prototype._processLabelQueue = function () {
     if (this._labelQueue.length) {
-      this._parseFeed(
-          this._labelQueue.pop(),
-          this._processLabelQueue.bind(this),
-          this.publish.bind(this, 'feedParseFailed', this));
+      var label = this._labelQueue.pop();
+      this._parseFeed(label, this._processLabelQueue.bind(this),
+        this.publish.bind(this, 'feedParseFailed', {
+          account: this,
+          label: label
+        }));
     } else {
       // Finished parsing
       this.conversations.each(function (conversation, id) {
@@ -239,65 +256,79 @@
         xmlDoc = xhr.responseXML,
         fullCountNode = xmlDoc.querySelector('fullcount');
 
-    if (fullCountNode) {
-      var modifiedNode = xmlDoc.querySelector('modified');
-      if (modifiedNode) {
-        var modified = new Date(modifiedNode.textContent),
-            lastUpdated = this.lastUpdated[label] || new Date(0);
-        if (modified <= lastUpdated) {
-          onSuccess();
-          return;
-        }
-        this.lastUpdated[label] = modified;
-      }
+    if (fullCountNode === null) {
+      log.warn('fullCountNode not found');
+      return onError();
+    }
 
-      var titleNode = xmlDoc.querySelector('title');
-
-      if (titleNode) {
-        log.assert(this.name == /\S*@\S*/.exec(titleNode.textContent)[0]);
-
-        var entryNodes = xmlDoc.querySelectorAll('entry');
-
-        if (entryNodes) {
-          var msgIDs = {};
-          entryNodes.each(function (entryNode, idx) {
-            var newConversation = new Conversation(this, entryNode, idx); 
-            var msgID = newConversation.id;
-            msgIDs[msgID] = '';
-
-            if (msgID in this.conversations) {
-              // Update existing conversation
-              var conversation = this.conversations[msgID];
-              if (conversation.modified != newConversation.modified) {
-                conversation.fromFeed(entryNode);
-                conversation.markDirty();
-              }
-              conversation.addLabel(label);
-            } else {
-              // New conversation
-              newConversation.addLabel(label);
-              newConversation.subscribe('updated', onConversationUpdated,
-                this);
-              newConversation.subscribe('updateFailed',
-                onConversationUpdateFailed, this);
-              this.conversations[msgID] = newConversation;
-              this.publish('conversationAdded', newConversation);
-            }
-          }, this);
-
-          this.conversations.each(function (conversation, id) {
-            if (!(id in msgIDs)) {
-              // Conversation is not in this label anymore
-              conversation.removeLabel(label);
-            }
-          });
-        }
-
+    var modifiedNode = xmlDoc.querySelector('modified');
+    if (modifiedNode) {
+      var modified = new Date(modifiedNode.textContent),
+          lastUpdated = this.lastUpdated[label] || new Date(0);
+      if (modified <= lastUpdated) {
         onSuccess();
         return;
       }
+      this.lastUpdated[label] = modified;
     }
-    onError();
+
+    var titleNode = xmlDoc.querySelector('title');
+
+    if (titleNode === null) {
+      log.warn('titleNode not found');
+      return onError();
+    }
+
+    var accountName = /\S*@\S*/.exec(titleNode.textContent)[0];
+    if (accountName !== this.name) {
+      log.warn('Changed', this.name, accountName);
+      onError();
+
+      var oldName = this.name;
+      this.name = accountName;
+      this.publish('changed', {
+        account: this,
+        oldName: oldName,
+        newName: accountName
+      });
+      return;
+    }
+
+    var entryNodes = xmlDoc.querySelectorAll('entry');
+    var msgIDs = {};
+    entryNodes.each(function (entryNode, idx) {
+      var newConversation = new Conversation(this, entryNode, idx); 
+      var msgID = newConversation.id;
+      msgIDs[msgID] = '';
+
+      if (msgID in this.conversations) {
+        // Update existing conversation
+        var conversation = this.conversations[msgID];
+        if (conversation.modified != newConversation.modified) {
+          conversation.fromFeed(entryNode);
+          conversation.markDirty();
+        }
+        conversation.addLabel(label);
+      } else {
+        // New conversation
+        newConversation.addLabel(label);
+        newConversation.subscribe('updated', onConversationUpdated,
+          this);
+        newConversation.subscribe('updateFailed',
+          onConversationUpdateFailed, this);
+        this.conversations[msgID] = newConversation;
+        this.publish('conversationAdded', newConversation);
+      }
+    }, this);
+
+    this.conversations.each(function (conversation, id) {
+      if (!(id in msgIDs)) {
+        // Conversation is not in this label anymore
+        conversation.removeLabel(label);
+      }
+    });
+
+    onSuccess();
   };
 
   Account.prototype._parseFeed = function (label, onSuccess, onError) {
@@ -313,6 +344,7 @@
   Account.prototype.removeConversation = function (id) {
     this.publish('conversationDeleted', this.conversations[id]);
     delete this.conversations[id];
+    delete this.lastUpdated[id];
   };
 
   Account.prototype.detachView = function () {

@@ -31,7 +31,16 @@
   };
 
   MainView.prototype.addAccount = function (account) {
-    this.root.append(new AccountView(account, $).root);
+    var accountView = new AccountView(account);
+    this.root.append(accountView.root);
+
+    this.root.children.each(function (child) {
+      if (child.account.number > account.number) {
+        this.root.insertBefore(accountView.root, child);
+        return false;
+      }
+    }, this);
+
     account.subscribe('conversationDeleted',
         MainView.prototype.updateMultibarVisibility, this);
   };
@@ -42,7 +51,8 @@
     this.updateMultibarVisibility();
   };
 
-  MainView.prototype.makeMultibarButton = function (text, action, iconX, iconY) {
+  MainView.prototype.makeMultibarButton =
+    function (text, action, iconX, iconY) {
     var button = $.make('.multibar-button');
     if (iconX !== undefined) {
       button.append($.make('span.tool-icon', null, {

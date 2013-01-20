@@ -1,9 +1,9 @@
 var log = new Log('popup');
 
-(function () {
+(function (global) {
   'use strict';
-  var backgroundPage = chrome.extension.getBackgroundPage();
-  var main = backgroundPage.main;
+  var backgroundPage = chrome.extension.getBackgroundPage(),
+      main = backgroundPage.main;
 
   function openTab(url) {
     chrome.tabs.create({ url: url });
@@ -11,7 +11,7 @@ var log = new Log('popup');
 
   function addButtonListeners() {
     $('donate-button').on('click', function () {
-      analytics.donateClick();
+      //analytics.donateClick();
       openTab('https://www.paypal.com/cgi-bin/webscr?cmd=_donations' +
         '&business=323R63UN8G5GS&lc=US&currency_code=USD' +
         '&item_name=Google%20Mail%20Multi-Account%20Checker' +
@@ -31,7 +31,8 @@ var log = new Log('popup');
   }
 
   function init() {
-    log.info('Started');
+    log.info('Popup started');
+    global.Account = backgroundPage.Account;
 
     chrome.extension.connect();
 
@@ -46,4 +47,4 @@ var log = new Log('popup');
   }
 
   document.addEventListener('DOMContentLoaded', init);
-}) ();
+}) (window);

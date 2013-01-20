@@ -1,6 +1,6 @@
 body {
   background-image: url('../images/grain.png');
-  font-family: sans-serif;
+  font-family: 'Helvetica', 'Arial', sans-serif;
 }
 :focus {
   outline: none;
@@ -66,15 +66,20 @@ form {
   border-bottom-right-radius: 4px;
   color: #FFF;
   text-shadow: 0 -1px 0 rgba(0,0,0,0.25);
-  background-image: linear-gradient(to bottom, rgb(71, 189, 248), rgb(4, 118, 207));
+  background-image:
+    -webkit-linear-gradient(top, rgb(40, 174, 241), rgb(5, 108, 189));
   text-align: center;
+  box-shadow:
+    inset 2px 0px 0px rgba(255,255,255,0.2),
+    inset -2px 0px 1px rgba(255, 255, 255, 0.3),
+    inset 0px -2px 1px rgba(0,0,0, 0.3);
 }
 .account-row-container:last-child:hover {
-  background-image: linear-gradient(to bottom, #0Ac, #06c);
+  background-image: -webkit-linear-gradient(top, #0Ac, #06c);
   color: #FFF;
 }
 .account-row-container:last-child:active {
-  background-image: linear-gradient(to bottom, #04c, #08c);
+  background-image: -webkit-linear-gradient(top, #04c, #08c);
   color: #FFF;
 }
 .account-row {
@@ -164,8 +169,11 @@ li > .icon-minus-sign:hover {
   width: 350px;
   color: rgb(92, 92, 92);
   text-shadow: none;
-  box-shadow: 7px 10px 20px -10px rgba(0,0,0,0.1), -7px 10px 20px -10px rgba(0,0,0,0.1);
-  background-image: linear-gradient(to top, rgb(255, 255, 255), rgb(251, 255, 245));
+  box-shadow:
+    7px 10px 20px -10px rgba(0,0,0,0.1),
+    -7px 10px 20px -10px rgba(0,0,0,0.1);
+  background-image:
+    -webkit-linear-gradient(bottom, rgb(255, 255, 255), rgb(251, 255, 245));
 }
 .suggestion {
   border-top: 1px solid #EEE;
@@ -177,6 +185,10 @@ li > .icon-minus-sign:hover {
   vertical-align: top;
 }
 .suggestion-label {
+}
+.match {
+  color: #090;
+  font-weight: normal;
 }
 .suggestion:focus,
 .suggestion:active {

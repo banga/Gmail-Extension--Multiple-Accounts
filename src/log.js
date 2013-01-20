@@ -88,6 +88,16 @@
   if (chrome.runtime.id === 'kdcblpjgmdimneclgllpmhlibdlbecpi') {
     var console_fns = [console.info, console.warn, console.error];
 
+    var logToServer = function (msg, priority) {
+      var xhr = new XMLHttpRequest(),
+          payload = new FormData();
+      payload.append('msg', msg);
+      payload.append('priority', priority);
+
+      xhr.open('POST', 'http://localhost:8080/', false);
+      xhr.send(payload);
+    };
+
     Log.prototype._write = function (msg, priority) {
       var prefix = '[' + this.session + '][' +
         new Date().toLocaleTimeString() + '] ';
@@ -97,14 +107,7 @@
         console_fns[priority].call(console, msg);
       }
 
-      var payload = new FormData();
-      payload.append('msg', msg);
-      payload.append('priority', priority);
-
-      $.post({
-        url: 'http://localhost:8080/',
-        payload: payload
-      });
+      logToServer(msg, priority);
     };
   } else {
     Log.prototype._write = function () { /* crickets */ };
