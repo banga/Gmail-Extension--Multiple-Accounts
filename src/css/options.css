@@ -211,13 +211,30 @@ li > .icon-minus-sign:hover {
 .suggestion:hover {
   background: rgb(242, 255, 216);
 }
-.app-icon {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
+#help {
+  text-align: center;
+  font-size: 14px;
+  margin: 10px;
+  color: #666;
+  cursor: pointer;
+}
+#help:hover{
+  color: #0AC;
+  text-decoration: underline;
+}
+#donate {
+  position: fixed;
+  bottom: 11px;
+  right: 10px;
+  color: rgb(121, 196, 211);
+  text-decoration: none;
+  font-weight: 100;
+}
+#donate:hover {
+  text-decoration: underline;
 }
 iframe {
   position: fixed;
   bottom: 10px;
-  right: 10px;
+  right: 55px;
 }

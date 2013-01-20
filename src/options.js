@@ -303,6 +303,9 @@ var Options = (function () {
     });
 
     $('add-account').on('click', showSignInWindow);
+    $('help').on('click', function () {
+      chrome.tabs.create({ url: 'help.html' });
+    });
 
     suggestionsElem.on('mousewheel', function (e) {
       suggestionsElem.scrollTop -= e.wheelDeltaY;

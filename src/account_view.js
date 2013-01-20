@@ -37,6 +37,8 @@
   };
 
   AccountView.prototype.updateHeader = function () {
+    this.root.style.display = 'block';
+
     switch (this.account.status) {
     case Account.STATUS_NONE:
     case Account.STATUS_INITIALIZING:
@@ -48,6 +50,7 @@
       break;
     case Account.STATUS_INITIALIZATION_FAILED:
       this.linkElem.text('Click here to log in');
+      this.root.style.display = 'none';
       break;
     }
   };

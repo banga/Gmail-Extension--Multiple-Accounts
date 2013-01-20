@@ -1,0 +1,130 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Google Mail Checker - Options</title>
+    <link rel='stylesheet' type='text/css' href='css/options.css'/>
+    <link rel='stylesheet' type='text/css' href='css/font-awesome.min.css'/>
+    <style type='text/css'>
+      .labels-list {
+        color: #456;
+        height: 0;
+      }
+      .labels-list li {
+        height: auto;
+        padding-right: 20px;
+      }
+      .labels-list li:hover {
+        background: none;
+      }
+      .labels-list a {
+        color: rgb(0, 153, 255);
+      }
+      .labels-list li:first-child {
+        padding-left: 20px;
+      }
+      .help-answer {
+        padding: 5px 10px;
+        line-height: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='accounts-box' style='width: 500px'>
+      <div id='accounts-box-header'>
+        <div class='title'>Help</div>
+      </div>
+      <form action='#' id='main-form'>
+        <div id="accounts-list">
+          <div class="account-row-container">
+            <div class="account-row">
+              <div class="icon-envelope"></div>
+              <div class="title">
+                Why can't I add account login details anymore?
+              </div>
+              <div class="icon-chevron-down"></div></div>
+          </div>
+          <div class="labels-list" style="height: 0px;">
+            <ul><li>
+              In previous versions of this extension, you could add username and
+              password for each account, so that you did not have to sign in to
+              view emails. However, this frequently caused the extension to
+              confuse some accounts, because Gmail remembers your signed-in details
+              differently from the authentication details for this extension. Since
+              this extension uses your Gmail pages to retrieve contents of emails,
+              it would retrieve the wrong emails or just fail.
+              <br/>
+              This leads to bad experiences, so I decided to simply use the
+              signed in accounts which are more reliable, instead of putting
+              users at risk.
+            </li></ul>
+          </div>
+          <div class="account-row-container">
+            <div class="account-row">
+              <div class="icon-envelope"></div>
+              <div class="title">
+                Why do I see so many extra emails?
+              </div>
+              <div class="icon-chevron-down"></div></div>
+          </div>
+          <div class="labels-list" style="height: 0px;">
+            <ul><li>
+            This extension can now synchronize emails from multiple labels in your
+            gmail accounts. By default, I added the 'Important' label so that
+            users can discover this feature. This synchronizes all emails in
+            your account marked as Important, even the ones you may have archived.
+            You can get rid of any labels in the <a href='options.html'>Options</a>
+            page.
+            </li></ul>
+          </div>
+          <div class="account-row-container">
+            <div class="account-row">
+              <div class="icon-envelope"></div>
+              <div class="title">
+                What are some features I don't know about?
+              </div>
+              <div class="icon-chevron-down"></div></div>
+          </div>
+          <div class="labels-list" style="height: 0px;">
+            <ul>
+              <li>You can synchronize multiple labels. Go to 
+              <a href='options.html'>Options</a> to configure.
+                  Apart from the labels you defined, these can be special
+                  labels such as Important, Chat or Starred.
+              </li>
+              <li>You can shift-click on an email to select it</li>
+              <li>You can drag over emails to select them</li>
+              <li>When an email is open, if you click on the gray area next to
+              the buttons, the email will close up. This is useful if the email is
+              too long and you don't want to go all the way up.</li>
+            </ul>
+          </div>
+          <div class="account-row-container">
+            <div class="account-row">
+              <div class="icon-envelope"></div>
+              <div class="title">
+                How can I help the developer?
+              </div>
+              <div class="icon-chevron-down"></div></div>
+          </div>
+          <div class="labels-list" style="height: 0px;">
+            <ul>
+              <li><a href='https://chrome.google.com/webstore/detail/google-mail-multi-account/mcpnehokodklgijkcakcfmccgpanipfp/reviews'>Rate</a> this extension</li>
+              <li>Leave <a href='https://chrome.google.com/webstore/support/mcpnehokodklgijkcakcfmccgpanipfp'>Feedback</a></li>
+              <li><a href='https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=323R63UN8G5GS&lc=US&currency_code=USD&item_name=Google%20Mail%20Multi-Account%20Checker&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted'>Donate</a></li>
+            </ul>
+          </div>
+          <div class="account-row-container">
+            <div class="account-row" id="ask">
+              Ask for help
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div id='page-title'>Google Mail Multi-Account Checker</div>
+
+    <script src="util.js"></script>
+    <script src="help.js"></script>
+  </body>
+</html>

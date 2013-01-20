@@ -15,13 +15,13 @@
     thisObj = thisObj || this;
     if ('length' in this) {
       for (var i = 0; i < this.length; ++i) {
-        if (func.call(thisObj, this[i], i, this[i]) === false)
+        if (func.call(thisObj, this[i], i, this) === false)
           break;
       }
     } else {
       for (var attr in this) {
         if (this.hasOwnProperty(attr)) {
-          if (func.call(thisObj, this[attr], attr, this[attr]) === false)
+          if (func.call(thisObj, this[attr], attr, this) === false)
             break;
         }
       }
