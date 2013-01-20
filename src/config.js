@@ -9,6 +9,10 @@
   Config.ACCOUNTS_AT = 'accounts';
   Config.LABELS_AT = 'labels';
 
+  Config.launchOptionsPage = function () {
+    chrome.tabs.create({ url: 'options.html' });
+  };
+
   Config.SPECIAL_LABELS = {
     '': 'Emails in your inbox (Default)',
     'Important': 'Emails marked as Important',
@@ -53,7 +57,7 @@
 
   Config.prototype.makeSpaceForLabels = function (accountName) {
     if (!(accountName in this.labels))
-      this.labels[accountName] = { '': '' };
+      this.labels[accountName] = { '': '', 'Important': '' };
   };
 
   Config.prototype.addLabel = function (accountName, label) {

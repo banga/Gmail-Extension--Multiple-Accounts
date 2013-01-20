@@ -157,7 +157,8 @@
     var labelsElem = $.make('.labels');
     this.conversation.labels.each(function (_, label) {
       if (label) {
-        labelsElem.append($.make('span.label').text(label));
+        labelsElem.append($.make('span.label').text(label)
+          .attr('title', 'Go to Options to configure labels'));
       }
     });
     return labelsElem;
@@ -203,6 +204,8 @@
         this_.contents.classList.toggle('contents-collapsed');
         this_.conversation.collapsed = !this_.conversation.collapsed;
       }
+      e.cancelBubble = true;
+      e.stopPropagation();
     });
 
     this.root.append(this.selector)

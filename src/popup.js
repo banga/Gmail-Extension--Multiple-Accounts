@@ -28,6 +28,16 @@ var log = new Log('popup');
       //analytics.optionsClick();
       openTab('options.html');
     });
+
+    $('feedback-link').on('click', function () {
+      if ($('inboxes').style.display == 'none') {
+        $('inboxes').style.display = 'block';
+        $('feedback').style.display = 'none';
+      } else {
+        $('inboxes').style.display = 'none';
+        $('feedback').style.display = 'block';
+      }
+    });
   }
 
   function attachView() {
@@ -40,6 +50,7 @@ var log = new Log('popup');
   function init() {
     log.info('Popup started');
     global.Account = backgroundPage.Account;
+    global.Config = backgroundPage.Config;
 
     chrome.extension.connect();
 
@@ -48,7 +59,7 @@ var log = new Log('popup');
   }
 
   if (main.accounts.length === 0) {
-    chrome.tabs.create({ url: 'options.html'});
+    Config.launchOptionsPage();
     window.close();
   } else {
     document.addEventListener('DOMContentLoaded', init);

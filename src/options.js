@@ -262,7 +262,7 @@ var Options = (function () {
         'hl=en&continue=https://mail.google.com/mail/u/0/&service=mail',
         type: 'popup',
         width: 900,
-        height: 500,
+        height: 520,
         left: (screen.width - 900) / 2,
         top: (screen.height - 500) / 2
       }, function (win) {
@@ -279,6 +279,9 @@ var Options = (function () {
   }
 
   function init() {
+    var details = chrome.app.getDetails();
+    $('page-title').text('Google Mail Multi-Account Checker ' + details.version);
+
     main.accounts.each(addAccount);
 
     addEventListener('unload', function () {
@@ -289,7 +292,7 @@ var Options = (function () {
 
     log.info('Discovering accounts');
 
-    $('accounts-box-header').append(throbber.root);
+    $('accounts-box').insertBefore(throbber.root, $('accounts-box-header'));
     throbber.start('Discovering...');
     main.discoverAccounts(function () {
       throbber.stop();
@@ -328,5 +331,3 @@ var Options = (function () {
 }) ();
 
 document.addEventListener('DOMContentLoaded', Options.init());
-
-

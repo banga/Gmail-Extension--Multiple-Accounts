@@ -54,16 +54,20 @@ body {
   color: black;
   cursor: default;
 }
-#topright > div{
+#topright > div {
   cursor: pointer;
   opacity: 0.5;
   -webkit-transition: all 0.4s;
 }
-#topright > div:hover{
+#topright > div:hover {
   opacity: 1;
 }
+#feedback-link {
+  display: none;
+}
 #topright .separator {
-  display: inline-block;
+  display: none;
+  /*display: inline-block;*/
   border-right: 1px solid #AAA;
   height: 8px;
   position: relative;

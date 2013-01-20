@@ -40,20 +40,19 @@ var bg = (function () {
     });
   });
 
-  function checkIfUpdated() {
-    var version = chrome.app.getDetails().version;
-
-    if (!('version' in localStorage)) {
+  chrome.runtime.onInstalled.addListener(function (details) {
+    switch (details.reason) {
+    case 'installed':
       //analytics.installed(version);
-    }
+      chrome.tabs.create({url: 'options.html'});
+      break;
 
-    var localVersion = localStorage.version || '';
-    if (version !== localVersion) {
-      // chrome.tabs.create({url: 'updates.html'});
-      localStorage.version = version;
+    case 'updated':
       //analytics.updated(version);
+      chrome.tabs.create({url: 'options.html'});
+      break;
     }
-  }
+  });
 
   function loadAccounts() {
     main = new Main();
