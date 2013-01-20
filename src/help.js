@@ -2,14 +2,13 @@
   'use strict';
   function init() {
     var toggle = function () {
+      var ul = this.parentElement.nextElementSibling,
+          expand = (ul.style.height === '');
       document.querySelectorAll('.labels-list').each(
         function (ul) {
           ul.style.removeProperty('height');
         });
-      var ul = this.parentElement.nextElementSibling;
-      if (ul.style.height) {
-        ul.style.removeProperty('height');
-      } else {
+      if (expand) {
         ul.style.height = ul.firstElementChild.clientHeight + 'px';
       }
     };
@@ -20,8 +19,9 @@
           container.on('click', toggle);
       });
 
-    var details = chrome.app.getDetails();
-    var version = (details ? details.version : '');
+    var details = chrome.app.getDetails(),
+        version = (details ? details.version : '');
+    $('page-title').text('Google Mail Multi-Account Checker ' + version);
 
     $('ask').on('click', function () {
       var url = 'https://mail.google.com/mail/?view=cm&ui=2&tf=0&fs=1' +
