@@ -35,19 +35,23 @@
     var discoverNext = function (accountNumber) {
       log.info('Discovering ', accountNumber);
       var account = this_.createAccount({ number: accountNumber });
-      while (account === null) {
+      while (account === null && accountNumber < 10) {
         ++accountNumber;
         account = this_.createAccount({ number: accountNumber });
       }
-      account.subscribe('init', function () {
-        discoverNext(accountNumber + 1);
-      }, this_);
-      account.subscribe('initFailed', function () {
-        this_.removeAccount(accountNumber);
+      if (account) {
+        account.subscribe('init', function () {
+          discoverNext(accountNumber + 1);
+        }, this_);
+        account.subscribe('initFailed', function () {
+          this_.removeAccount(accountNumber);
+          onFinish(accountNumber);
+          this_.checkStatus();
+        }, this_);
+        this_.addAccount(account);
+      } else {
         onFinish(accountNumber);
-        this_.checkStatus();
-      }, this_);
-      this_.addAccount(account);
+      }
     };
     discoverNext(0);
   };

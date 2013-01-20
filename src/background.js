@@ -97,7 +97,7 @@ var bg = (function () {
 
     main.subscribe('accountInit', config.addAccount.bind(config), bg);
     main.discoverAccounts(log.info.bind(log, 'Accounts discovered:'));
-    setInterval(main.update.bind(main), 60000);
+    setInterval(main.update.bind(main), 10000);
   }
 
   function init() {
