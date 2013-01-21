@@ -124,13 +124,25 @@
     account.init();
   };
 
-  Main.prototype.removeAccount = function (idx) {
-    log.assert(idx >= 0 && idx < this.accounts.length);
+  Main.prototype.removeAccount = function (accountNumber) {
+    var removedAccount;
+    this.accounts.some(function (account, idx) {
+      if (account.number === accountNumber) {
+        this.accounts.splice(idx, 1);
+        removedAccount = account;
+        return true;
+      }
+    }, this);
 
-    var account = this.accounts.splice(idx, 1)[0];
-    this.publish('accountRemoved', account);
-    account.unsubscribe({subscriber: this});
-    return account;
+    if (!removedAccount) {
+      log.warn('(removeAccount) Account not found:', accountNumber);
+      log.trace();
+      return null;
+    }
+
+    this.publish('accountRemoved', removedAccount);
+    removedAccount.unsubscribe({subscriber: this});
+    return removedAccount;
   };
 
   Main.prototype.checkStatus = function () {
