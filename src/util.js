@@ -1,5 +1,6 @@
 (function (document, global) {
   'use strict';
+
   /*
    * Object extensions
    */
@@ -207,14 +208,35 @@
    * AJAX *
    *******/
   var requestFailureCount = 0,
-      maximumDelay = 60000;
-  U.ajax = function (args) {
-    var delay = Math.random() * (Math.pow(2, requestFailureCount) - 1);
-    delay = Math.min(delay, maximumDelay);
-    setTimeout(U._ajax.bind(U, args), delay);
+      maximumDelay = 60000,
+      requestQ = [],
+      clearingQueue = false;
+
+  var clearRequestQueue = function () {
+    if (clearingQueue) return;
+
+    clearingQueue = true;
+    for (var args = requestQ.shift(); args; args = requestQ.shift()) {
+      U.ajaxNow(args);
+    }
+    clearingQueue = false;
   };
 
-  U._ajax = function (args) {
+  addEventListener('online', function () {
+    setTimeout(clearRequestQueue, 2000);
+  });
+
+  U.ajax = function (args) {
+    if (navigator.onLine) {
+      var delay = Math.random() * (Math.pow(2, requestFailureCount) - 1);
+      delay = Math.floor(Math.min(delay, maximumDelay));
+      setTimeout(U.ajaxNow.bind(U, args), delay);
+    } else {
+      requestQ.push(args);
+    }
+  };
+
+  U.ajaxNow = function (args) {
     var xhr = new XMLHttpRequest(),
         timeout = args.timeout || 2 * 60 * 1000;
 
@@ -226,9 +248,14 @@
             args.onSuccess(this);
           }
         } else {
-          ++requestFailureCount;
-          if (args.onError) {
-            args.onError(this);
+          log.warn('xhr request failed with status', this.status);
+          if (this.status == 401 && args.onAuthError) {
+            args.onAuthError(this, args);
+          } else {
+            ++requestFailureCount;
+            if (args.onError) {
+              args.onError(this, args);
+            }
           }
         }
       }
@@ -236,9 +263,10 @@
 
     xhr.onerror = function (e) {
       ++requestFailureCount;
-      log.error(e);
-      if (args.onError)
-        args.onError(this, e);
+      log.error(e, Log.examine(args));
+      if (args.onError) {
+        args.onError(this, args, e);
+      }
     };
 
     xhr.open(args.method || 'GET', encodeURI(args.url), true);

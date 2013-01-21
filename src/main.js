@@ -161,6 +161,11 @@
     });
   };
 
+  Main.prototype.updateForever = function (timeout) {
+    this.update();
+    setTimeout(this.updateForever.bind(this, timeout), timeout);
+  };
+
   Main.prototype.detachView = function () {
     if (this.view) {
       this.accounts.each(function (account) {

@@ -19,9 +19,7 @@
       log.warn('Account initialization failed:', this.url);
       this.status = Account.STATUS_INITIALIZATION_FAILED;
 
-      this.conversations.each(function (conversation) {
-        this.removeConversation(conversation.id);
-      }, this);
+      this.clearCache();
     }, this);
 
     this.subscribe('feedParsed', function () {
@@ -33,9 +31,7 @@
       log.warn('Account feed parsing failed:', 'label = "' + args.label + '"');
       this.feedStatus = Account.FEED_STATUS_PARSE_FAILED;
 
-      this.conversations.each(function (conversation) {
-        this.removeConversation(conversation.id);
-      }, this);
+      this.clearCache();
       this.init();
     }, this);
 
@@ -94,11 +90,18 @@
 
     this.status = Account.STATUS_NONE;
     this.feedStatus = Account.FEED_STATUS_NONE;
-    this.lastUpdated = {};
-    this.conversations = {};
-    this.unreadCount = 0;
+    this.clearCache();
 
     this._labelQueue = [];
+  };
+
+  Account.prototype.clearCache = function () {
+    this.conversations = this.conversations || {};
+    this.conversations.each(function (conversation) {
+      this.removeConversation(conversation.id);
+    }, this);
+    this.feedLastUpdated = {};
+    this.unreadCount = 0;
   };
 
   Account.isGmailURL = function (url) {
@@ -233,16 +236,19 @@
   };
 
   Account.prototype.update = function () {
-    switch (this.status) {
-    case Account.STATUS_INITIALIZATING: 
+    if (this.status === Account.STATUS_INITIALIZING) {
       return;
+    }
 
-    case Account.STATUS_INITIALIZATION_FAILED:
+    if (this.status === Account.STATUS_NONE ||
+        this.status === Account.STATUS_INITIALIZATION_FAILED) {
       this.init();
       return;
     }
 
     if (this.feedStatus !== Account.FEED_STATUS_PARSING) {
+      log.assert(this.labels, 'Labels shouldn\'t be null ' +
+          this.status + ' ' + this.feedStatus + ' ' + this.number);
       this.feedStatus = Account.FEED_STATUS_PARSING;
       this._labelQueue = this.labels.slice(0);
       this._processLabelQueue();
@@ -264,12 +270,12 @@
     var modifiedNode = xmlDoc.querySelector('modified');
     if (modifiedNode) {
       var modified = new Date(modifiedNode.textContent),
-          lastUpdated = this.lastUpdated[label] || new Date(0);
+          lastUpdated = this.feedLastUpdated[label] || new Date(0);
       if (modified <= lastUpdated) {
         onSuccess();
         return;
       }
-      this.lastUpdated[label] = modified;
+      this.feedLastUpdated[label] = modified;
     }
 
     var titleNode = xmlDoc.querySelector('title');
@@ -344,7 +350,6 @@
   Account.prototype.removeConversation = function (id) {
     this.publish('conversationDeleted', this.conversations[id]);
     delete this.conversations[id];
-    delete this.lastUpdated[id];
   };
 
   Account.prototype.detachView = function () {
@@ -360,6 +365,34 @@
   Account.prototype.attachView = function (view) {
     this.detachView();
     this.view = view;
+  };
+
+  Account.GMAIL_ACTIONS = {
+    'rd': ['Mark as read', 'Marking as read...'],
+    'ar': ['Archive', 'Archiving...'],
+    'sp': ['Mark as Spam', 'Marking as Spam...'],
+    'tr': ['Delete', 'Deleting...']
+  };
+
+  Account.prototype.doGmailAction =
+    function (action, conversations, onSuccess, onError) {
+    var url = this.htmlModeURL();
+    var payload = new FormData();
+
+    conversations.each(function (conversation) {
+      payload.append('t', conversation.id);
+    });
+    payload.append('at', this.at);
+    payload.append('act', action);
+
+    log.info('Gmail action', this.name, action, conversations);
+
+    $.post({
+      url: url,
+      onSuccess: onSuccess,
+      onError: onError,
+      payload: payload
+    });
   };
 
   Account.prototype.openInGmail = function () {
@@ -394,7 +427,7 @@
         conversation.removeLabel(label);
       });
       this.labels.splice(idx, 1);
-      delete this.lastUpdated[label];
+      delete this.feedLastUpdated[label];
     }
   };
 

@@ -11,6 +11,7 @@
     "$",
     "Account",
     "AccountView",
+    "Badge",
     "Config",
     "Conversation",
     "ConversationView",

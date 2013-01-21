@@ -51,6 +51,38 @@
     this.updateMultibarVisibility();
   };
 
+  MainView.prototype.onMultibarClick = function (action) {
+    var perAccount = {}, actionDescription = Account.GMAIL_ACTIONS[action];
+
+    document.querySelectorAll('.conversation-selected').each(
+        function (conversationElem) {
+          var conversation = conversationElem.conversation,
+              account = conversation.account;
+          perAccount[account.name] = perAccount[account.name] || [account];
+          perAccount[account.name].push(conversation);
+          conversation.view.markBusy(actionDescription[1]);
+        });
+
+    var onSuccess = function (conversations) {
+      conversations.each(function (conversation) {
+        conversation.view.onActionSuccess();
+      });
+    };
+
+    var onFailure = function (conversations) {
+      conversations.each(function (conversation) {
+        conversation.view.onActionFailure();
+      });
+    };
+
+    perAccount.each(function (q, accountName) {
+      var account = q.shift();
+      log.info('Multibar q: ', q, accountName);
+      account.doGmailAction(action, q, onSuccess.bind(null, q),
+        onFailure.bind(null, q)); 
+    });
+  };
+
   MainView.prototype.makeMultibarButton =
     function (text, action, iconX, iconY) {
     var button = $.make('.multibar-button');
@@ -59,24 +91,16 @@
         'background-position': iconX + 'px ' + iconY + 'px'
       }));
     }
-    return button.append(text).on('click', function () {
-      document.querySelectorAll('.conversation-selected').each(
-        function (conversationElem) {
-          action.call(conversationElem.conversation.view);
-        });
-    });
+    return button.append(text).on('click',
+        this.onMultibarClick.bind(this, action));
   };
 
   MainView.prototype.makeMultibar = function () {
     this.multibarElem = $('multibar')
-      .append(this.makeMultibarButton('Mark as read',
-            ConversationView.prototype.markAsRead))
-      .append(this.makeMultibarButton('Archive',
-            ConversationView.prototype.archive, -84, -21))
-      .append(this.makeMultibarButton('Spam',
-            ConversationView.prototype.markAsSpam, -42, -42))
-      .append(this.makeMultibarButton('Delete',
-            ConversationView.prototype.trash, -63, -42));
+      .append(this.makeMultibarButton('Mark as read', 'rd'))
+      .append(this.makeMultibarButton('Archive', 'ar', -84, -21))
+      .append(this.makeMultibarButton('Spam', 'sp', -42, -42))
+      .append(this.makeMultibarButton('Delete', 'tr', -63, -42));
 
     $('multibar-close').on('click', function () {
       document.querySelectorAll('.conversation-selected > .selector').each(

@@ -84,21 +84,25 @@
   };
 
 
-  ConversationView.prototype.makeToolbarButton = function (
-      text, busyMessage, onclick, iconX, iconY) {
-    var button = $.make('.conversation-tools-button');
+  var makeToolbarButton = function (text, callback, iconX, iconY) {
+    var button = $.make('.conversation-tools-button').on('click', callback);
     if (iconX !== undefined) {
       button.append($.make('span.tool-icon', null, {
-        'background-position': iconX + 'px ' + iconY + 'px'
+        'background-position': (iconX || 0) + 'px ' + (iconY || 0) + 'px'
       }));
     }
-    button.append(text)
-      .on('click', function (e) {
+    return button.append(text);
+  };
+
+  ConversationView.prototype.makeGmailActionButton =
+    function (action, iconX, iconY) {
+    var actionDescription = Account.GMAIL_ACTIONS[action];
+    return makeToolbarButton(actionDescription[0], function (e) {
         e.cancelBubble = true;
-        this.markBusy(busyMessage);
-        onclick.call(this);
-      }.bind(this));
-    return button;
+        this.markBusy(actionDescription[1]);
+        this.conversation.account.doGmailAction(action, [this.conversation],
+          this.onActionSuccess.bind(this), this.onActionFailure.bind(this));
+      }.bind(this), iconX, iconY);
   };
 
   ConversationView.prototype.onActionSuccess = function () {
@@ -110,47 +114,20 @@
     this.conversaton.update();
   };
 
-  ConversationView.prototype.markAsRead = function () {
-    //analytics.mailMarkAsRead();
-    this.conversation.markAsRead(this.onActionSuccess.bind(this),
-        this.onActionFailure.bind(this));
-  };
-
-  ConversationView.prototype.archive = function () {
-    //analytics.mailArchive();
-    this.conversation.archive(this.markAsRead.bind(this),
-        this.onActionFailure.bind(this));
-  };
-
-  ConversationView.prototype.markAsSpam = function () {
-    //analytics.mailMarkAsSpam();
-    this.conversation.markAsSpam(this.onActionSuccess.bind(this),
-        this.onActionFailure.bind(this));
-  };
-
-  ConversationView.prototype.trash = function () {
-    //analytics.trash();
-    this.conversation.trash(this.onActionSuccess.bind(this),
-        this.onActionFailure.bind(this));
-  };
-
   ConversationView.prototype.makeToolbar = function () {
     var this_ = this;
 
     return $.make('.conversation-tools')
-      .append(this.makeToolbarButton('Open in Gmail...', 'Opening...',
-            function () { 
-              //analytics.mailOpen();
-              this_.conversation.openInGmail();
-            }, -63, -63))
-      .append(this.makeToolbarButton('Mark as read', 'Marking as read...',
-            this.markAsRead))
-      .append(this.makeToolbarButton('Archive', 'Archiving...',
-            this.archive, -84, -21))
-      .append(this.makeToolbarButton('Spam', 'Marking as Spam...',
-            this.markAsSpam, -42, -42))
-      .append(this.makeToolbarButton('Delete', 'Deleting...',
-            this.trash, -63, -42));
+      .append(makeToolbarButton('Open in Gmail...',
+          function (e) { 
+            e.cancelBubble = true;
+            this_.markBusy('Opening...');
+            this_.conversation.openInGmail();
+          }, -63, -63))
+      .append(this.makeGmailActionButton('rd'))
+      .append(this.makeGmailActionButton('ar', -84, -21))
+      .append(this.makeGmailActionButton('sp', -42, -42))
+      .append(this.makeGmailActionButton('tr', -63, -42));
   };
 
   ConversationView.prototype.makeLabels = function () {

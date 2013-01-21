@@ -25,8 +25,7 @@
     this.account.subscribe('conversationAdded', this.addConversation, this);
     this.account.subscribe('conversationDeleted', this.deleteConversation, 
         this);
-    this.account.subscribe('changed', function (args) {
-      args.account.conversations.each(this.deleteConversation, this);
+    this.account.subscribe('changed', function () {
       this.updateHeader();
     }, this);
   }

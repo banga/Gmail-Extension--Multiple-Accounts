@@ -151,40 +151,6 @@
     chrome.tabs.create({ url: url});
   };
 
-  Conversation.prototype.doGmailAction = function (action, onSuccess, onError) {
-    var url = this.account.htmlModeURL();
-    var payload = new FormData();
-    payload.append('t', this.id);
-    payload.append('at', this.account.at);
-    payload.append('act', action);
-
-    log.info('Conversation ' + this.subject +
-        ' doing gmail action: ' + action);
-
-    $.post({
-      url: url,
-      onSuccess: onSuccess,
-      onError: onError,
-      payload: payload
-    });
-  };
-
-  Conversation.prototype.archive = function (onSuccess, onError) {
-    this.doGmailAction('arch', onSuccess, onError);
-  };
-
-  Conversation.prototype.markAsRead = function (onSuccess, onError) {
-    this.doGmailAction('rd', onSuccess, onError);
-  };
-
-  Conversation.prototype.markAsSpam = function (onSuccess, onError) {
-    this.doGmailAction('sp', onSuccess, onError);
-  };
-
-  Conversation.prototype.trash = function (onSuccess, onError) {
-    this.doGmailAction('tr', onSuccess, onError);
-  };
-
   Conversation.prototype.reply = function (body, replyAll, onSuccess, onError) {
     var url = this.account.htmlModeURL() + '?v=b&qrt=n&fv=cv&cs=qfnq&at=' +
       this.account.at + '&rm=' + this.id;
@@ -215,6 +181,10 @@
   Conversation.prototype.attachView = function (view) {
     this.detachView();
     this.view = view;
+  };
+
+  Conversation.prototype.toString = function () {
+    return '"' + this.author + '": "' + this.summary + '"';
   };
 
   global.Conversation = Conversation;

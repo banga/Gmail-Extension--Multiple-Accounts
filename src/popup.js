@@ -10,33 +10,9 @@ var log = new Log('popup');
   }
 
   function addButtonListeners() {
-    $('donate-button').on('click', function () {
-      //analytics.donateClick();
-      openTab('https://www.paypal.com/cgi-bin/webscr?cmd=_donations' +
-        '&business=323R63UN8G5GS&lc=US&currency_code=USD' +
-        '&item_name=Google%20Mail%20Multi-Account%20Checker' +
-        '&bn=PP-DonationsBF:btn_donateCC_LG.gif:NonHosted');
-    });
-
-    $('rate-button').on('click', function () {
-      //analytics.rateClick();
-      openTab('https://chrome.google.com/webstore/detail/' +
-        'google-mail-multi-account/mcpnehokodklgijkcakcfmccgpanipfp/reviews');
-    });
-
     $('options-link').on('click', function () {
       //analytics.optionsClick();
       openTab('options.html');
-    });
-
-    $('feedback-link').on('click', function () {
-      if ($('inboxes').style.display == 'none') {
-        $('inboxes').style.display = 'block';
-        $('feedback').style.display = 'none';
-      } else {
-        $('inboxes').style.display = 'none';
-        $('feedback').style.display = 'block';
-      }
     });
   }
 
