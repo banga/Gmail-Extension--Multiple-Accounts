@@ -10,8 +10,8 @@
 
     this.subscribe('init', function () {
       log.info('Account initialized:', this.url);
-      this.status = Account.STATUS_INITIALIZED;
       this.loadLabels();
+      this.status = Account.STATUS_INITIALIZED;
       this.update();
     }, this);
 
