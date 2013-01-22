@@ -423,20 +423,17 @@ pre {
 .contact-name:hover:after {
   content: attr(name) '\A' attr(email);
   position: absolute;
-  top: 11px;
-  left: 0;
+  top: 1em;
+  left: -5px;
   z-index: 1;
   white-space: pre;
-  font-size: 12px;
-  line-height: 14px;
-  padding: 5px 5px;
-  border: 1px solid rgb(182, 182, 182);
-  border-radius: 4px;
-  box-shadow: inset 1px 1px 0px white, inset -1px -1px 0px rgba(0,0,0,0.1), 0px 2px 6px rgba(0,0,0,0.2);
-  background-image: -webkit-linear-gradient(top, rgb(248, 248, 248) 12%, rgb(228, 228, 228) 88%);
-  text-shadow: 1px 1px 0px rgba(255,255,255,0.5);
-  color: rgb(61, 61, 61);
-  font-weight: bold;
+  font-size: 11px;
+  line-height: 11px;
+  padding: 3px 3px;
+  border-radius: 3px;
+  color: rgb(248, 248, 248);
+  font-weight: 100;
+  background-color: rgba(0, 0, 0, 0.7);
 }
 .email-date {
   font-size: 10px;
