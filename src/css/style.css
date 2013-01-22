@@ -300,6 +300,9 @@ body {
 .conversation .throbber-title {
   display: inline;
   color: #999;
+  position: relative;
+  top: 1px;
+  padding-left: 5px;
 }
 .throbber canvas {
   position: relative;
