@@ -15,8 +15,8 @@
       .append(this.linkElem)
       .append($.make('.button-compose')
         .append($.make('span.icon-file-alt'))
-        .append($.make('span.button-text').text('Compose')))
-        .on('click', this.compose.bind(this));
+        .append($.make('span.button-text').text('Compose'))
+        .on('click', this.compose.bind(this)));
 
     this.conversationList = $.make('.conversation-list');
     this.root.append(this.header).append(this.conversationList);
