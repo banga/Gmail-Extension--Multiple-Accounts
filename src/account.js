@@ -121,7 +121,8 @@
   };
 
   Account.prototype.feedURL = function (label) {
-    return this.url + 'feed/atom/' + label.replace('/', ' ');
+    return this.url + 'feed/atom/' + label.replace('/', ' ') +
+      '?t=' + (new Date().getTime());
   };
 
   Account.prototype.init = function () {
