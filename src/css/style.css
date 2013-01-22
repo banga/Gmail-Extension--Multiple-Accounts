@@ -90,9 +90,9 @@ body {
   background-size: 32px;
 }
 .account-link {
-  display: block;
-  padding-top: 6px;
-  padding-left: 34px;
+  display: inline;
+  line-height: 33px;
+  padding: 0px 5px;
   color: #2AC;
   text-decoration: none;
   font-weight: bold;
@@ -104,6 +104,29 @@ body {
   padding: 0px;
   margin: 0px;
   padding-right: 5px;
+}
+.button-compose {
+  display: inline;
+  padding-left: 3px;
+  color: #999;
+  cursor: pointer;
+}
+.button-compose:hover {
+  color: #666;
+}
+.button-compose > .button-text {
+  color: #666;
+  display: inline-block;
+  width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  margin-left: 5px;
+  -webkit-transition: all 0.5s ease;
+  opacity: 0;
+}
+.button-compose:hover > .button-text {
+  opacity: 1;
+  width: auto;
 }
 .conversation > .contents-collapsed {
   color: #666;
@@ -497,3 +520,4 @@ input[type="button"][disabled] {
   cursor: default;
   opacity: 0.7;
 }
+

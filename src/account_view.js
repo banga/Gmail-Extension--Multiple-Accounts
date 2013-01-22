@@ -12,7 +12,11 @@
 
     this.header = $.make('.account-header')
       .append($.make('.account-icon'))
-      .append(this.linkElem);
+      .append(this.linkElem)
+      .append($.make('.button-compose')
+        .append($.make('span.icon-file-alt'))
+        .append($.make('span.button-text').text('Compose')))
+        .on('click', this.compose.bind(this));
 
     this.conversationList = $.make('.conversation-list');
     this.root.append(this.header).append(this.conversationList);
@@ -35,6 +39,16 @@
     this.root = null;
   };
 
+  AccountView.prototype.compose = function () {
+    var url = this.account.url + '?view=cm&fs=1&tf=1&body=' +
+      encodeURIComponent('\n--\nSent via http://goo.gl/ShmGM');
+    window.open(url, 'cm', 'menubar=no,location=no,resizable=yes,' +
+        'width=' + window.innerWidth + 'px,' + 
+        'height=' + window.innerHeight + 'px,' + 
+        'top=' + window.screenTop + 'px,' +
+        'left=' + window.screenLeft + 'px');
+  };
+
   AccountView.prototype.updateHeader = function () {
     this.root.style.display = 'block';
 
@@ -48,7 +62,6 @@
           ' (' + this.account.unreadCount + ')');
       break;
     case Account.STATUS_INITIALIZATION_FAILED:
-      this.linkElem.text('Click here to log in');
       this.root.style.display = 'none';
       break;
     }
