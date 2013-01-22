@@ -375,8 +375,10 @@
     'tr': ['Delete', 'Deleting...']
   };
 
-  Account.prototype.doGmailAction =
-    function (action, conversations, onSuccess, onError) {
+  Account.prototype.doGmailAction = function (action, conversations, onSuccess, onError) {
+    if (action == 'ar') {
+      return this.doArchive(conversations, onSuccess, onError);
+    }
     var url = this.htmlModeURL();
     var payload = new FormData();
 
@@ -387,6 +389,29 @@
     payload.append('act', action);
 
     log.info('Gmail action', this.name, action, conversations);
+
+    $.post({
+      url: url,
+      onSuccess: onSuccess,
+      onError: onError,
+      payload: payload
+    });
+  };
+
+  Account.prototype.doArchive =
+    function (conversations, onSuccess, onError) {
+    var url = this.htmlModeURL() + '?&at=' + this.at;
+    var payload = new FormData();
+
+    payload.append('redir', '?&');
+    payload.append('nvp_a_arch', 'Archive');
+    payload.append('tact', '');
+    conversations.each(function (conversation) {
+      payload.append('t', conversation.id);
+    });
+    payload.append('bact', '');
+
+    log.info('Archive', this.name, conversations);
 
     $.post({
       url: url,
