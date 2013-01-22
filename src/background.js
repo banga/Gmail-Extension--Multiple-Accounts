@@ -71,7 +71,7 @@ var bg = (function () {
 
     main.subscribe('accountInit', config.addAccount.bind(config), bg);
     main.discoverAccounts(log.info.bind(log, 'Accounts discovered:'));
-    main.updateForever(10000);
+    main.updateForever(30000);
   }
 
   function init() {
