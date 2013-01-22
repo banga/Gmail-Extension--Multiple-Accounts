@@ -377,8 +377,13 @@
 
   Account.prototype.doGmailAction = function (action, conversations, onSuccess, onError) {
     if (action == 'ar') {
-      return this.doArchive(conversations, onSuccess, onError);
+      this.doArchive(
+          conversations, 
+          this.doGmailAction.bind(this, 'rd', conversations, onSuccess, onError),
+          onError);
+      return;
     }
+
     var url = this.htmlModeURL();
     var payload = new FormData();
 
