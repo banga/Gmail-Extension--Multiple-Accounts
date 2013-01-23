@@ -31,7 +31,7 @@ var log = new Log('popup');
     chrome.extension.connect();
 
     setTimeout(attachView, 0);
-    setTimeout(main.update.bind(main), 10000);
+    setTimeout(main.update.bind(main), 1000);
   }
 
   if (main.accounts.length === 0) {
