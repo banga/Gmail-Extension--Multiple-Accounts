@@ -176,10 +176,6 @@
       .append(this.makeToolbar());
 
     this.contents.on('click', function (e) {
-      if (e.target !== this_.contents) {
-        return;
-      }
-
       if (e.shiftKey || e.ctrlKey) {
         this_.selector.click();
       } else {
