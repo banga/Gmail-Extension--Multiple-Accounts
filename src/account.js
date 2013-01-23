@@ -369,10 +369,10 @@
   };
 
   Account.GMAIL_ACTIONS = {
-    'rd': ['Mark as read', 'Marking as read...'],
-    'ar': ['Archive', 'Archiving...'],
-    'sp': ['Mark as Spam', 'Marking as Spam...'],
-    'tr': ['Delete', 'Deleting...']
+    'rd': ['Mark as read', 'Marking as read...', '.icon-ok'],
+    'ar': ['Archive', 'Archiving...', '.icon-download-alt'],
+    'sp': ['Mark as Spam', 'Marking as Spam...', '.icon-warning-sign'],
+    'tr': ['Delete', 'Deleting...', '.icon-trash']
   };
 
   Account.prototype.doGmailAction = function (action, conversations, onSuccess, onError) {

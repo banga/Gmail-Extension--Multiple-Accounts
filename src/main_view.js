@@ -83,24 +83,20 @@
     });
   };
 
-  MainView.prototype.makeMultibarButton =
-    function (text, action, iconX, iconY) {
-    var button = $.make('.multibar-button');
-    if (iconX !== undefined) {
-      button.append($.make('span.tool-icon', null, {
-        'background-position': iconX + 'px ' + iconY + 'px'
-      }));
-    }
-    return button.append(text).on('click',
+  MainView.prototype.makeMultibarButton = function (action) {
+    var actionDescription = Account.GMAIL_ACTIONS[action];
+    return $.make('.multibar-button')
+      .append($.make(actionDescription[2]))
+      .append(actionDescription[0]).on('click',
         this.onMultibarClick.bind(this, action));
   };
 
   MainView.prototype.makeMultibar = function () {
     this.multibarElem = $('multibar')
-      .append(this.makeMultibarButton('Mark as read', 'rd'))
-      .append(this.makeMultibarButton('Archive', 'ar', -84, -21))
-      .append(this.makeMultibarButton('Spam', 'sp', -42, -42))
-      .append(this.makeMultibarButton('Delete', 'tr', -63, -42));
+      .append(this.makeMultibarButton('rd'))
+      .append(this.makeMultibarButton('ar'))
+      .append(this.makeMultibarButton('sp'))
+      .append(this.makeMultibarButton('tr'));
 
     $('multibar-close').on('click', function () {
       document.querySelectorAll('.conversation-selected > .selector').each(

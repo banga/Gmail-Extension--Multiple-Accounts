@@ -83,26 +83,29 @@
     return div;
   };
 
-
-  var makeToolbarButton = function (text, callback, iconX, iconY) {
-    var button = $.make('.conversation-tools-button').on('click', callback);
-    if (iconX !== undefined) {
-      button.append($.make('span.tool-icon', null, {
-        'background-position': (iconX || 0) + 'px ' + (iconY || 0) + 'px'
-      }));
-    }
-    return button.append(text);
+  var cancelBubble = function (e) {
+    e.cancelBubble = true;
   };
 
-  ConversationView.prototype.makeGmailActionButton =
-    function (action, iconX, iconY) {
+  var makeToolbarButton = function (text, callback, iconClass) {
+    return $.make('.conversation-tools-button')
+      .attr('title', text)
+      .on('mousedown', cancelBubble)
+      .on('mouseup', cancelBubble)
+      .on('click', callback)
+      .append($.make(iconClass))
+      .append(text);
+  };
+
+  ConversationView.prototype.makeGmailActionButton = function (action) {
     var actionDescription = Account.GMAIL_ACTIONS[action];
-    return makeToolbarButton(actionDescription[0], function (e) {
+    return makeToolbarButton(actionDescription[0],
+      function (e) {
         e.cancelBubble = true;
         this.markBusy(actionDescription[1]);
         this.conversation.account.doGmailAction(action, [this.conversation],
           this.onActionSuccess.bind(this), this.onActionFailure.bind(this));
-      }.bind(this), iconX, iconY);
+      }.bind(this), actionDescription[2]);
   };
 
   ConversationView.prototype.onActionSuccess = function () {
@@ -121,13 +124,12 @@
       .append(makeToolbarButton('Open in Gmail...',
           function (e) { 
             e.cancelBubble = true;
-            this_.markBusy('Opening...');
             this_.conversation.openInGmail();
-          }, -63, -63))
+          }, '.icon-external-link'))
       .append(this.makeGmailActionButton('rd'))
-      .append(this.makeGmailActionButton('ar', -84, -21))
-      .append(this.makeGmailActionButton('sp', -42, -42))
-      .append(this.makeGmailActionButton('tr', -63, -42));
+      .append(this.makeGmailActionButton('ar'))
+      .append(this.makeGmailActionButton('sp'))
+      .append(this.makeGmailActionButton('tr'));
   };
 
   ConversationView.prototype.makeLabels = function () {
@@ -174,6 +176,10 @@
       .append(this.makeToolbar());
 
     this.contents.on('click', function (e) {
+      if (e.target !== this_.contents) {
+        return;
+      }
+
       if (e.shiftKey || e.ctrlKey) {
         this_.selector.click();
       } else {
