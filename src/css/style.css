@@ -258,8 +258,8 @@ body {
   position: absolute;
   padding: 0;
   border-radius: 0px 0px 4px 0px;
-  top: 26px;
-  left: 508px;
+  bottom: 0px;
+  right: 0px;
   margin: 0;
   height: 20px;
   width: 125px;
