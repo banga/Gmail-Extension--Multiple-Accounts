@@ -17,6 +17,11 @@
     chrome.browserAction.setBadgeBackgroundColor({color: [20, 120, 255, 255]});
     chrome.browserAction.setIcon({path: 'images/gmail_logged_in.png'});
 
+    main.accounts.each(function (account) {
+      account.subscribe('conversationAdded', this.update, this);
+      account.subscribe('conversationDeleted', this.update, this);
+    }, this);
+
     main.subscribe('accountAdded', function (account) {
       account.subscribe('conversationAdded', this.update, this);
       account.subscribe('conversationDeleted', this.update, this);
