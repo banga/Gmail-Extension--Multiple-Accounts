@@ -48,19 +48,18 @@ body {
 }
 #topright {
   position: absolute;
-  top: 2px;
+  top: 5px;
   right: 10px;
-  font-size: 18px;
-  color: black;
+  font-size: 16px;
+  color: rgba(141, 141, 141, 0.39);
   cursor: default;
 }
 #topright > div {
   cursor: pointer;
-  opacity: 0.5;
   -webkit-transition: all 0.4s;
 }
 #topright > div:hover {
-  opacity: 1;
+  color: rgb(112, 189, 240);
 }
 #feedback-link {
   display: none;
@@ -77,6 +76,9 @@ body {
   clear: both;
   display: block;
   padding-top: 5px;
+}
+.account:first-child {
+  padding-top: 0;
 }
 .account-header {
   display: block;

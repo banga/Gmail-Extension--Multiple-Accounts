@@ -14,6 +14,10 @@ var log = new Log('popup');
       //analytics.optionsClick();
       openTab('options.html');
     });
+    $('help-link').on('click', function () {
+      //analytics.helpClick();
+      openTab('help.html');
+    });
   }
 
   function attachView() {
