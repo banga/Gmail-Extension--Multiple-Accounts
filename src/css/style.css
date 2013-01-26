@@ -1,5 +1,5 @@
 body {
-  width: 640px;
+  min-width: 640px;
   font-family: Helvetica, Arial, sans-serif;
   font-size: 16px;
   margin: 0 5px 0 2px;
