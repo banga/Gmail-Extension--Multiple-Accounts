@@ -1,13 +1,16 @@
 body {
-  width: 40em;
-  font-family: sans-serif;
-  font-size: 1em;
-  margin: 0 10px 0 0;
-  padding: 2px 0px 2px 3px;
+  width: 640px;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  margin: 0 5px 0 2px;
+  padding: 0px 0px 1px 0px;
   background: #F5F5F5;
   overflow-x: hidden;
   overflow-y: scroll;
   -webkit-user-select: none;
+}
+:focus {
+  outline: 1px dotted rgb(0, 112, 255);
 }
 #feedback {
   display: none;
@@ -131,6 +134,7 @@ body {
   width: auto;
 }
 .conversation > .contents-collapsed {
+  .attr('tabindex', '0')
   color: #666;
   padding: 4px 5px;
   margin-left: 18px;
@@ -157,6 +161,9 @@ body {
   border-radius: 5px;
   cursor: pointer;
 }
+.conversation > .contents {
+  outline: none;
+}
 .contents > .summary {
   display: none;
 }
@@ -171,7 +178,9 @@ body {
   text-overflow: ellipsis;
   max-width: 100%;
 }
-.conversation > .contents-collapsed:hover {
+.conversation > .contents-collapsed:hover,
+.conversation > .contents-collapsed:focus {
+  outline: none;
   color: #222;
   box-shadow: 0 1px 4px rgba(200,200,200,0.5);
   background: -webkit-linear-gradient(top, #FFF 0, #DDD 100%);
@@ -188,12 +197,18 @@ body {
   display: block;
 }
 .conversation > .selector {
+  position: absolute;
   float: left;
-  margin: 8px 5px 0px 0px;
-  opacity: 0.4;
+  top: 14px;
+  left: -4px;
+  opacity: 0.3;
   -webkit-transition: all 0.2s ease-in-out;
+  padding: 0px;
+  font-size: 16px;
 }
-.conversation > .selector:hover {
+.conversation > .selector:hover,
+.conversation > .selector:focus {
+  outline: none;
   opacity: 1;
 }
 .conversation {
@@ -300,10 +315,11 @@ body {
 .contents-collapsed:hover .conversation-tools-button:hover {
   background: rgba(0, 224, 255, 0.07);
 }
-.conversation-tools-button:hover {
+.conversation-tools-button:hover, .conversation-tools-button:focus {
+  outline: none;
   background: -webkit-linear-gradient(top, #E0E0E0 0, #DDD 100%);
 }
-.conversation-tools-button:active, .conversation-tools-button:focus {
+.conversation-tools-button:active {
   border: 1px solid #949494;
   background: -webkit-linear-gradient(top, rgba(148, 148, 148, 0.42) 0, rgba(143, 143, 143, 0.27) 100%);
   box-shadow: inset 0px 0px 3px rgba(0, 0, 0, 0.1);
@@ -504,7 +520,6 @@ pre {
   position: relative;
 }
 .conversation-reply-body {
-  outline: none;
   border-radius: 4px;
   box-shadow: rgba(0, 0, 0, 0.2) 0px 0px 2px inset; 
   width: 97%;
@@ -518,9 +533,9 @@ textarea {
   -webkit-transition: all 0.2s ease-in-out;
 }
 textarea:active, textarea:focus {
+  outline: none;
   border: #AAA 1px solid;
   background-color: #FFF;
-  outline: none;
 }
 .reply-controls {
   position: absolute;

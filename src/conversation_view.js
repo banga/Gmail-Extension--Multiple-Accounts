@@ -90,9 +90,13 @@
   var makeToolbarButton = function (text, callback, iconClass) {
     return $.make('.conversation-tools-button')
       .attr('title', text)
+      .attr('tabindex', 0)
       .on('mousedown', cancelBubble)
       .on('mouseup', cancelBubble)
       .on('click', callback)
+      .on('keyup', function (e) {
+        if (e.which === 13) callback(e);
+      })
       .append($.make(iconClass))
       .append(text);
   };
@@ -167,6 +171,7 @@
 
     this.contents = $.make(
         this.conversation.collapsed ? '.contents-collapsed' : '.contents')
+      .attr('tabindex', '0')
       .append($.make('.subject').text(this.conversation.subject))
       .append(this.makeLabels())
       .append($.make('.author').text(this.conversation.author))
@@ -175,29 +180,75 @@
       .append(this.makeReplyControls())
       .append(this.makeToolbar());
 
-    this.contents.on('click', function (e) {
-      if (e.shiftKey || e.ctrlKey) {
-        this_.selector.click();
-      } else {
-        if (this_.contents.classList.contains('contents-collapsed')) {
-          document.querySelectorAll('.conversation').each(
+    var toggleContents = function () {
+      if (this_.contents.classList.contains('contents-collapsed')) {
+        document.querySelectorAll('.conversation').each(
             function (conversationElem) {
               var contents = conversationElem.conversation.view.contents;
               contents.classList.remove('contents');
               contents.classList.add('contents-collapsed');
               conversationElem.conversation.collapsed = true;
             });
-        }
-        this_.contents.classList.toggle('contents');
-        this_.contents.classList.toggle('contents-collapsed');
-        this_.conversation.collapsed = !this_.conversation.collapsed;
-        var rects = this_.contents.getClientRects();
-        if (rects.length && rects[0].top < 0) {
-          this_.contents.scrollIntoView();
-        }
+      }
+      this_.contents.classList.toggle('contents');
+      this_.contents.classList.toggle('contents-collapsed');
+      this_.conversation.collapsed = !this_.conversation.collapsed;
+      var rects = this_.contents.getClientRects();
+      if (rects.length && rects[0].top < 0) {
+        this_.contents.scrollIntoView();
+      }
+    };
+
+    var focusPreviousConversation = function () {
+      document.querySelectorAll('.conversation').each(
+          function (conversation, idx, conversations) {
+            if (conversation === this_.root) {
+              var nextIdx = (conversations.length + idx - 1) % conversations.length;
+              conversations[nextIdx].children[1].focus();
+            }
+          });
+    };
+
+    var focusNextConversation = function () {
+      document.querySelectorAll('.conversation').each(
+          function (conversation, idx, conversations) {
+            if (conversation === this_.root) {
+              var nextIdx = (idx + 1) % conversations.length;
+              conversations[nextIdx].children[1].focus();
+            }
+          });
+    };
+
+    var onClick = function (e) {
+      if (e.shiftKey || e.ctrlKey) {
+        this_.selector.click();
+      } else {
+        toggleContents();
       }
       e.cancelBubble = true;
       e.stopPropagation();
+    };
+    
+    this.contents.on('click', onClick).on('keydown', function (e) {
+      if (e.target == this_.contents) {
+        switch (e.which) {
+        case 13:
+          onClick(e);
+          break;
+        case 74:
+          focusNextConversation();
+          break;
+        case 75:
+          focusPreviousConversation();
+          break;
+        case 88:
+          this_.selector.click();
+          break;
+        }
+
+        e.cancelBubble = true;
+        e.stopPropagation();
+      }
     });
 
     this.root.append(this.selector)
