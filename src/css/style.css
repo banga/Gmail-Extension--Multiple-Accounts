@@ -516,6 +516,11 @@ pre {
   color: #666;
   float: right;
 }
+.email-contents font[color='#888888'],
+.email-contents font[color='#550055'] {
+  display: none;
+}
+
 .conversation-reply {
   position: relative;
 }
