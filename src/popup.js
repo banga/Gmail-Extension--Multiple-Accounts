@@ -4,6 +4,8 @@ var log = new Log('popup');
   'use strict';
   var backgroundPage = chrome.extension.getBackgroundPage(),
       main = backgroundPage.main;
+  global.Account = backgroundPage.Account;
+  global.Config = backgroundPage.Config;
 
   function openTab(url) {
     chrome.tabs.create({ url: url });
@@ -29,8 +31,6 @@ var log = new Log('popup');
 
   function init() {
     log.info('Popup started');
-    global.Account = backgroundPage.Account;
-    global.Config = backgroundPage.Config;
 
     chrome.extension.connect();
 
