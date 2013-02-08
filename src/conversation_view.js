@@ -63,10 +63,10 @@
     });
 
     replyButton.on('click', function () {
-      var checked = replyAllCheckbox.checked;
-      //analytics.replySend(checked ? 'ReplyAll' : 'Reply', replyBody.value.length);
+      var replyAll =
+        this.parentElement.querySelector('input[type="checkbox"]').checked;
       this_.markBusy('Sending...');
-      this_.conversation.reply(replyBody.value, checked,
+      this_.conversation.reply(replyBody.value, replyAll,
         function () {
           this_.markBusy('Sent! Updating...');
           this_.conversation.update();

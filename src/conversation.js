@@ -153,12 +153,13 @@
 
   Conversation.prototype.reply = function (body, replyAll, onSuccess, onError) {
     var url = this.account.htmlModeURL() + '?v=b&qrt=n&fv=cv&cs=qfnq&at=' +
-      this.account.at + '&rm=' + this.id;
+      this.account.at + '&rm=' + this.id + '&th=' + this.id;
     var payload = new FormData();
+    payload.append('redir', '?v=c');
+    payload.append('qrr', replyAll ? 'a' : 'o');
     payload.append('body', body);
     payload.append('nvp_bu_send', 'Send');
     payload.append('haot', 'qt');
-    payload.append('qrr', replyAll ? 'a' : 'o');
 
     return $.post({
       url: url,
