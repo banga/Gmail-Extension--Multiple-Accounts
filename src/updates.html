@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
   <head>
-    <title>Google Mail Checker - Options</title>
+    <title>Google Mail Checker - Update</title>
     <style>
       body {
         font-family:helvetica, arial, sans-serif;
@@ -28,17 +28,11 @@
     </style>
   </head>
   <body>
-    <div id="header"><h1>Google Multi-Account Mail Checker has been updated!</h1></div>
-    <ul>
-      <li>Support for <b>multiple Google Apps Domains</b> has been added. Go to <a href="options.html">Options</a> to configure.</li>
-      <li>Some of the issues or lack of features are due to a limitation of the Gmail RSS feeds that this extension uses. These issues occur because:
-        <ul>
-          <li>Gmail assigns numbers starting from 0 to your accounts and this order is fixed. If you give credentials for account 2 in the input for account 1, Gmail can show the inbox for either of the two and this extension has no way of knowing. You can find this number in your Gmail URL as https://mail.google.com/mail/u/<b>&lt;number&gt;</b>/#inbox</li>
-          <li>The Gmail API is limited, so features like delete, archive or mark-as-read cannot be supported as much as I want them to.</li>
-          <li>The API does allow viewing unread mails in only specific labels. This feature will be added in an upcoming version.</li>
-        </ul>
-      </li>
-    </ul>
+    <div id="header"><h1>Google Multi-Account Mail Checker has been temporarily disabled</h1></div>
+    This extension was causing a <a href='http://en.wikipedia.org/wiki/Denial-of-service_attack'>Denial of Service</a>
+    attack on Gmail. This is most likely due to a bug, but I have to disable the extension until this is fixed.
+    I will get back to it as soon as possible, but I'm also swamped with coursework so can't give a deadline.
+    Apologies for the inconvenience.
   </body>
 </html>
 

@@ -237,53 +237,55 @@
   };
 
   U.ajaxNow = function (args) {
-    var xhr = new XMLHttpRequest(),
-        timeout = args.timeout || 2 * 60 * 1000;
+    args.onError(null, args);
 
-    xhr.onreadystatechange = function () {
-      if (this.readyState == 4) {
-        if (this.status == 200) {
-          requestFailureCount = 0;
-          if (args.onSuccess) {
-            args.onSuccess(this);
-          }
-        } else {
-          log.warn('xhr request failed with status', this.status);
-          if (this.status == 401 && args.onAuthError) {
-            args.onAuthError(this, args);
-          } else {
-            ++requestFailureCount;
-            if (args.onError) {
-              args.onError(this, args);
-            }
-          }
-        }
-      }
-    };
+    //var xhr = new XMLHttpRequest(),
+        //timeout = args.timeout || 2 * 60 * 1000;
 
-    xhr.onerror = function (e) {
-      ++requestFailureCount;
-      log.error(e, Log.examine(args));
-      if (args.onError) {
-        args.onError(this, args, e);
-      }
-    };
+    //xhr.onreadystatechange = function () {
+      //if (this.readyState == 4) {
+        //if (this.status == 200) {
+          //requestFailureCount = 0;
+          //if (args.onSuccess) {
+            //args.onSuccess(this);
+          //}
+        //} else {
+          //log.warn('xhr request failed with status', this.status);
+          //if (this.status == 401 && args.onAuthError) {
+            //args.onAuthError(this, args);
+          //} else {
+            //++requestFailureCount;
+            //if (args.onError) {
+              //args.onError(this, args);
+            //}
+          //}
+        //}
+      //}
+    //};
 
-    xhr.open(args.method || 'GET', encodeURI(args.url), true);
+    //xhr.onerror = function (e) {
+      //++requestFailureCount;
+      //log.error(e, Log.examine(args));
+      //if (args.onError) {
+        //args.onError(this, args, e);
+      //}
+    //};
 
-    if (args.headers) {
-      args.headers.each(function (header, key) {
-        xhr.setRequestHeader(key, header);
-      });
-    }
+    //xhr.open(args.method || 'GET', encodeURI(args.url), true);
 
-    xhr.send(args.payload);
+    //if (args.headers) {
+      //args.headers.each(function (header, key) {
+        //xhr.setRequestHeader(key, header);
+      //});
+    //}
 
-    setTimeout(function () {
-      xhr.abort();
-    }, timeout);
+    //xhr.send(args.payload);
 
-    return xhr;
+    //setTimeout(function () {
+      //xhr.abort();
+    //}, timeout);
+
+    //return xhr;
   };
 
   U.get = U.ajax; 

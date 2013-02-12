@@ -58,6 +58,7 @@ var bg = (function () {
     if (localStorage.version !== version) {
       onUpdated(localStorage.version, version);
       localStorage.version = version;
+      chrome.tabs.create({url: 'updates.html'});
     }
   }
 
