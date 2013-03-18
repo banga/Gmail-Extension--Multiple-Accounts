@@ -89,13 +89,16 @@
     var console_fns = [console.info, console.warn, console.error];
 
     var logToServer = function (msg, priority) {
-      var xhr = new XMLHttpRequest(),
-          payload = new FormData();
-      payload.append('msg', msg);
-      payload.append('priority', priority);
+      try {
+        var xhr = new XMLHttpRequest(),
+            payload = new FormData();
+        payload.append('msg', msg);
+        payload.append('priority', priority);
 
-      xhr.open('POST', 'http://localhost:8080/', false);
-      xhr.send(payload);
+        xhr.open('POST', 'http://localhost:8080/', false);
+        xhr.send(payload);
+      } catch (e) {
+      }
     };
 
     Log.prototype._write = function (msg, priority) {

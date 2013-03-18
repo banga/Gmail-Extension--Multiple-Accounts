@@ -236,56 +236,90 @@
     }
   };
 
+  // Detect if we're sending too many requests
+  var requestCount = 0,
+      intervalSize = 60 * 1000,
+      pauseInterval = intervalSize * 10,
+      maxQPS = 8,
+      requestsPaused = false;
+
+  var resumeRequests = function () {
+    if (requestsPaused) {
+      log.info('Resuming ajax requests');
+      requestsPaused = false;
+    }
+  };
+
+  var clearRequestCount = function () {
+    if (requestCount > (maxQPS * intervalSize / 1000)) {
+      log.warn('Max QPS exceeded, pausing requests for ' + pauseInterval + 'ms');
+      requestsPaused = true;
+    }
+    log.info(requestCount + ' requests sent in ' + intervalSize + 'ms');
+    requestCount = 0;
+  };
+
+  setInterval(clearRequestCount, intervalSize);
+  setInterval(resumeRequests, pauseInterval);
+
   U.ajaxNow = function (args) {
-    args.onError(null, args);
+    ++requestCount;
 
-    //var xhr = new XMLHttpRequest(),
-        //timeout = args.timeout || 2 * 60 * 1000;
+    if (requestsPaused) {
+      if (args.onError) {
+        log.info('[Requests are paused]');
+        args.onError(this, args);
+      }
+      return;
+    }
 
-    //xhr.onreadystatechange = function () {
-      //if (this.readyState == 4) {
-        //if (this.status == 200) {
-          //requestFailureCount = 0;
-          //if (args.onSuccess) {
-            //args.onSuccess(this);
-          //}
-        //} else {
-          //log.warn('xhr request failed with status', this.status);
-          //if (this.status == 401 && args.onAuthError) {
-            //args.onAuthError(this, args);
-          //} else {
-            //++requestFailureCount;
-            //if (args.onError) {
-              //args.onError(this, args);
-            //}
-          //}
-        //}
-      //}
-    //};
+    var xhr = new XMLHttpRequest(),
+        timeout = args.timeout || 2 * 60 * 1000;
 
-    //xhr.onerror = function (e) {
-      //++requestFailureCount;
-      //log.error(e, Log.examine(args));
-      //if (args.onError) {
-        //args.onError(this, args, e);
-      //}
-    //};
+    xhr.onreadystatechange = function () {
+      if (this.readyState == 4) {
+        if (this.status == 200) {
+          requestFailureCount = 0;
+          if (args.onSuccess) {
+            args.onSuccess(this);
+          }
+        } else {
+          log.warn('xhr request failed with status', this.status);
+          if (this.status == 401 && args.onAuthError) {
+            args.onAuthError(this, args);
+          } else {
+            ++requestFailureCount;
+            if (args.onError) {
+              args.onError(this, args);
+            }
+          }
+        }
+      }
+    };
 
-    //xhr.open(args.method || 'GET', encodeURI(args.url), true);
+    xhr.onerror = function (e) {
+      ++requestFailureCount;
+      log.error(e, Log.examine(args));
+      if (args.onError) {
+        args.onError(this, args, e);
+      }
+    };
 
-    //if (args.headers) {
-      //args.headers.each(function (header, key) {
-        //xhr.setRequestHeader(key, header);
-      //});
-    //}
+    xhr.open(args.method || 'GET', encodeURI(args.url), true);
 
-    //xhr.send(args.payload);
+    if (args.headers) {
+      args.headers.each(function (header, key) {
+        xhr.setRequestHeader(key, header);
+      });
+    }
 
-    //setTimeout(function () {
-      //xhr.abort();
-    //}, timeout);
+    xhr.send(args.payload);
 
-    //return xhr;
+    setTimeout(function () {
+      xhr.abort();
+    }, timeout);
+
+    return xhr;
   };
 
   U.get = U.ajax; 
